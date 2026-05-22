@@ -34,7 +34,7 @@ app.get('/api/health', (req, res) => {
 app.use(express.static(staticDir));
 
 // Cualquier ruta que no sea /api redirige al index.html
-app.get('*', (req, res) => {
+app.get('/{*path}', (req, res) => {
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(staticDir, 'index.html'));
   }
