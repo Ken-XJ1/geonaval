@@ -10,6 +10,8 @@ import pasajerosRoutes from './routes/pasajeros';
 import viajesRoutes from './routes/viajes';
 import gpsRoutes from './routes/gps';
 
+const staticDir = path.join(__dirname, '../dist');
+
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const app = express();
@@ -28,13 +30,13 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', proyecto: 'GeoNaval' });
 });
 
-// Servir archivos estáticos del frontend
-app.use(express.static(path.join(__dirname, '../../dist')));
+// Servir archivos estáticos del frontend (Vite build copiado a server/dist)
+app.use(express.static(staticDir));
 
 // Cualquier ruta que no sea /api redirige al index.html
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(__dirname, '../../dist/index.html'));
+    res.sendFile(path.join(staticDir, 'index.html'));
   }
 });
 
