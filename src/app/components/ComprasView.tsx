@@ -1,10 +1,33 @@
-import { useState } from 'react';
-import { Plus, Ticket, CreditCard, Calendar, Search, Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Ticket, Calendar, Search, Download } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
+
+type CompraRow = {
+  dbId: number;
+  id: string;
+  ticket: string;
+  fecha: string;
+  pasajero: string;
+  documento: string;
+  viaje: string;
+  ruta: string;
+  asiento: string;
+  precio: string;
+  metodoPago: string;
+  estado: 'confirmado' | 'pendiente';
+  vendedor: string;
+};
 
 export function ComprasView() {
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [viajesDisponibles, setViajesDisponibles] = useState<
+    { id: string; label: string; asientos: number }[]
+  >([]);
   const [formData, setFormData] = useState({
     pasajeroNombre: '',
     pasajeroDocumento: '',
@@ -15,50 +38,53 @@ export function ComprasView() {
     metodoPago: 'efectivo',
   });
 
-  const compras = [
-    {
-      id: 'C-001',
-      ticket: 'TKT-001',
-      fecha: '09/05/2026',
-      pasajero: 'Roberto Sánchez',
-      documento: '1122334455',
-      viaje: 'V-001',
-      ruta: 'Quibdó - Istmina',
-      asiento: 'A-15',
-      precio: '$45.000',
-      metodoPago: 'Efectivo',
-      estado: 'confirmado' as const,
-      vendedor: 'Admin Sistema',
-    },
-    {
-      id: 'C-002',
-      ticket: 'TKT-002',
-      fecha: '09/05/2026',
-      pasajero: 'Laura Díaz',
-      documento: '2233445566',
-      viaje: 'V-001',
-      ruta: 'Quibdó - Istmina',
-      asiento: 'A-16',
-      precio: '$45.000',
-      metodoPago: 'Tarjeta',
-      estado: 'confirmado' as const,
-      vendedor: 'Admin Sistema',
-    },
-    {
-      id: 'C-003',
-      ticket: 'TKT-003',
-      fecha: '09/05/2026',
-      pasajero: 'Pedro Morales',
-      documento: '3344556677',
-      viaje: 'V-003',
-      ruta: 'Quibdó - Bellavista',
-      asiento: 'B-10',
-      precio: '$35.000',
-      metodoPago: 'Transferencia',
-      estado: 'pendiente' as const,
-      vendedor: 'Admin Sistema',
-    },
-  ];
+  const [compras, setCompras] = useState<CompraRow[]>([]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [pasajeros, viajes] = await Promise.all([
+        api.getPasajeros() as Promise<Record<string, unknown>[]>,
+        api.getViajes() as Promise<Record<string, unknown>[]>,
+      ]);
+      setViajesDisponibles(
+        viajes.map((v) => ({
+          id: String(v.id),
+          label: `V-${v.id}: ${v.origen} - ${v.destino}`,
+          asientos: 0,
+        }))
+      );
+      setCompras(
+        pasajeros.map((p) => ({
+          dbId: Number(p.id),
+          id: `C-${String(p.id).padStart(3, '0')}`,
+          ticket: `TKT-${String(p.id).padStart(3, '0')}`,
+          fecha: p.created_at
+            ? new Date(p.created_at as string).toLocaleDateString('es-CO')
+            : '—',
+          pasajero: p.nombre as string,
+          documento: p.documento as string,
+          viaje: '—',
+          ruta: '—',
+          asiento: '—',
+          precio: '—',
+          metodoPago: '—',
+          estado: 'confirmado' as const,
+          vendedor: 'Sistema',
+        }))
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar');
+      setCompras([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const columns = [
     { key: 'ticket', label: 'Ticket' },
@@ -76,21 +102,38 @@ export function ComprasView() {
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Nueva compra:', formData);
-    setShowForm(false);
-    // Aquí se generaría el ticket automáticamente
+    try {
+      await api.createPasajero({
+        nombre: formData.pasajeroNombre,
+        documento: formData.pasajeroDocumento,
+        telefono: formData.pasajeroTelefono,
+        email: null,
+      });
+      setShowForm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
   };
 
-  const viajesDisponibles = [
-    { id: 'V-001', label: 'V-001: Quibdó - Istmina (09/05/2026 08:30)', precio: 45000, asientos: 35 },
-    { id: 'V-002', label: 'V-002: Quibdó - Tadó (09/05/2026 09:15)', precio: 40000, asientos: 7 },
-    { id: 'V-003', label: 'V-003: Quibdó - Bellavista (10/05/2026 10:00)', precio: 35000, asientos: 15 },
-  ];
+  const handleDelete = async (row: CompraRow) => {
+    if (!confirm('¿Eliminar este registro?')) return;
+    try {
+      await api.deletePasajero(row.dbId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  if (loading) return <ViewFeedback loading />;
+  if (error && compras.length === 0) return <ViewFeedback error={error} />;
 
   return (
     <div className="space-y-6">
+      {error ? <ViewFeedback error={error} /> : null}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -242,7 +285,7 @@ export function ComprasView() {
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Total Recaudado</p>
-          <p className="text-2xl font-bold text-green-600">$125.000</p>
+          <p className="text-2xl font-bold text-green-600">{compras.length}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Tickets Confirmados</p>
@@ -284,9 +327,7 @@ export function ComprasView() {
       <DataTable
         columns={columns}
         data={compras}
-        onView={(row) => console.log('Ver ticket', row)}
-        onEdit={(row) => console.log('Editar', row)}
-        onDelete={(row) => console.log('Cancelar', row)}
+        onDelete={handleDelete}
       />
     </div>
   );

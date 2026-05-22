@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Navigation, MapPin, Clock, Radio } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
-import { fetchEmbarcaciones } from '../../services/api';
+import { api } from '../../services/api';
 import { mapEmbarcacionToMonitoreo } from '../../services/mappers';
 
 export function MonitoreoView() {
@@ -10,7 +10,7 @@ export function MonitoreoView() {
   >([]);
 
   useEffect(() => {
-    fetchEmbarcaciones()
+    api.getEmbarcaciones()
       .then((rows) =>
         setEmbarcacionesActivas(
           rows

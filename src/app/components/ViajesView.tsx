@@ -1,12 +1,18 @@
-import { useState, useEffect } from 'react';
-import { Plus, Navigation, Calendar, Clock, AlertTriangle, Filter, Download } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Plus, Navigation, Calendar, AlertTriangle, Filter, Download } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
-import { fetchViajes, fetchEmbarcaciones } from '../../services/api';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
 import { mapViajeToUI } from '../../services/mappers';
 
 export function ViajesView() {
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [embarcacionesList, setEmbarcacionesList] = useState<
+    { id: number; nombre: string }[]
+  >([]);
   const [filtroFecha, setFiltroFecha] = useState('');
   const [conflictoDetectado, setConflictoDetectado] = useState(false);
   const [formData, setFormData] = useState({
@@ -25,21 +31,36 @@ export function ViajesView() {
     ReturnType<typeof mapViajeToUI>[]
   >([]);
 
-  useEffect(() => {
-    Promise.all([fetchViajes(), fetchEmbarcaciones()])
-      .then(([viajes, embs]) => {
-        const embMap = new Map(
-          embs.map((e) => [e.id, e.nombre as string])
-        );
-        const finalizados = viajes
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [viajes, embs] = await Promise.all([
+        api.getViajes() as Promise<Record<string, unknown>[]>,
+        api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
+      ]);
+      const embMap = new Map(embs.map((e) => [e.id, e.nombre as string]));
+      setEmbarcacionesList(
+        embs.map((e) => ({ id: Number(e.id), nombre: e.nombre as string }))
+      );
+      setViajesFinalizados(
+        viajes
           .filter((v) => v.estado === 'finalizado')
           .map((v) =>
             mapViajeToUI(v, embMap.get(v.embarcacion_id as number) || '—')
-          );
-        setViajesFinalizados(finalizados);
-      })
-      .catch(() => setViajesFinalizados([]));
+          )
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar');
+      setViajesFinalizados([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Filtrar por fecha
   const viajesFiltrados = filtroFecha
@@ -128,27 +149,47 @@ export function ViajesView() {
   };
 
   const getEmbarcacionNombre = (id: string) => {
-    const embarcaciones: Record<string, string> = {
-      'ferry-sanjose': 'Ferry San José',
-      'lancha-7': 'Lancha Rápida 7',
-      'bote-atrato': 'Bote Atrato',
-    };
-    return embarcaciones[id] || '';
+    const emb = embarcacionesList.find((e) => String(e.id) === id);
+    return emb?.nombre || '';
   };
 
   const handleFormChange = (field: string, value: string) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (conflictoDetectado) {
       alert('⚠️ No se puede programar: Conflicto de horarios detectado');
       return;
     }
-    console.log('Nuevo viaje:', formData);
-    setShowForm(false);
+    try {
+      const fecha_salida = `${formData.fechaSalida}T${formData.horaSalida}:00`;
+      await api.createViaje({
+        fecha_salida,
+        origen: formData.origen,
+        destino: formData.destino,
+        embarcacion_id: parseInt(formData.embarcacion, 10),
+        estado: 'programado',
+      });
+      setShowForm(false);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
   };
+
+  const handleDelete = async (row: ReturnType<typeof mapViajeToUI>) => {
+    if (!confirm('¿Eliminar este viaje?')) return;
+    try {
+      await api.deleteViaje(row.dbId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  const fechasUnicas = [...new Set(viajesFinalizados.map((v) => v.fechaSalida))];
 
   const handleExportarPDF = () => {
     alert('Exportando viajes finalizados en PDF...');
@@ -158,8 +199,13 @@ export function ViajesView() {
     alert('Exportando viajes finalizados en Excel...');
   };
 
+  if (loading) return <ViewFeedback loading />;
+  if (error && viajesFinalizados.length === 0)
+    return <ViewFeedback error={error} />;
+
   return (
     <div className="space-y-6">
+      {error ? <ViewFeedback error={error} /> : null}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -300,8 +346,11 @@ export function ViajesView() {
                 required
               >
                 <option value="">Seleccionar</option>
-                <option value="ferry-sanjose">Ferry San José</option>
-                <option value="lancha-7">Lancha Rápida 7</option>
+                {embarcacionesList.map((e) => (
+                  <option key={e.id} value={String(e.id)}>
+                    {e.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -356,9 +405,11 @@ export function ViajesView() {
                 className="w-full pl-10 pr-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
               >
                 <option value="">Todas las fechas</option>
-                <option value="09/05/2026">09/05/2026</option>
-                <option value="08/05/2026">08/05/2026</option>
-                <option value="07/05/2026">07/05/2026</option>
+                {fechasUnicas.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
               </select>
             </div>
           </div>
@@ -398,13 +449,15 @@ export function ViajesView() {
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Finalizados Hoy</p>
           <p className="text-2xl font-bold text-green-600">
-            {viajesPorFecha['09/05/2026']?.length || 0}
+            {fechasUnicas.length > 0
+              ? viajesPorFecha[fechasUnicas[0]]?.length || 0
+              : 0}
           </p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Ayer</p>
+          <p className="text-sm text-muted-foreground mb-1">Días con viajes</p>
           <p className="text-2xl font-bold text-blue-600">
-            {viajesPorFecha['08/05/2026']?.length || 0}
+            {fechasUnicas.length}
           </p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
@@ -447,7 +500,7 @@ export function ViajesView() {
         <DataTable
           columns={columns}
           data={viajesFiltrados}
-          onView={(row) => console.log('Ver', row)}
+          onDelete={handleDelete}
         />
       </div>
     </div>

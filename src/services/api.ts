@@ -1,201 +1,161 @@
-const API_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const BASE = import.meta.env.VITE_API_URL || '/api';
 
-const TOKEN_KEY = 'geonaval_token';
+const headers = () => ({
+  'Content-Type': 'application/json',
+  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+});
 
-export function getToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY);
-}
-
-export function setToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token);
-}
-
-export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY);
-}
-
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string>),
-  };
-  const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
-
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error((err as { error?: string }).error || 'Error de API');
+async function parseJson<T>(response: Response): Promise<T> {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || (data as { error?: string }).error) {
+    throw new Error(
+      (data as { error?: string }).error || 'Error de API'
+    );
   }
-  return res.json() as Promise<T>;
+  return data as T;
 }
 
-export interface LoginResponse {
-  token: string;
-  rol: string;
-  nombre: string;
-}
-
-export async function login(
-  email: string,
-  password: string
-): Promise<LoginResponse> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}/auth/login`, {
+export const api = {
+  login: async (email: string, password: string) => {
+    const r = await fetch(`${BASE}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
-  } catch {
-    throw new Error(
-      'No se pudo conectar al servidor. Ejecuta en otra terminal: npm run dev'
-    );
-  }
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { error?: string }).error || 'Credenciales inválidas'
-    );
-  }
-  const data = (await res.json()) as LoginResponse;
-  setToken(data.token);
-  return data;
-}
+    const data = await parseJson<{
+      token: string;
+      rol: string;
+      nombre: string;
+    }>(r);
+    localStorage.setItem('token', data.token);
+    return data;
+  },
 
-export async function healthCheck(): Promise<{ status: string; proyecto: string }> {
-  return request('/health');
-}
+  getEmbarcaciones: () =>
+    fetch(`${BASE}/embarcaciones`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  createEmbarcacion: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/embarcaciones`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updateEmbarcacion: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/embarcaciones/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deleteEmbarcacion: (id: number) =>
+    fetch(`${BASE}/embarcaciones/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 
-// Embarcaciones
-export async function fetchEmbarcaciones() {
-  return request<Record<string, unknown>[]>('/embarcaciones');
-}
-export async function fetchEmbarcacion(id: number | string) {
-  return request<Record<string, unknown>>(`/embarcaciones/${id}`);
-}
-export async function createEmbarcacion(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/embarcaciones', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-export async function updateEmbarcacion(
-  id: number | string,
-  body: Record<string, unknown>
-) {
-  return request<Record<string, unknown>>(`/embarcaciones/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
-export async function deleteEmbarcacion(id: number | string) {
-  return request<{ message: string }>(`/embarcaciones/${id}`, { method: 'DELETE' });
-}
+  getPropietarios: () =>
+    fetch(`${BASE}/propietarios`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  createPropietario: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/propietarios`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updatePropietario: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/propietarios/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deletePropietario: (id: number) =>
+    fetch(`${BASE}/propietarios/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 
-// Propietarios
-export async function fetchPropietarios() {
-  return request<Record<string, unknown>[]>('/propietarios');
-}
-export async function createPropietario(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/propietarios', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-export async function updatePropietario(
-  id: number | string,
-  body: Record<string, unknown>
-) {
-  return request<Record<string, unknown>>(`/propietarios/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
-export async function deletePropietario(id: number | string) {
-  return request<{ message: string }>(`/propietarios/${id}`, { method: 'DELETE' });
-}
+  getTripulacion: () =>
+    fetch(`${BASE}/tripulacion`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  createTripulante: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/tripulacion`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updateTripulante: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/tripulacion/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deleteTripulante: (id: number) =>
+    fetch(`${BASE}/tripulacion/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 
-// Tripulación
-export async function fetchTripulacion() {
-  return request<Record<string, unknown>[]>('/tripulacion');
-}
-export async function createTripulante(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/tripulacion', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-export async function updateTripulante(
-  id: number | string,
-  body: Record<string, unknown>
-) {
-  return request<Record<string, unknown>>(`/tripulacion/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
-export async function deleteTripulante(id: number | string) {
-  return request<{ message: string }>(`/tripulacion/${id}`, { method: 'DELETE' });
-}
+  getPasajeros: () =>
+    fetch(`${BASE}/pasajeros`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  createPasajero: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/pasajeros`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updatePasajero: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/pasajeros/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deletePasajero: (id: number) =>
+    fetch(`${BASE}/pasajeros/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 
-// Pasajeros
-export async function fetchPasajeros() {
-  return request<Record<string, unknown>[]>('/pasajeros');
-}
-export async function createPasajero(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/pasajeros', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-export async function updatePasajero(
-  id: number | string,
-  body: Record<string, unknown>
-) {
-  return request<Record<string, unknown>>(`/pasajeros/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
-export async function deletePasajero(id: number | string) {
-  return request<{ message: string }>(`/pasajeros/${id}`, { method: 'DELETE' });
-}
+  getViajes: () =>
+    fetch(`${BASE}/viajes`, { headers: headers() }).then((r) => parseJson(r)),
+  createViaje: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/viajes`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updateViaje: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/viajes/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deleteViaje: (id: number) =>
+    fetch(`${BASE}/viajes/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 
-// Viajes
-export async function fetchViajes() {
-  return request<Record<string, unknown>[]>('/viajes');
-}
-export async function createViaje(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/viajes', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
-export async function updateViaje(
-  id: number | string,
-  body: Record<string, unknown>
-) {
-  return request<Record<string, unknown>>(`/viajes/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(body),
-  });
-}
-export async function deleteViaje(id: number | string) {
-  return request<{ message: string }>(`/viajes/${id}`, { method: 'DELETE' });
-}
-
-// GPS
-export async function fetchGpsByViaje(viajeId: number | string) {
-  return request<Record<string, unknown>[]>(`/gps/viaje/${viajeId}`);
-}
-export async function createUbicacionGps(body: Record<string, unknown>) {
-  return request<Record<string, unknown>>('/gps', {
-    method: 'POST',
-    body: JSON.stringify(body),
-  });
-}
+  getUsuarios: () =>
+    fetch(`${BASE}/usuarios`, { headers: headers() }).then((r) => parseJson(r)),
+  createUsuario: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/usuarios`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  updateUsuario: (id: number, data: Record<string, unknown>) =>
+    fetch(`${BASE}/usuarios/${id}`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  deleteUsuario: (id: number) =>
+    fetch(`${BASE}/usuarios/${id}`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
+};

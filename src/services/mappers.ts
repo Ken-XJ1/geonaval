@@ -1,3 +1,5 @@
+export type WithDbId<T> = T & { dbId: number };
+
 function formatDate(d: string | Date): string {
   const date = new Date(d);
   if (Number.isNaN(date.getTime())) return String(d);
@@ -17,39 +19,58 @@ function formatTime(d: string | Date): string {
   });
 }
 
-function rolLabel(rol: string): string {
-  const labels: Record<string, string> = {
-    capitan: 'Capitán',
-    copiloto: 'Copiloto',
-    ayudante_cubierta: 'Ayudante de Cubierta',
-    motorista: 'Motorista',
-    auxiliar_pasajeros: 'Auxiliar de Pasajeros',
-  };
-  return labels[rol] || rol;
-}
+const rolLabels: Record<string, string> = {
+  administrador: 'Administrador',
+  operador: 'Operador Fluvial',
+  cliente: 'Cliente',
+  autoridad: 'Autoridad',
+  capitan: 'Capitán',
+  copiloto: 'Copiloto',
+  ayudante_cubierta: 'Ayudante de Cubierta',
+  motorista: 'Motorista',
+  auxiliar_pasajeros: 'Auxiliar de Pasajeros',
+};
 
 export function mapEmbarcacionToUI(
   row: Record<string, unknown>,
   propietarioNombre = '—'
-) {
+): WithDbId<{
+  id: string;
+  nombre: string;
+  tipo: string;
+  capacidad: number;
+  estado: 'operativa' | 'mantenimiento' | 'fuera_servicio' | 'inspeccion';
+  propietario: string;
+  viajesAsignados: number;
+  tripulacion: string[];
+  viajes: string[];
+  ubicacionMantenimiento: {
+    lugar: string;
+    direccion: string;
+    coordenadas: string;
+  } | null;
+  detallesMantenimiento: {
+    tipo: string;
+    fechaIngreso: string;
+    fechaEstimadaSalida: string;
+    descripcion: string;
+  } | null;
+}> {
   const estado = row.estado as string;
   return {
+    dbId: Number(row.id),
     id: `E-${String(row.id).padStart(3, '0')}`,
     nombre: row.nombre as string,
-    tipo: row.tipo as string,
+    tipo: (row.tipo as string) || '—',
     capacidad: row.capacidad_pasajeros as number,
     estado: estado as 'operativa' | 'mantenimiento' | 'fuera_servicio' | 'inspeccion',
     propietario: propietarioNombre,
     viajesAsignados: 0,
-    tripulacion: [] as string[],
-    viajes: [] as string[],
+    tripulacion: [],
+    viajes: [],
     ubicacionMantenimiento:
       estado === 'mantenimiento'
-        ? {
-            lugar: 'Taller asignado',
-            direccion: '—',
-            coordenadas: '—',
-          }
+        ? { lugar: 'Taller asignado', direccion: '—', coordenadas: '—' }
         : null,
     detallesMantenimiento:
       estado === 'mantenimiento'
@@ -67,6 +88,7 @@ export function mapPropietarioToUI(row: Record<string, unknown>) {
   const tipo = row.tipo as string;
   const isEmpresa = tipo === 'empresa';
   return {
+    dbId: Number(row.id),
     id: `P-${String(row.id).padStart(3, '0')}`,
     nombre: row.nombre as string,
     tipo: isEmpresa ? 'Empresa' : 'Natural',
@@ -80,10 +102,11 @@ export function mapPropietarioToUI(row: Record<string, unknown>) {
 
 export function mapTripulacionToUI(row: Record<string, unknown>) {
   return {
+    dbId: Number(row.id),
     id: `T-${String(row.id).padStart(3, '0')}`,
     nombre: row.nombre as string,
     documento: row.documento as string,
-    rol: rolLabel(row.rol as string),
+    rol: rolLabels[row.rol as string] || (row.rol as string),
     licencias: (row.licencias as string) || '—',
     telefono: (row.telefono as string) || '—',
     estado: (row.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo',
@@ -95,6 +118,7 @@ export function mapTripulacionToUI(row: Record<string, unknown>) {
 
 export function mapPasajeroToUI(row: Record<string, unknown>) {
   return {
+    dbId: Number(row.id),
     id: `PS-${String(row.id).padStart(3, '0')}`,
     nombre: row.nombre as string,
     documento: row.documento as string,
@@ -117,6 +141,7 @@ export function mapViajeToUI(
   const origen = row.origen as string;
   const destino = row.destino as string;
   return {
+    dbId: Number(row.id),
     id: `V-${String(row.id).padStart(3, '0')}`,
     fechaSalida: formatDate(fecha),
     horaSalida: formatTime(fecha),
@@ -154,6 +179,21 @@ export function mapViajeToDashboard(
   };
 }
 
+export function mapUsuarioToUI(row: Record<string, unknown>) {
+  return {
+    dbId: Number(row.id),
+    id: `U-${String(row.id).padStart(3, '0')}`,
+    nombre: row.nombre as string,
+    email: row.email as string,
+    rolDb: row.rol as string,
+    rol: rolLabels[row.rol as string] || (row.rol as string),
+    estado: (row.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo',
+    ultimoAcceso: row.created_at
+      ? formatDate(row.created_at as string)
+      : '—',
+  };
+}
+
 export function mapEmbarcacionToMonitoreo(row: Record<string, unknown>) {
   return {
     id: `E-${String(row.id).padStart(3, '0')}`,
@@ -168,3 +208,11 @@ export function mapEmbarcacionToMonitoreo(row: Record<string, unknown>) {
     alertas: 0,
   };
 }
+
+export const tripulacionRolToDb: Record<string, string> = {
+  operador: 'capitan',
+  'segundo-operador': 'copiloto',
+  'auxiliar-cubierta': 'ayudante_cubierta',
+  motorista: 'motorista',
+  'auxiliar-pasajeros': 'auxiliar_pasajeros',
+};

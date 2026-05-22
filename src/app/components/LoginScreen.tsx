@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { LogoFull } from './Logo';
-import { login } from '../../services/api';
+import { api } from '../../services/api';
 
 interface LoginScreenProps {
   onLogin: (role: string) => void;
@@ -20,7 +20,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     setError('');
     setLoading(true);
     try {
-      const data = await login(email, password);
+      const data = await api.login(email, password);
       onLogin(data.rol);
     } catch (err) {
       setError(

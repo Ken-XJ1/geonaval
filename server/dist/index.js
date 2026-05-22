@@ -14,6 +14,7 @@ const tripulacion_1 = __importDefault(require("./routes/tripulacion"));
 const pasajeros_1 = __importDefault(require("./routes/pasajeros"));
 const viajes_1 = __importDefault(require("./routes/viajes"));
 const gps_1 = __importDefault(require("./routes/gps"));
+const usuarios_1 = __importDefault(require("./routes/usuarios"));
 const staticDir = path_1.default.join(__dirname, '../dist');
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../../.env') });
 const app = (0, express_1.default)();
@@ -26,13 +27,14 @@ app.use('/api/tripulacion', tripulacion_1.default);
 app.use('/api/pasajeros', pasajeros_1.default);
 app.use('/api/viajes', viajes_1.default);
 app.use('/api/gps', gps_1.default);
+app.use('/api/usuarios', usuarios_1.default);
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', proyecto: 'GeoNaval' });
 });
 // Servir archivos estáticos del frontend (Vite build copiado a server/dist)
 app.use(express_1.default.static(staticDir));
 // Cualquier ruta que no sea /api redirige al index.html
-app.get('*', (req, res) => {
+app.get('/{*path}', (req, res) => {
     if (!req.path.startsWith('/api')) {
         res.sendFile(path_1.default.join(staticDir, 'index.html'));
     }

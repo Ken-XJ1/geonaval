@@ -9,6 +9,7 @@ import tripulacionRoutes from './routes/tripulacion';
 import pasajerosRoutes from './routes/pasajeros';
 import viajesRoutes from './routes/viajes';
 import gpsRoutes from './routes/gps';
+import usuariosRoutes from './routes/usuarios';
 
 const staticDir = path.join(__dirname, '../dist');
 
@@ -25,6 +26,7 @@ app.use('/api/tripulacion', tripulacionRoutes);
 app.use('/api/pasajeros', pasajerosRoutes);
 app.use('/api/viajes', viajesRoutes);
 app.use('/api/gps', gpsRoutes);
+app.use('/api/usuarios', usuariosRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', proyecto: 'GeoNaval' });

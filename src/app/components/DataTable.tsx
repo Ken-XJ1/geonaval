@@ -43,7 +43,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
                   colSpan={columns.length + 1}
                   className="px-6 py-8 text-center text-muted-foreground"
                 >
-                  No hay datos disponibles
+                  No hay registros aún
                 </td>
               </tr>
             ) : (

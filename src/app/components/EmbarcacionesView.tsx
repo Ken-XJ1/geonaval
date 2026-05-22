@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 import { Plus, Ship, ChevronDown, ChevronUp, MapPin, Wrench } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
-import { fetchEmbarcaciones, fetchPropietarios } from '../../services/api';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
 import { mapEmbarcacionToUI } from '../../services/mappers';
 
 export function EmbarcacionesView() {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [propietariosList, setPropietariosList] = useState<
+    { id: number; nombre: string }[]
+  >([]);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nombre: '',
@@ -21,32 +28,83 @@ export function EmbarcacionesView() {
     ReturnType<typeof mapEmbarcacionToUI>[]
   >([]);
 
-  useEffect(() => {
-    Promise.all([fetchEmbarcaciones(), fetchPropietarios()])
-      .then(([embs, props]) => {
-        const propMap = new Map(
-          props.map((p) => [p.id, p.nombre as string])
-        );
-        setEmbarcaciones(
-          embs.map((e) =>
-            mapEmbarcacionToUI(
-              e,
-              propMap.get(e.propietario_id as number) || '—'
-            )
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [embs, props] = await Promise.all([
+        api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
+        api.getPropietarios() as Promise<Record<string, unknown>[]>,
+      ]);
+      const propMap = new Map(
+        props.map((p) => [p.id, p.nombre as string])
+      );
+      setPropietariosList(
+        props.map((p) => ({ id: Number(p.id), nombre: p.nombre as string }))
+      );
+      setEmbarcaciones(
+        embs.map((e) =>
+          mapEmbarcacionToUI(
+            e,
+            propMap.get(e.propietario_id as number) || '—'
           )
-        );
-      })
-      .catch(() => setEmbarcaciones([]));
+        )
+      );
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar');
+      setEmbarcaciones([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Nueva embarcación:', formData);
-    setShowForm(false);
+    try {
+      const body = {
+        nic: `NIC-${editingId || Date.now()}`,
+        nombre: formData.nombre,
+        tipo: formData.tipo,
+        capacidad_pasajeros: parseInt(formData.capacidad, 10),
+        motor: formData.caracteristicas || null,
+        potencia: null,
+        dimensiones: null,
+        estado: formData.estado.replace('fuera-servicio', 'fuera_servicio'),
+        propietario_id: formData.propietario
+          ? parseInt(formData.propietario, 10)
+          : null,
+      };
+      if (editingId) await api.updateEmbarcacion(editingId, body);
+      else await api.createEmbarcacion(body);
+      setShowForm(false);
+      setEditingId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
   };
+
+  const handleDelete = async (dbId: number) => {
+    if (!confirm('¿Eliminar esta embarcación?')) return;
+    try {
+      await api.deleteEmbarcacion(dbId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  if (loading) return <ViewFeedback loading />;
+  if (error && embarcaciones.length === 0)
+    return <ViewFeedback error={error} />;
 
   return (
     <div className="space-y-6">
+      {error ? <ViewFeedback error={error} /> : null}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -127,9 +185,11 @@ export function EmbarcacionesView() {
                 required
               >
                 <option value="">Seleccionar propietario</option>
-                <option value="naviera-choco">Naviera del Chocó</option>
-                <option value="juan-perez">Juan Pérez</option>
-                <option value="maria-gonzalez">María González</option>
+                {propietariosList.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.nombre}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -216,6 +276,13 @@ export function EmbarcacionesView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
+              {embarcaciones.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">
+                    No hay registros aún
+                  </td>
+                </tr>
+              ) : null}
               {embarcaciones.map((emb) => (
                 <>
                   <tr key={emb.id} className="hover:bg-muted/50 transition-colors">

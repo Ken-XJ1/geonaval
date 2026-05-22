@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Anchor } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
-import { fetchTripulacion } from '../../services/api';
-import { mapTripulacionToUI } from '../../services/mappers';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
+import { mapTripulacionToUI, tripulacionRolToDb } from '../../services/mappers';
 
 export function TripulacionView() {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [tripulacion, setTripulacion] = useState<
+    ReturnType<typeof mapTripulacionToUI>[]
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     documento: '',
@@ -16,15 +23,23 @@ export function TripulacionView() {
     email: '',
   });
 
-  const [tripulacion, setTripulacion] = useState<
-    ReturnType<typeof mapTripulacionToUI>[]
-  >([]);
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = (await api.getTripulacion()) as Record<string, unknown>[];
+      setTripulacion(rows.map(mapTripulacionToUI));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar');
+      setTripulacion([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    fetchTripulacion()
-      .then((rows) => setTripulacion(rows.map(mapTripulacionToUI)))
-      .catch(() => setTripulacion([]));
-  }, []);
+    load();
+  }, [load]);
 
   const columns = [
     { key: 'nombre', label: 'Nombre Completo' },
@@ -35,26 +50,72 @@ export function TripulacionView() {
     {
       key: 'estado',
       label: 'Estado',
-      render: (value: any) => <StatusBadge status={value} />,
+      render: (value: string) => <StatusBadge status={value} />,
     },
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Nueva tripulación:', formData);
-    setShowForm(false);
+    try {
+      const body = {
+        nombre: formData.nombreCompleto,
+        documento: formData.documento,
+        rol: tripulacionRolToDb[formData.rol] || 'capitan',
+        telefono: formData.telefono,
+        email: formData.email,
+        licencias: formData.licencias,
+        activo: true,
+      };
+      if (editingId) await api.updateTripulante(editingId, body);
+      else await api.createTripulante(body);
+      setShowForm(false);
+      setEditingId(null);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
   };
+
+  const handleEdit = (row: ReturnType<typeof mapTripulacionToUI>) => {
+    setEditingId(row.dbId);
+    setFormData({
+      nombreCompleto: row.nombre,
+      documento: row.documento,
+      rol: 'operador',
+      licencias: row.licencias === '—' ? '' : row.licencias,
+      telefono: row.telefono === '—' ? '' : row.telefono,
+      email: '',
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (row: ReturnType<typeof mapTripulacionToUI>) => {
+    if (!confirm('¿Eliminar este tripulante?')) return;
+    try {
+      await api.deleteTripulante(row.dbId);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  if (loading) return <ViewFeedback loading />;
+  if (error && tripulacion.length === 0)
+    return <ViewFeedback error={error} />;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {error ? <ViewFeedback error={error} /> : null}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-foreground">Gestión de Tripulación</h2>
           <p className="text-muted-foreground">Administra el personal operativo de las embarcaciones</p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingId(null);
+            setShowForm(!showForm);
+          }}
           className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
         >
           <Plus className="w-5 h-5" />
@@ -62,7 +123,6 @@ export function TripulacionView() {
         </button>
       </div>
 
-      {/* Info Alert */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex gap-3">
         <Anchor className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
         <div>
@@ -73,10 +133,11 @@ export function TripulacionView() {
         </div>
       </div>
 
-      {/* Form */}
       {showForm && (
         <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-          <h3 className="font-semibold mb-4">Registrar Nuevo Tripulante</h3>
+          <h3 className="font-semibold mb-4">
+            {editingId ? 'Editar Tripulante' : 'Registrar Nuevo Tripulante'}
+          </h3>
           <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Nombre Completo</label>
@@ -85,11 +146,9 @@ export function TripulacionView() {
                 value={formData.nombreCompleto}
                 onChange={(e) => setFormData({ ...formData, nombreCompleto: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="Juan Pérez García"
                 required
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Documento</label>
               <input
@@ -97,11 +156,9 @@ export function TripulacionView() {
                 value={formData.documento}
                 onChange={(e) => setFormData({ ...formData, documento: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="1234567890"
                 required
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Rol</label>
               <select
@@ -116,7 +173,6 @@ export function TripulacionView() {
                 <option value="auxiliar-pasajeros">Auxiliar de Pasajeros</option>
               </select>
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Licencias</label>
               <input
@@ -124,10 +180,8 @@ export function TripulacionView() {
                 value={formData.licencias}
                 onChange={(e) => setFormData({ ...formData, licencias: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="Licencia A-123"
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Teléfono</label>
               <input
@@ -135,11 +189,9 @@ export function TripulacionView() {
                 value={formData.telefono}
                 onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="+57 300 1234567"
                 required
               />
             </div>
-
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
               <input
@@ -147,10 +199,8 @@ export function TripulacionView() {
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="correo@ejemplo.com"
               />
             </div>
-
             <div className="md:col-span-2 flex gap-3 justify-end">
               <button
                 type="button"
@@ -159,10 +209,7 @@ export function TripulacionView() {
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-              >
+              <button type="submit" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
                 Guardar Tripulante
               </button>
             </div>
@@ -170,23 +217,10 @@ export function TripulacionView() {
         </div>
       )}
 
-      {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Total Tripulantes</p>
           <p className="text-2xl font-bold text-foreground">{tripulacion.length}</p>
-        </div>
-        <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Operadores Fluviales</p>
-          <p className="text-2xl font-bold text-primary">
-            {tripulacion.filter((t) => t.rol === 'Operador Fluvial').length}
-          </p>
-        </div>
-        <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Personal Auxiliar</p>
-          <p className="text-2xl font-bold text-blue-600">
-            {tripulacion.filter((t) => t.rol !== 'Operador Fluvial').length}
-          </p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Activos</p>
@@ -196,13 +230,11 @@ export function TripulacionView() {
         </div>
       </div>
 
-      {/* Table */}
       <DataTable
         columns={columns}
         data={tripulacion}
-        onView={(row) => console.log('Ver', row)}
-        onEdit={(row) => console.log('Editar', row)}
-        onDelete={(row) => console.log('Eliminar', row)}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
       />
     </div>
   );
