@@ -20,10 +20,13 @@ export function ViajesView() {
     horaSalida: '',
     fechaLlegada: '',
     horaLlegada: '',
+    cierreInscripcionFecha: '',
+    cierreInscripcionHora: '',
     origen: 'Quibdó',
     destino: '',
     embarcacion: '',
     operador: '',
+    precio: '',
     pasajeros: [] as string[],
   });
 
@@ -92,6 +95,19 @@ export function ViajesView() {
   const columns = [
     { key: 'id', label: 'ID' },
     { key: 'ruta', label: 'Ruta' },
+    {
+      key: 'precio',
+      label: 'Precio',
+      render: (_: unknown, row: ReturnType<typeof mapViajeToUI>) => (
+        <span className="font-medium text-green-700">
+          {new Intl.NumberFormat('es-CO', {
+            style: 'currency',
+            currency: 'COP',
+            maximumFractionDigits: 0,
+          }).format(row.precio ?? 0)}
+        </span>
+      ),
+    },
     { key: 'embarcacion', label: 'Embarcación' },
     { key: 'operador', label: 'Operador Asignado' },
     {
@@ -177,11 +193,18 @@ export function ViajesView() {
     }
     try {
       const fecha_salida = `${formData.fechaSalida}T${formData.horaSalida}:00`;
+      const cierre_inscripcion = formData.cierreInscripcionFecha
+        ? `${formData.cierreInscripcionFecha}T${formData.cierreInscripcionHora || '23:59'}:00`
+        : new Date(
+            new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000
+          ).toISOString();
       await api.createViaje({
         fecha_salida,
+        cierre_inscripcion,
         origen: formData.origen,
         destino: formData.destino,
         embarcacion_id: parseInt(formData.embarcacion, 10),
+        precio: parseFloat(formData.precio) || 0,
         estado: 'programado',
       });
       setShowForm(false);
@@ -414,17 +437,50 @@ export function ViajesView() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Operador</label>
-              <select
-                value={formData.operador}
-                onChange={(e) => handleFormChange('operador', e.target.value)}
+              <label className="block text-sm font-medium mb-2">
+                Precio del viaje (COP)
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1000"
+                value={formData.precio}
+                onChange={(e) => handleFormChange('precio', e.target.value)}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                placeholder="Ej: 45000"
                 required
-              >
-                <option value="">Seleccionar</option>
-                <option value="juan-perez">Juan Pérez</option>
-                <option value="maria-gonzalez">María González</option>
-              </select>
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Cierre inscripción (fecha)
+              </label>
+              <input
+                type="date"
+                value={formData.cierreInscripcionFecha}
+                onChange={(e) =>
+                  handleFormChange('cierreInscripcionFecha', e.target.value)
+                }
+                className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Cierre inscripción (hora)
+              </label>
+              <input
+                type="time"
+                value={formData.cierreInscripcionHora}
+                onChange={(e) =>
+                  handleFormChange('cierreInscripcionHora', e.target.value)
+                }
+                className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Si lo dejas vacío, cierra 2 h antes de la salida
+              </p>
             </div>
 
             <div className="md:col-span-2 flex gap-3 justify-end">

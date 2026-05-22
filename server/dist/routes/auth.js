@@ -47,8 +47,14 @@ const DEMO_ACCOUNTS = [
     },
 ];
 function signToken(user) {
-    const token = jsonwebtoken_1.default.sign({ id: user.id, rol: user.rol, nombre: user.nombre }, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
-    return { token, rol: user.rol, nombre: user.nombre };
+    const token = jsonwebtoken_1.default.sign({ id: user.id, rol: user.rol, nombre: user.nombre, email: user.email }, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
+    return {
+        token,
+        rol: user.rol,
+        nombre: user.nombre,
+        id: user.id,
+        email: user.email,
+    };
 }
 function findDemoAccount(email, password) {
     return DEMO_ACCOUNTS.find((a) => a.email === email?.trim().toLowerCase() && a.password === password);
@@ -61,7 +67,7 @@ router.post('/login', async (req, res) => {
     }
     const demo = findDemoAccount(email, password);
     if (demo) {
-        return res.json(signToken(demo));
+        return res.json(signToken({ ...demo, email }));
     }
     try {
         const result = await pool_1.default.query('SELECT * FROM usuarios WHERE LOWER(email) = $1 AND activo = true', [email]);
@@ -81,6 +87,7 @@ router.post('/login', async (req, res) => {
             id: user.id,
             rol: user.rol,
             nombre: user.nombre,
+            email: user.email,
         }));
     }
     catch {

@@ -11,6 +11,7 @@ import viajesRoutes from './routes/viajes';
 import gpsRoutes from './routes/gps';
 import usuariosRoutes from './routes/usuarios';
 import incidentesRoutes from './routes/incidentes';
+import clienteRoutes from './routes/cliente';
 import { ensureSchema } from './db/initSchema';
 import pool from './db/pool';
 
@@ -31,6 +32,7 @@ app.use('/api/viajes', viajesRoutes);
 app.use('/api/gps', gpsRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/incidentes', incidentesRoutes);
+app.use('/api/cliente', clienteRoutes);
 
 app.get('/api/health', async (_req, res) => {
   try {

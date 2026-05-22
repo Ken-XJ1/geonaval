@@ -1,165 +1,348 @@
-import { Ship, Clock, MapPin, Calendar, Navigation } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import {
+  Ship,
+  Clock,
+  MapPin,
+  Calendar,
+  Navigation,
+  Ticket,
+  DollarSign,
+} from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
+
+type ViajeDisponible = {
+  id: number;
+  origen: string;
+  destino: string;
+  fecha_salida: string;
+  cierre_inscripcion: string | null;
+  precio: number;
+  embarcacion_nombre: string;
+  capacidad_pasajeros: number;
+  pasajeros_count: number;
+  cupos_disponibles: number;
+};
+
+type MiReserva = ViajeDisponible & {
+  asiento: string;
+  precio_pagado: number;
+  estado: string;
+};
+
+function formatCOP(value: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatDateTime(d: string) {
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatTime(d: string) {
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString('es-CO', {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function formatDate(d: string) {
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function useCountdown(target: string | null | undefined) {
+  const [text, setText] = useState('—');
+
+  useEffect(() => {
+    if (!target) {
+      setText('Sin límite');
+      return;
+    }
+    const tick = () => {
+      const diff = new Date(target).getTime() - Date.now();
+      if (diff <= 0) {
+        setText('Inscripción cerrada');
+        return;
+      }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setText(`${h}h ${m}m ${s}s`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [target]);
+
+  return text;
+}
+
+function inscripcionAbierta(until: string | null | undefined) {
+  if (!until) return true;
+  return new Date(until).getTime() > Date.now();
+}
+
+function CountdownBadge({ until }: { until: string | null | undefined }) {
+  const text = useCountdown(until);
+  const closed = text === 'Inscripción cerrada';
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+        closed ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-800'
+      }`}
+    >
+      <Clock className="w-3 h-3" />
+      {closed ? text : `Cierra en: ${text}`}
+    </span>
+  );
+}
 
 export function ClienteDashboard() {
-  // Información del viaje del cliente
-  const miViaje = {
-    id: 'V-001',
-    fechaSalida: '09/05/2026',
-    horaSalida: '08:30 AM',
-    horaLlegada: '11:45 AM',
-    ruta: 'Quibdó - Istmina',
-    origen: 'Quibdó',
-    destino: 'Istmina',
-    embarcacion: 'Ferry San José',
-    estado: 'en-curso' as const,
-    asiento: 'A-15',
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [disponibles, setDisponibles] = useState<ViajeDisponible[]>([]);
+  const [miReserva, setMiReserva] = useState<MiReserva | null>(null);
+  const [reservando, setReservando] = useState<number | null>(null);
+  const [okMsg, setOkMsg] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const [disp, reserva] = await Promise.all([
+        api.getViajesDisponibles() as Promise<ViajeDisponible[]>,
+        api.getMiReserva() as Promise<MiReserva | null>,
+      ]);
+      setDisponibles(disp);
+      setMiReserva(reserva && (reserva as MiReserva).id ? reserva : null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar');
+      setDisponibles([]);
+      setMiReserva(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const handleReservar = async (viajeId: number) => {
+    setReservando(viajeId);
+    setError(null);
+    setOkMsg(null);
+    try {
+      await api.reservarViaje(viajeId);
+      setOkMsg('¡Inscripción exitosa! Tu viaje aparece abajo.');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo inscribir');
+    } finally {
+      setReservando(null);
+    }
   };
+
+  const cierreReserva = useCountdown(miReserva?.cierre_inscripcion);
+
+  if (loading) return <ViewFeedback loading />;
+  if (error && !miReserva && disponibles.length === 0) {
+    return <ViewFeedback error={error} />;
+  }
 
   return (
     <div className="space-y-6">
-      {/* Welcome Banner */}
       <div className="bg-gradient-to-br from-primary to-blue-600 rounded-xl p-6 text-white shadow-lg">
         <h2 className="text-2xl font-bold mb-2">Bienvenido a GEONAVAL</h2>
-        <p className="text-white/90">Información de tu viaje</p>
+        <p className="text-white/90">
+          Consulta viajes disponibles, precios e inscríbete antes del cierre
+        </p>
       </div>
 
-      {/* Estado del Viaje */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold">Tu Viaje</h3>
-          <StatusBadge status={miViaje.estado} />
+      {error ? <ViewFeedback error={error} /> : null}
+      {okMsg ? (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+          {okMsg}
         </div>
+      ) : null}
 
-        {/* Ruta Visual */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between relative">
+      {miReserva ? (
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+            <h3 className="text-xl font-semibold">Tu viaje inscrito</h3>
+            <div className="flex flex-wrap gap-2 items-center">
+              <StatusBadge
+                status={
+                  miReserva.estado === 'en_curso' ? 'en_curso' : 'programado'
+                }
+              />
+              <CountdownBadge until={miReserva.cierre_inscripcion} />
+            </div>
+          </div>
+
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <p className="text-sm text-amber-900 font-medium">
+              Tiempo restante para modificar inscripción
+            </p>
+            <p className="text-2xl font-bold text-amber-700 mt-1">{cierreReserva}</p>
+            <p className="text-xs text-amber-700 mt-1">
+              Cierre oficial: {formatDateTime(miReserva.cierre_inscripcion || '')}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-between relative mb-6">
             <div className="flex-1 text-center">
               <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-2">
                 <MapPin className="w-6 h-6 text-white" />
               </div>
-              <p className="font-semibold">{miViaje.origen}</p>
-              <p className="text-sm text-muted-foreground">{miViaje.horaSalida}</p>
+              <p className="font-semibold">{miReserva.origen}</p>
+              <p className="text-sm text-muted-foreground">
+                {formatTime(miReserva.fecha_salida)}
+              </p>
             </div>
-
             <div className="flex-1 flex items-center justify-center">
-              <div className="flex items-center gap-2">
-                <div className="w-16 h-0.5 bg-primary"></div>
-                <Ship className="w-8 h-8 text-primary" />
-                <div className="w-16 h-0.5 bg-primary"></div>
-              </div>
+              <Ship className="w-8 h-8 text-primary" />
             </div>
-
             <div className="flex-1 text-center">
               <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-2">
                 <MapPin className="w-6 h-6 text-white" />
               </div>
-              <p className="font-semibold">{miViaje.destino}</p>
-              <p className="text-sm text-muted-foreground">{miViaje.horaLlegada}</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Información del Viaje */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-              <Calendar className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className="text-sm text-muted-foreground">Fecha de Viaje</p>
-                <p className="font-medium">{miViaje.fechaSalida}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-              <Ship className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className="text-sm text-muted-foreground">Embarcación</p>
-                <p className="font-medium">{miViaje.embarcacion}</p>
-              </div>
+              <p className="font-semibold">{miReserva.destino}</p>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-              <Clock className="w-5 h-5 text-primary mt-0.5" />
-              <div>
-                <p className="text-sm text-muted-foreground">Hora de Salida</p>
-                <p className="font-medium">{miViaje.horaSalida}</p>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Fecha de salida</p>
+              <p className="font-medium">{formatDate(miReserva.fecha_salida)}</p>
             </div>
-
-            <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg">
-              <Clock className="w-5 h-5 text-green-600 mt-0.5" />
-              <div>
-                <p className="text-sm text-muted-foreground">Llegada Estimada</p>
-                <p className="font-medium text-green-600">{miViaje.horaLlegada}</p>
-              </div>
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Embarcación</p>
+              <p className="font-medium">{miReserva.embarcacion_nombre || '—'}</p>
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg">
+              <p className="text-sm text-muted-foreground">Valor pagado</p>
+              <p className="font-bold text-green-700">
+                {formatCOP(Number(miReserva.precio_pagado || miReserva.precio || 0))}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Asiento */}
-        <div className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-blue-100 rounded-lg border border-primary/20">
-          <div className="flex items-center justify-between">
+          <div className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-blue-100 rounded-lg border border-primary/20 flex justify-between items-center">
             <div>
-              <p className="text-sm text-muted-foreground">Tu Asiento</p>
-              <p className="text-2xl font-bold text-primary">{miViaje.asiento}</p>
+              <p className="text-sm text-muted-foreground">Tu asiento</p>
+              <p className="text-2xl font-bold text-primary">
+                {miReserva.asiento || 'Por asignar'}
+              </p>
             </div>
-            <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center shadow-sm">
-              <p className="text-xl font-bold text-primary">{miViaje.asiento}</p>
-            </div>
+            <Ticket className="w-10 h-10 text-primary opacity-60" />
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-muted/50 border border-border rounded-xl p-6 text-center text-muted-foreground">
+          Aún no tienes un viaje inscrito. Elige uno de los viajes disponibles abajo.
+        </div>
+      )}
 
-      {/* Ubicación Básica */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
         <div className="flex items-center gap-2 mb-4">
           <Navigation className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold">Ubicación del Viaje</h3>
+          <h3 className="font-semibold text-lg">Viajes disponibles</h3>
         </div>
-        <div className="aspect-video bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center border border-border">
-          <div className="text-center">
-            <MapPin className="w-16 h-16 text-primary mx-auto mb-3 animate-pulse" />
-            <p className="text-lg font-medium text-primary">En Tránsito</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Tu embarcación está en camino
-            </p>
+
+        {disponibles.length === 0 ? (
+          <p className="text-muted-foreground text-sm py-8 text-center">
+            No hay viajes con inscripción abierta en este momento.
+          </p>
+        ) : (
+          <div className="space-y-4">
+            {disponibles.map((v) => (
+              <div
+                key={v.id}
+                className="p-4 border border-border rounded-xl hover:border-primary/40 transition-colors"
+              >
+                <div className="flex flex-wrap justify-between gap-3 mb-3">
+                  <div>
+                    <p className="font-semibold text-lg">
+                      {v.origen} → {v.destino}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {v.embarcacion_nombre} · Salida:{' '}
+                      {formatDateTime(v.fecha_salida)}
+                    </p>
+                  </div>
+                  <CountdownBadge until={v.cierre_inscripcion} />
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    <span className="font-bold text-green-700">
+                      {formatCOP(Number(v.precio || 0))}
+                    </span>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    <strong className="text-foreground">{v.cupos_disponibles}</strong>{' '}
+                    cupos libres
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Capacidad: {v.capacidad_pasajeros}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    ID: V-{v.id}
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={
+                    reservando === v.id ||
+                    v.cupos_disponibles <= 0 ||
+                    !!miReserva ||
+                    !inscripcionAbierta(v.cierre_inscripcion)
+                  }
+                  onClick={() => handleReservar(v.id)}
+                  className="w-full md:w-auto px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {reservando === v.id
+                    ? 'Inscribiendo...'
+                    : miReserva
+                      ? 'Ya tienes un viaje activo'
+                      : v.cupos_disponibles <= 0
+                        ? 'Sin cupos'
+                        : 'Inscribirme en este viaje'}
+                </button>
+              </div>
+            ))}
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Estado de la Embarcación */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <h3 className="font-semibold mb-4">Estado de la Embarcación</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-            <div className="w-3 h-3 bg-green-500 rounded-full mx-auto mb-2 animate-pulse"></div>
-            <p className="text-sm font-medium text-green-700">Operando</p>
-          </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <p className="text-2xl font-bold text-primary mb-1">45</p>
-            <p className="text-sm text-muted-foreground">Pasajeros</p>
-          </div>
-          <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
-            <p className="text-2xl font-bold text-orange-600 mb-1">2:15</p>
-            <p className="text-sm text-muted-foreground">Restantes</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Información de Contacto */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-6">
-        <h3 className="font-semibold text-primary mb-3">¿Necesitas Ayuda?</h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          Si tienes alguna pregunta o necesitas asistencia durante tu viaje, contáctanos.
+        <h3 className="font-semibold text-primary mb-3">¿Necesitas ayuda?</h3>
+        <p className="text-sm text-muted-foreground mb-2">
+          Teléfono: +57 (4) 670-1234 · soporte@geonaval.gov.co
         </p>
-        <div className="space-y-2 text-sm">
-          <p><strong>Teléfono:</strong> +57 (4) 670-1234</p>
-          <p><strong>Email:</strong> soporte@geonaval.gov.co</p>
-          <p><strong>Atención:</strong> 24/7</p>
-        </div>
       </div>
     </div>
   );

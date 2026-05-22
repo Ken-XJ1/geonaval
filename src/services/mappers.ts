@@ -169,6 +169,8 @@ export function mapViajeToUI(
     embarcacion: emb,
     operador: '—',
     pasajeros: count,
+    precio: Number(row.precio ?? 0),
+    cierreInscripcion: row.cierre_inscripcion as string | undefined,
     estado: row.estado as 'programado' | 'en_curso' | 'finalizado' | 'cancelado',
     duracion: '—',
   };

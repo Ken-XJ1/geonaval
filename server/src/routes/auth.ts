@@ -44,13 +44,24 @@ const DEMO_ACCOUNTS = [
   },
 ];
 
-function signToken(user: { id: number; rol: string; nombre: string }) {
+function signToken(user: {
+  id: number;
+  rol: string;
+  nombre: string;
+  email?: string;
+}) {
   const token = jwt.sign(
-    { id: user.id, rol: user.rol, nombre: user.nombre },
+    { id: user.id, rol: user.rol, nombre: user.nombre, email: user.email },
     process.env.JWT_SECRET || 'secret',
     { expiresIn: '8h' }
   );
-  return { token, rol: user.rol, nombre: user.nombre };
+  return {
+    token,
+    rol: user.rol,
+    nombre: user.nombre,
+    id: user.id,
+    email: user.email,
+  };
 }
 
 function findDemoAccount(email: string, password: string) {
@@ -69,7 +80,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
   const demo = findDemoAccount(email, password);
   if (demo) {
-    return res.json(signToken(demo));
+    return res.json(signToken({ ...demo, email }));
   }
 
   try {
@@ -98,6 +109,7 @@ router.post('/login', async (req: Request, res: Response) => {
         id: user.id,
         rol: user.rol,
         nombre: user.nombre,
+        email: user.email,
       })
     );
   } catch {

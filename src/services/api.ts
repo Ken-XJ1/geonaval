@@ -43,8 +43,13 @@ export const api = {
       token: string;
       rol: string;
       nombre: string;
+      id?: number;
+      email?: string;
     }>(r);
     localStorage.setItem('token', data.token);
+    if (data.id != null) localStorage.setItem('userId', String(data.id));
+    if (data.email) localStorage.setItem('userEmail', data.email);
+    if (data.nombre) localStorage.setItem('userNombre', data.nombre);
     return data;
   },
 
@@ -138,6 +143,31 @@ export const api = {
 
   getViajes: () =>
     fetch(`${BASE}/viajes`, { headers: headers() }).then((r) => parseJson(r)),
+
+  getViajesDisponibles: () =>
+    fetch(`${BASE}/viajes/disponibles`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+
+  getMiReserva: async () => {
+    const r = await fetch(`${BASE}/cliente/mi-reserva`, {
+      headers: headers(),
+    });
+    const data = await r.json().catch(() => null);
+    if (r.status === 401) {
+      localStorage.removeItem('token');
+      throw new Error('Sesión expirada. Vuelve a iniciar sesión.');
+    }
+    if (!r.ok && data?.error) throw new Error(data.error);
+    return data;
+  },
+
+  reservarViaje: (viajeId: number, asiento?: string) =>
+    fetch(`${BASE}/cliente/reservar`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ viaje_id: viajeId, asiento }),
+    }).then((r) => parseJson(r)),
   createViaje: (data: Record<string, unknown>) =>
     fetch(`${BASE}/viajes`, {
       method: 'POST',
@@ -160,11 +190,18 @@ export const api = {
     fetch(`${BASE}/viajes/${viajeId}/pasajeros`, { headers: headers() }).then(
       (r) => parseJson(r)
     ),
-  assignPasajeroViaje: (viajeId: number, pasajeroId: number) =>
+  assignPasajeroViaje: (
+    viajeId: number,
+    pasajeroId: number,
+    extra?: { asiento?: string; precio_pagado?: number }
+  ) =>
     fetch(`${BASE}/viajes/${viajeId}/pasajeros`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ pasajero_id: pasajeroId }),
+      body: JSON.stringify({
+        pasajero_id: pasajeroId,
+        ...extra,
+      }),
     }).then((r) => parseJson(r)),
 
   getIncidentes: () =>

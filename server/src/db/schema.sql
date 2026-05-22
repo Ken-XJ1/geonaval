@@ -56,6 +56,7 @@ CREATE TABLE IF NOT EXISTS tripulacion (
 
 CREATE TABLE IF NOT EXISTS pasajeros (
   id SERIAL PRIMARY KEY,
+  usuario_id INT REFERENCES usuarios(id),
   nombre VARCHAR(100) NOT NULL,
   documento VARCHAR(50) NOT NULL,
   telefono VARCHAR(20),
@@ -66,13 +67,16 @@ CREATE TABLE IF NOT EXISTS pasajeros (
 CREATE TABLE IF NOT EXISTS viajes (
   id SERIAL PRIMARY KEY,
   fecha_salida TIMESTAMP NOT NULL,
+  cierre_inscripcion TIMESTAMP,
   origen VARCHAR(100) NOT NULL,
   destino VARCHAR(100) NOT NULL,
   embarcacion_id INT REFERENCES embarcaciones(id),
+  precio DECIMAL(12,2) DEFAULT 0,
   estado VARCHAR(20) CHECK (estado IN 
     ('programado','en_curso','finalizado','cancelado'))
     DEFAULT 'programado',
   justificacion_cancelacion TEXT,
+  creado_por INT REFERENCES usuarios(id),
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -85,6 +89,9 @@ CREATE TABLE IF NOT EXISTS viaje_tripulacion (
 CREATE TABLE IF NOT EXISTS viaje_pasajeros (
   viaje_id INT REFERENCES viajes(id) ON DELETE CASCADE,
   pasajero_id INT REFERENCES pasajeros(id),
+  usuario_id INT REFERENCES usuarios(id),
+  asiento VARCHAR(20),
+  precio_pagado DECIMAL(12,2),
   PRIMARY KEY (viaje_id, pasajero_id)
 );
 

@@ -22,6 +22,25 @@ router.get('/', async (_req: Request, res: Response) => {
   return res.json(rows);
 });
 
+router.get('/disponibles', async (_req: Request, res: Response) => {
+  const rows = await safeQuery(
+    `SELECT v.*, e.nombre AS embarcacion_nombre, e.capacidad_pasajeros,
+      (SELECT COUNT(*)::int FROM viaje_pasajeros WHERE viaje_id = v.id) AS pasajeros_count
+     FROM viajes v
+     LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+     WHERE v.estado = 'programado'
+       AND (v.cierre_inscripcion IS NULL OR v.cierre_inscripcion > NOW())
+     ORDER BY v.fecha_salida ASC`
+  );
+  return res.json(
+    rows.map((r) => ({
+      ...r,
+      cupos_disponibles:
+        Number(r.capacidad_pasajeros ?? 0) - Number(r.pasajeros_count ?? 0),
+    }))
+  );
+});
+
 router.get('/:id/pasajeros', async (req: Request, res: Response) => {
   const rows = await safeQuery(
     `SELECT p.* FROM pasajeros p
@@ -34,16 +53,27 @@ router.get('/:id/pasajeros', async (req: Request, res: Response) => {
 });
 
 router.post('/:id/pasajeros', async (req: Request, res: Response) => {
-  const { pasajero_id } = req.body;
+  const { pasajero_id, asiento, precio_pagado, usuario_id } = req.body;
   if (!pasajero_id) {
     return res.status(400).json({ error: 'pasajero_id requerido' });
   }
   try {
+    const viaje = await pool.query('SELECT precio FROM viajes WHERE id = $1', [
+      req.params.id,
+    ]);
     await pool.query(
-      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id)
-       VALUES ($1, $2)
-       ON CONFLICT DO NOTHING`,
-      [req.params.id, pasajero_id]
+      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, asiento, precio_pagado, usuario_id)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (viaje_id, pasajero_id) DO UPDATE SET
+         asiento = EXCLUDED.asiento,
+         precio_pagado = EXCLUDED.precio_pagado`,
+      [
+        req.params.id,
+        pasajero_id,
+        asiento || null,
+        precio_pagado ?? viaje.rows[0]?.precio ?? 0,
+        usuario_id || null,
+      ]
     );
     return res.status(201).json({ message: 'Pasajero asignado al viaje' });
   } catch (err) {
@@ -71,9 +101,11 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   const {
     fecha_salida,
+    cierre_inscripcion,
     origen,
     destino,
     embarcacion_id,
+    precio,
     estado,
     justificacion_cancelacion,
   } = req.body;
@@ -82,19 +114,26 @@ router.post('/', async (req: Request, res: Response) => {
       error: 'Fecha, origen, destino y embarcación son requeridos',
     });
   }
+  const user = (req as Request & { user?: { id: number } }).user;
+  const cierre =
+    cierre_inscripcion ||
+    new Date(new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000).toISOString();
   try {
     const result = await pool.query(
       `INSERT INTO viajes
-        (fecha_salida, origen, destino, embarcacion_id, estado, justificacion_cancelacion)
-       VALUES ($1, $2, $3, $4, $5, $6)
+        (fecha_salida, cierre_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
         fecha_salida,
+        cierre,
         origen,
         destino,
         embarcacion_id,
+        precio ?? 0,
         estado ?? 'programado',
         justificacion_cancelacion,
+        user?.id && user.id > 0 ? user.id : null,
       ]
     );
     return res.status(201).json(result.rows[0]);
@@ -109,9 +148,11 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   const {
     fecha_salida,
+    cierre_inscripcion,
     origen,
     destino,
     embarcacion_id,
+    precio,
     estado,
     justificacion_cancelacion,
   } = req.body;
@@ -119,18 +160,22 @@ router.put('/:id', async (req: Request, res: Response) => {
     const result = await pool.query(
       `UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
-        origen = COALESCE($2, origen),
-        destino = COALESCE($3, destino),
-        embarcacion_id = COALESCE($4, embarcacion_id),
-        estado = COALESCE($5, estado),
-        justificacion_cancelacion = COALESCE($6, justificacion_cancelacion)
-       WHERE id = $7
+        cierre_inscripcion = COALESCE($2, cierre_inscripcion),
+        origen = COALESCE($3, origen),
+        destino = COALESCE($4, destino),
+        embarcacion_id = COALESCE($5, embarcacion_id),
+        precio = COALESCE($6, precio),
+        estado = COALESCE($7, estado),
+        justificacion_cancelacion = COALESCE($8, justificacion_cancelacion)
+       WHERE id = $9
        RETURNING *`,
       [
         fecha_salida,
+        cierre_inscripcion,
         origen,
         destino,
         embarcacion_id,
+        precio,
         estado,
         justificacion_cancelacion,
         req.params.id,

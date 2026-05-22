@@ -8,3 +8,13 @@ CREATE TABLE IF NOT EXISTS incidentes (
   reportado_por VARCHAR(100),
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE viajes ADD COLUMN IF NOT EXISTS precio DECIMAL(12,2) DEFAULT 0;
+ALTER TABLE viajes ADD COLUMN IF NOT EXISTS cierre_inscripcion TIMESTAMP;
+ALTER TABLE viajes ADD COLUMN IF NOT EXISTS creado_por INT REFERENCES usuarios(id);
+
+ALTER TABLE pasajeros ADD COLUMN IF NOT EXISTS usuario_id INT REFERENCES usuarios(id);
+
+ALTER TABLE viaje_pasajeros ADD COLUMN IF NOT EXISTS usuario_id INT REFERENCES usuarios(id);
+ALTER TABLE viaje_pasajeros ADD COLUMN IF NOT EXISTS asiento VARCHAR(20);
+ALTER TABLE viaje_pasajeros ADD COLUMN IF NOT EXISTS precio_pagado DECIMAL(12,2);

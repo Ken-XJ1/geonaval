@@ -26,7 +26,7 @@ export function ComprasView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viajesDisponibles, setViajesDisponibles] = useState<
-    { id: string; label: string; asientos: number }[]
+    { id: string; label: string; asientos: number; precio: number }[]
   >([]);
   const [formData, setFormData] = useState({
     pasajeroNombre: '',
@@ -46,13 +46,14 @@ export function ComprasView() {
     try {
       const [pasajeros, viajes] = await Promise.all([
         api.getPasajeros() as Promise<Record<string, unknown>[]>,
-        api.getViajes() as Promise<Record<string, unknown>[]>,
+        api.getViajesDisponibles() as Promise<Record<string, unknown>[]>,
       ]);
       setViajesDisponibles(
         viajes.map((v) => ({
           id: String(v.id),
           label: `V-${v.id}: ${v.origen} - ${v.destino}`,
-          asientos: 0,
+          asientos: Number(v.cupos_disponibles ?? 0),
+          precio: Number(v.precio ?? 0),
         }))
       );
       setCompras(
@@ -115,9 +116,14 @@ export function ComprasView() {
         email: null,
       })) as { id: number };
       if (formData.viaje && created.id) {
+        const viajeSel = viajesDisponibles.find((v) => v.id === formData.viaje);
         await api.assignPasajeroViaje(
           parseInt(formData.viaje, 10),
-          created.id
+          created.id,
+          {
+            asiento: formData.asiento,
+            precio_pagado: parseFloat(formData.precio) || viajeSel?.precio || 0,
+          }
         );
       }
       setShowForm(false);
@@ -216,14 +222,28 @@ export function ComprasView() {
               <label className="block text-sm font-medium mb-2">Viaje</label>
               <select
                 value={formData.viaje}
-                onChange={(e) => setFormData({ ...formData, viaje: e.target.value })}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  const sel = viajesDisponibles.find((v) => v.id === id);
+                  setFormData({
+                    ...formData,
+                    viaje: id,
+                    precio: sel ? String(sel.precio) : formData.precio,
+                  });
+                }}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 required
               >
                 <option value="">Seleccionar viaje</option>
                 {viajesDisponibles.map((viaje) => (
                   <option key={viaje.id} value={viaje.id}>
-                    {viaje.label} - {viaje.asientos} asientos disponibles
+                    {viaje.label} —{' '}
+                    {new Intl.NumberFormat('es-CO', {
+                      style: 'currency',
+                      currency: 'COP',
+                      maximumFractionDigits: 0,
+                    }).format(viaje.precio)}{' '}
+                    ({viaje.asientos} cupos)
                   </option>
                 ))}
               </select>
