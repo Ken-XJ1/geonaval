@@ -28,6 +28,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', proyecto: 'GeoNaval' });
 });
 
+// Servir archivos estáticos del frontend
+app.use(express.static(path.join(__dirname, '../../dist')));
+
+// Cualquier ruta que no sea /api redirige al index.html
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, '../../dist/index.html'));
+  }
+});
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor GeoNaval corriendo en puerto ${PORT}`);
