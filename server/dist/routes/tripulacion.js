@@ -5,17 +5,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const pool_1 = __importDefault(require("../db/pool"));
+const safeQuery_1 = require("../db/safeQuery");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    try {
-        const result = await pool_1.default.query('SELECT * FROM tripulacion ORDER BY id');
-        return res.json(result.rows);
-    }
-    catch {
-        return res.status(500).json({ error: 'Error del servidor' });
-    }
+    const rows = await (0, safeQuery_1.safeQuery)('SELECT * FROM tripulacion ORDER BY id');
+    return res.json(rows);
 });
 router.get('/:id', async (req, res) => {
     try {

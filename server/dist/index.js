@@ -15,6 +15,9 @@ const pasajeros_1 = __importDefault(require("./routes/pasajeros"));
 const viajes_1 = __importDefault(require("./routes/viajes"));
 const gps_1 = __importDefault(require("./routes/gps"));
 const usuarios_1 = __importDefault(require("./routes/usuarios"));
+const incidentes_1 = __importDefault(require("./routes/incidentes"));
+const initSchema_1 = require("./db/initSchema");
+const pool_1 = __importDefault(require("./db/pool"));
 const staticDir = path_1.default.join(__dirname, '../dist');
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../../.env') });
 const app = (0, express_1.default)();
@@ -28,8 +31,15 @@ app.use('/api/pasajeros', pasajeros_1.default);
 app.use('/api/viajes', viajes_1.default);
 app.use('/api/gps', gps_1.default);
 app.use('/api/usuarios', usuarios_1.default);
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', proyecto: 'GeoNaval' });
+app.use('/api/incidentes', incidentes_1.default);
+app.get('/api/health', async (_req, res) => {
+    try {
+        await pool_1.default.query('SELECT 1');
+        res.json({ status: 'ok', proyecto: 'GeoNaval', database: 'connected' });
+    }
+    catch {
+        res.json({ status: 'ok', proyecto: 'GeoNaval', database: 'disconnected' });
+    }
 });
 // Servir archivos estáticos del frontend (Vite build copiado a server/dist)
 app.use(express_1.default.static(staticDir));
@@ -40,6 +50,12 @@ app.get('/{*path}', (req, res) => {
     }
 });
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`Servidor GeoNaval corriendo en puerto ${PORT}`);
+    if (process.env.DATABASE_URL) {
+        await (0, initSchema_1.ensureSchema)();
+    }
+    else {
+        console.warn('DATABASE_URL no configurada — solo login demo disponible');
+    }
 });

@@ -7,7 +7,20 @@ const router = Router();
 router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
-  const rows = await safeQuery('SELECT * FROM pasajeros ORDER BY id');
+  const rows = await safeQuery(
+    `SELECT p.*,
+      v.id AS viaje_id,
+      v.origen,
+      v.destino,
+      v.estado AS viaje_estado,
+      v.fecha_salida,
+      e.nombre AS embarcacion_nombre
+     FROM pasajeros p
+     LEFT JOIN viaje_pasajeros vp ON vp.pasajero_id = p.id
+     LEFT JOIN viajes v ON v.id = vp.viaje_id
+     LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+     ORDER BY p.id`
+  );
   return res.json(rows);
 });
 

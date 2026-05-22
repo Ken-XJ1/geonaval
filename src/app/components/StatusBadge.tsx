@@ -13,6 +13,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
 
   programado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Programado' },
   'en-curso': { bg: 'bg-green-100', text: 'text-green-700', label: 'En Curso' },
+  en_curso: { bg: 'bg-green-100', text: 'text-green-700', label: 'En Curso' },
   finalizado: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Finalizado' },
   cancelado: { bg: 'bg-red-100', text: 'text-red-700', label: 'Cancelado' },
 

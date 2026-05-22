@@ -117,29 +117,46 @@ export function mapTripulacionToUI(row: Record<string, unknown>) {
 }
 
 export function mapPasajeroToUI(row: Record<string, unknown>) {
+  const origen = row.origen as string | undefined;
+  const destino = row.destino as string | undefined;
+  const viajeEstado = row.viaje_estado as string | undefined;
+  const fecha = row.fecha_salida as string | undefined;
+  const estadoPasajero =
+    viajeEstado === 'en_curso'
+      ? 'embarcado'
+      : viajeEstado === 'programado'
+        ? 'confirmado'
+        : 'pendiente';
   return {
     dbId: Number(row.id),
     id: `PS-${String(row.id).padStart(3, '0')}`,
     nombre: row.nombre as string,
     documento: row.documento as string,
     telefono: (row.telefono as string) || '—',
-    viajeAsociado: '—',
-    embarcacion: '—',
-    ruta: '—',
-    horaSalida: '—',
-    horaLlegada: '—',
-    estado: 'pendiente' as const,
-    estadoViaje: 'programado' as const,
+    viajeAsociado: row.viaje_id ? `V-${row.viaje_id}` : '—',
+    embarcacion: (row.embarcacion_nombre as string) || '—',
+    ruta: origen && destino ? `${origen} - ${destino}` : '—',
+    horaSalida: fecha ? formatTime(fecha) : '—',
+    horaLlegada: fecha ? formatTime(fecha) : '—',
+    estado: estadoPasajero as 'confirmado' | 'pendiente' | 'embarcado',
+    estadoViaje: (viajeEstado || 'programado') as
+      | 'programado'
+      | 'en_curso'
+      | 'finalizado'
+      | 'cancelado',
   };
 }
 
 export function mapViajeToUI(
   row: Record<string, unknown>,
-  embarcacionNombre = '—'
+  embarcacionNombre?: string
 ) {
   const fecha = row.fecha_salida as string;
   const origen = row.origen as string;
   const destino = row.destino as string;
+  const emb =
+    embarcacionNombre || (row.embarcacion_nombre as string) || '—';
+  const count = Number(row.pasajeros_count ?? 0);
   return {
     dbId: Number(row.id),
     id: `V-${String(row.id).padStart(3, '0')}`,
@@ -149,9 +166,9 @@ export function mapViajeToUI(
     horaLlegada: formatTime(fecha),
     horaLlegadaReal: formatTime(fecha),
     ruta: `${origen} - ${destino}`,
-    embarcacion: embarcacionNombre,
+    embarcacion: emb,
     operador: '—',
-    pasajeros: 0,
+    pasajeros: count,
     estado: row.estado as 'programado' | 'en_curso' | 'finalizado' | 'cancelado',
     duracion: '—',
   };

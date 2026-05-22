@@ -27,9 +27,13 @@ export function ViajesView() {
     pasajeros: [] as string[],
   });
 
-  const [viajesFinalizados, setViajesFinalizados] = useState<
+  const [filtroEstado, setFiltroEstado] = useState<
+    'todos' | 'programado' | 'en_curso' | 'finalizado' | 'cancelado'
+  >('todos');
+  const [viajesLista, setViajesLista] = useState<
     ReturnType<typeof mapViajeToUI>[]
   >([]);
+  const [saveOk, setSaveOk] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -43,16 +47,19 @@ export function ViajesView() {
       setEmbarcacionesList(
         embs.map((e) => ({ id: Number(e.id), nombre: e.nombre as string }))
       );
-      setViajesFinalizados(
-        viajes
-          .filter((v) => v.estado === 'finalizado')
-          .map((v) =>
-            mapViajeToUI(v, embMap.get(v.embarcacion_id as number) || '—')
+      setViajesLista(
+        viajes.map((v) =>
+          mapViajeToUI(
+            v,
+            (v.embarcacion_nombre as string) ||
+              embMap.get(v.embarcacion_id as number) ||
+              '—'
           )
+        )
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar');
-      setViajesFinalizados([]);
+      setViajesLista([]);
     } finally {
       setLoading(false);
     }
@@ -62,13 +69,18 @@ export function ViajesView() {
     load();
   }, [load]);
 
-  // Filtrar por fecha
-  const viajesFiltrados = filtroFecha
-    ? viajesFinalizados.filter((v) => v.fechaSalida === filtroFecha)
-    : viajesFinalizados;
+  const viajesPorEstado =
+    filtroEstado === 'todos'
+      ? viajesLista
+      : viajesLista.filter((v) => v.estado === filtroEstado);
 
-  // Agrupar por fecha para estadísticas
-  const viajesPorFecha = viajesFinalizados.reduce((acc, viaje) => {
+  const viajesFiltrados = filtroFecha
+    ? viajesPorEstado.filter((v) => v.fechaSalida === filtroFecha)
+    : viajesPorEstado;
+
+  const viajesFinalizados = viajesLista.filter((v) => v.estado === 'finalizado');
+
+  const viajesPorFecha = viajesLista.reduce((acc, viaje) => {
     const fecha = viaje.fechaSalida;
     if (!acc[fecha]) {
       acc[fecha] = [];
@@ -127,7 +139,7 @@ export function ViajesView() {
     const nuevaFechaSalida = new Date(`${fechaSalida}T${horaSalida}`).getTime();
     const nuevaFechaLlegada = new Date(`${fechaLlegada}T${horaLlegada}`).getTime();
 
-    const hayConflicto = viajesFinalizados.some((viaje) => {
+    const hayConflicto = viajesLista.some((viaje) => {
       if (viaje.embarcacion !== getEmbarcacionNombre(embarcacion)) return false;
 
       const viajeExistenteSalida = new Date(`${convertirFecha(viaje.fechaSalida)}T${viaje.horaSalida}`).getTime();
@@ -173,9 +185,23 @@ export function ViajesView() {
         estado: 'programado',
       });
       setShowForm(false);
+      setSaveOk('Viaje programado correctamente. Aparece en la lista con estado Programado.');
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
+  };
+
+  const handleCambiarEstado = async (
+    row: ReturnType<typeof mapViajeToUI>,
+    nuevoEstado: string
+  ) => {
+    try {
+      await api.updateViaje(row.dbId, { estado: nuevoEstado });
+      setSaveOk(`Viaje ${row.id} actualizado a ${nuevoEstado.replace('_', ' ')}`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al actualizar');
     }
   };
 
@@ -189,7 +215,7 @@ export function ViajesView() {
     }
   };
 
-  const fechasUnicas = [...new Set(viajesFinalizados.map((v) => v.fechaSalida))];
+  const fechasUnicas = [...new Set(viajesLista.map((v) => v.fechaSalida))];
 
   const handleExportarPDF = () => {
     alert('Exportando viajes finalizados en PDF...');
@@ -200,17 +226,31 @@ export function ViajesView() {
   };
 
   if (loading) return <ViewFeedback loading />;
-  if (error && viajesFinalizados.length === 0)
+  if (error && viajesLista.length === 0)
     return <ViewFeedback error={error} />;
 
   return (
     <div className="space-y-6">
       {error ? <ViewFeedback error={error} /> : null}
+      {saveOk ? (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
+          {saveOk}
+          <button
+            type="button"
+            className="ml-3 underline"
+            onClick={() => setSaveOk(null)}
+          >
+            Cerrar
+          </button>
+        </div>
+      ) : null}
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-foreground">Historial de Viajes Finalizados</h2>
-          <p className="text-muted-foreground">Registro completo de viajes completados</p>
+          <h2 className="text-2xl font-bold text-foreground">Gestión de Viajes (Zarpe)</h2>
+          <p className="text-muted-foreground">
+            Programa viajes y cambia su estado (programado → en curso → finalizado)
+          </p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
@@ -221,15 +261,34 @@ export function ViajesView() {
         </button>
       </div>
 
-      {/* Info */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex gap-3">
-        <Navigation className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="font-medium text-green-900">Vista de Viajes Finalizados</p>
-          <p className="text-sm text-green-700 mt-1">
-            Esta sección muestra únicamente los viajes que han sido completados. Los viajes en curso o programados se gestionan en otras secciones.
-          </p>
-        </div>
+      {/* Filtro por estado */}
+      <div className="flex flex-wrap gap-2">
+        {(
+          [
+            ['todos', 'Todos'],
+            ['programado', 'Programados'],
+            ['en_curso', 'En curso'],
+            ['finalizado', 'Finalizados'],
+            ['cancelado', 'Cancelados'],
+          ] as const
+        ).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setFiltroEstado(key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              filtroEstado === key
+                ? 'bg-primary text-white'
+                : 'bg-muted text-foreground hover:bg-muted/80'
+            }`}
+          >
+            {label} (
+            {key === 'todos'
+              ? viajesLista.length
+              : viajesLista.filter((v) => v.estado === key).length}
+            )
+          </button>
+        ))}
       </div>
 
       {/* Form - Programar nuevo viaje */}
@@ -443,8 +502,8 @@ export function ViajesView() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Total Finalizados</p>
-          <p className="text-2xl font-bold text-foreground">{viajesFinalizados.length}</p>
+          <p className="text-sm text-muted-foreground mb-1">Total Viajes</p>
+          <p className="text-2xl font-bold text-foreground">{viajesLista.length}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Finalizados Hoy</p>
@@ -463,7 +522,7 @@ export function ViajesView() {
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Total Pasajeros</p>
           <p className="text-2xl font-bold text-primary">
-            {viajesFinalizados.reduce((sum, v) => sum + v.pasajeros, 0)}
+            {viajesLista.reduce((sum, v) => sum + v.pasajeros, 0)}
           </p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
@@ -495,10 +554,49 @@ export function ViajesView() {
       {/* Table */}
       <div>
         <h3 className="font-semibold mb-3">
-          {filtroFecha ? `Viajes del ${filtroFecha}` : 'Todos los Viajes Finalizados'}
+          {filtroFecha
+            ? `Viajes del ${filtroFecha}`
+            : `Viajes (${viajesFiltrados.length})`}
         </h3>
         <DataTable
-          columns={columns}
+          columns={[
+            ...columns,
+            {
+              key: 'acciones',
+              label: 'Acciones',
+              render: (_: unknown, row: ReturnType<typeof mapViajeToUI>) => (
+                <div className="flex flex-wrap gap-1">
+                  {row.estado === 'programado' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCambiarEstado(row, 'en_curso')}
+                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                    >
+                      Iniciar
+                    </button>
+                  )}
+                  {row.estado === 'en_curso' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCambiarEstado(row, 'finalizado')}
+                      className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded"
+                    >
+                      Finalizar
+                    </button>
+                  )}
+                  {row.estado !== 'cancelado' && row.estado !== 'finalizado' && (
+                    <button
+                      type="button"
+                      onClick={() => handleCambiarEstado(row, 'cancelado')}
+                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
+              ),
+            },
+          ]}
           data={viajesFiltrados}
           onDelete={handleDelete}
         />

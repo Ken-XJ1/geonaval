@@ -14,6 +14,7 @@ import { AutoridadesView } from './components/AutoridadesView';
 import { UsuariosView } from './components/UsuariosView';
 import { ConfiguracionView } from './components/ConfiguracionView';
 import { OperadorDashboard } from './components/OperadorDashboard';
+import { ReportarIncidenteView } from './components/ReportarIncidenteView';
 import { ClienteDashboard } from './components/ClienteDashboard';
 import { Footer } from './components/Footer';
 import { ComprasView } from './components/ComprasView';
@@ -91,22 +92,25 @@ export default function App() {
     if (userRole === 'operador') {
       switch (activeView) {
         case 'dashboard':
-          return <OperadorDashboard />;
+          return (
+            <OperadorDashboard
+              onNavigateReportar={() => setActiveView('reportar')}
+            />
+          );
         case 'mis-pasajeros':
-          return <OperadorDashboard />;
+          return <OperadorDashboard section="pasajeros" />;
         case 'mi-ruta':
           return <MonitoreoView />;
         case 'reportar':
-          return (
-            <div className="bg-white rounded-xl border border-border shadow-sm p-12 text-center">
-              <h3 className="text-xl font-semibold mb-2">Reportar Incidente</h3>
-              <p className="text-muted-foreground">Formulario de reporte de incidentes</p>
-            </div>
-          );
+          return <ReportarIncidenteView />;
         case 'configuracion':
           return <ConfiguracionView onLogout={handleLogout} />;
         default:
-          return <OperadorDashboard />;
+          return (
+            <OperadorDashboard
+              onNavigateReportar={() => setActiveView('reportar')}
+            />
+          );
       }
     }
 

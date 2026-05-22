@@ -156,6 +156,28 @@ export const api = {
       headers: headers(),
     }).then((r) => parseJson(r)),
 
+  getViajePasajeros: (viajeId: number) =>
+    fetch(`${BASE}/viajes/${viajeId}/pasajeros`, { headers: headers() }).then(
+      (r) => parseJson(r)
+    ),
+  assignPasajeroViaje: (viajeId: number, pasajeroId: number) =>
+    fetch(`${BASE}/viajes/${viajeId}/pasajeros`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ pasajero_id: pasajeroId }),
+    }).then((r) => parseJson(r)),
+
+  getIncidentes: () =>
+    fetch(`${BASE}/incidentes`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  createIncidente: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/incidentes`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+
   getUsuarios: () =>
     fetch(`${BASE}/usuarios`, { headers: headers() }).then((r) => parseJson(r)),
   createUsuario: (data: Record<string, unknown>) =>

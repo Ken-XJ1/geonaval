@@ -6,17 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const pool_1 = __importDefault(require("../db/pool"));
+const safeQuery_1 = require("../db/safeQuery");
 const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    try {
-        const result = await pool_1.default.query('SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id');
-        return res.json(result.rows);
-    }
-    catch {
-        return res.status(500).json({ error: 'Error del servidor' });
-    }
+    const rows = await (0, safeQuery_1.safeQuery)('SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id');
+    return res.json(rows);
 });
 router.get('/:id', async (req, res) => {
     try {

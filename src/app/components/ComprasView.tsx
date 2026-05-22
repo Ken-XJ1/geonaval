@@ -65,8 +65,11 @@ export function ComprasView() {
             : '—',
           pasajero: p.nombre as string,
           documento: p.documento as string,
-          viaje: '—',
-          ruta: '—',
+          viaje: p.viaje_id ? `V-${p.viaje_id}` : '—',
+          ruta:
+            p.origen && p.destino
+              ? `${p.origen} - ${p.destino}`
+              : '—',
           asiento: '—',
           precio: '—',
           metodoPago: '—',
@@ -105,12 +108,18 @@ export function ComprasView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await api.createPasajero({
+      const created = (await api.createPasajero({
         nombre: formData.pasajeroNombre,
         documento: formData.pasajeroDocumento,
         telefono: formData.pasajeroTelefono,
         email: null,
-      });
+      })) as { id: number };
+      if (formData.viaje && created.id) {
+        await api.assignPasajeroViaje(
+          parseInt(formData.viaje, 10),
+          created.id
+        );
+      }
       setShowForm(false);
       await load();
     } catch (e) {
