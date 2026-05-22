@@ -10,6 +10,8 @@ import pasajerosRoutes from './routes/pasajeros';
 import viajesRoutes from './routes/viajes';
 import gpsRoutes from './routes/gps';
 import usuariosRoutes from './routes/usuarios';
+import { ensureSchema } from './db/initSchema';
+import pool from './db/pool';
 
 const staticDir = path.join(__dirname, '../dist');
 
@@ -28,8 +30,13 @@ app.use('/api/viajes', viajesRoutes);
 app.use('/api/gps', gpsRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', proyecto: 'GeoNaval' });
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1');
+    res.json({ status: 'ok', proyecto: 'GeoNaval', database: 'connected' });
+  } catch {
+    res.json({ status: 'ok', proyecto: 'GeoNaval', database: 'disconnected' });
+  }
 });
 
 // Servir archivos estáticos del frontend (Vite build copiado a server/dist)
@@ -43,6 +50,11 @@ app.get('/{*path}', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Servidor GeoNaval corriendo en puerto ${PORT}`);
+  if (process.env.DATABASE_URL) {
+    await ensureSchema();
+  } else {
+    console.warn('DATABASE_URL no configurada — solo login demo disponible');
+  }
 });

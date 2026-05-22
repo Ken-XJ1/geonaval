@@ -1,20 +1,17 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import pool from '../db/pool';
+import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
 
 const router = Router();
 router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
-  try {
-    const result = await pool.query(
-      'SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id'
-    );
-    return res.json(result.rows);
-  } catch {
-    return res.status(500).json({ error: 'Error del servidor' });
-  }
+  const rows = await safeQuery(
+    'SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id'
+  );
+  return res.json(rows);
 });
 
 router.get('/:id', async (req: Request, res: Response) => {

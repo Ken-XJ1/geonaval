@@ -1,12 +1,29 @@
 const BASE = import.meta.env.VITE_API_URL || '/api';
 
+function getToken(): string {
+  let token = localStorage.getItem('token');
+  if (!token) {
+    const legacy = localStorage.getItem('geonaval_token');
+    if (legacy) {
+      localStorage.setItem('token', legacy);
+      localStorage.removeItem('geonaval_token');
+      token = legacy;
+    }
+  }
+  return token || '';
+}
+
 const headers = () => ({
   'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
+  Authorization: `Bearer ${getToken()}`,
 });
 
 async function parseJson<T>(response: Response): Promise<T> {
   const data = await response.json().catch(() => ({}));
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    throw new Error('Sesión expirada. Vuelve a iniciar sesión.');
+  }
   if (!response.ok || (data as { error?: string }).error) {
     throw new Error(
       (data as { error?: string }).error || 'Error de API'
