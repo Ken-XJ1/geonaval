@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS viajes (
   id SERIAL PRIMARY KEY,
   fecha_salida TIMESTAMP NOT NULL,
   cierre_inscripcion TIMESTAMP,
+  fecha_limite_inscripcion TIMESTAMP,
   origen VARCHAR(100) NOT NULL,
   destino VARCHAR(100) NOT NULL,
   embarcacion_id INT REFERENCES embarcaciones(id),

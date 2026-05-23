@@ -141,7 +141,7 @@ export function ClienteDashboard() {
     try {
       const [disp, reserva] = await Promise.all([
         api.getViajesDisponibles() as Promise<ViajeDisponible[]>,
-        api.getMiReserva() as Promise<MiReserva | null>,
+        api.getMiViaje() as Promise<MiReserva | null>,
       ]);
       setDisponibles(disp);
       setMiReserva(reserva && (reserva as MiReserva).id ? reserva : null);
@@ -158,12 +158,12 @@ export function ClienteDashboard() {
     load();
   }, [load]);
 
-  const handleReservar = async (viajeId: number) => {
+  const handleInscribir = async (viajeId: number) => {
     setReservando(viajeId);
     setError(null);
     setOkMsg(null);
     try {
-      await api.reservarViaje(viajeId);
+      await api.inscribirViaje(viajeId);
       setOkMsg('¡Inscripción exitosa! Tu viaje aparece abajo.');
       await load();
     } catch (e) {
@@ -173,7 +173,23 @@ export function ClienteDashboard() {
     }
   };
 
-  const cierreReserva = useCountdown(miReserva?.cierre_inscripcion);
+  const handleCancelarInscripcion = async (viajeId: number) => {
+    if (!confirm('¿Estás seguro de cancelar tu inscripción?')) return;
+    setLoading(true);
+    setError(null);
+    setOkMsg(null);
+    try {
+      await api.cancelarInscripcion(viajeId);
+      setOkMsg('Inscripción cancelada correctamente.');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cancelar');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cierreReserva = useCountdown(miReserva?.fecha_limite_inscripcion || miReserva?.cierre_inscripcion);
 
   if (loading) return <ViewFeedback loading />;
   if (error && !miReserva && disponibles.length === 0) {
@@ -206,7 +222,7 @@ export function ClienteDashboard() {
                   miReserva.estado === 'en_curso' ? 'en_curso' : 'programado'
                 }
               />
-              <CountdownBadge until={miReserva.cierre_inscripcion} />
+              <CountdownBadge until={miReserva.fecha_limite_inscripcion || miReserva.cierre_inscripcion} />
             </div>
           </div>
 
@@ -216,7 +232,7 @@ export function ClienteDashboard() {
             </p>
             <p className="text-2xl font-bold text-amber-700 mt-1">{cierreReserva}</p>
             <p className="text-xs text-amber-700 mt-1">
-              Cierre oficial: {formatDateTime(miReserva.cierre_inscripcion || '')}
+              Cierre oficial: {formatDateTime(miReserva.fecha_limite_inscripcion || miReserva.cierre_inscripcion || '')}
             </p>
           </div>
 
@@ -258,19 +274,34 @@ export function ClienteDashboard() {
             </div>
           </div>
 
-          <div className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-blue-100 rounded-lg border border-primary/20 flex justify-between items-center">
+          <div className="mt-6 p-4 bg-gradient-to-r from-primary/10 to-blue-100 rounded-lg border border-primary/20 flex flex-col md:flex-row justify-between items-center gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Tu asiento</p>
               <p className="text-2xl font-bold text-primary">
                 {miReserva.asiento || 'Por asignar'}
               </p>
             </div>
-            <Ticket className="w-10 h-10 text-primary opacity-60" />
+            {miReserva.estado === 'programado' && (
+              <button
+                type="button"
+                onClick={() => handleCancelarInscripcion(miReserva.id)}
+                className="px-6 py-2 bg-white text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors text-sm font-medium shadow-sm"
+              >
+                Cancelar mi inscripción
+              </button>
+            )}
+            <Ticket className="w-10 h-10 text-primary opacity-60 hidden md:block" />
           </div>
         </div>
       ) : (
-        <div className="bg-muted/50 border border-border rounded-xl p-6 text-center text-muted-foreground">
-          Aún no tienes un viaje inscrito. Elige uno de los viajes disponibles abajo.
+        <div className="bg-muted rounded-xl p-8 text-center border-2 border-dashed border-border">
+          <Ticket className="w-12 h-12 text-muted-foreground/40 mx-auto mb-3" />
+          <h3 className="text-lg font-medium text-foreground">
+            No estás inscrito en ningún viaje
+          </h3>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto mt-1">
+            Explora los viajes disponibles abajo y asegura tu cupo para viajar por el Río Atrato.
+          </p>
         </div>
       )}
 
@@ -301,7 +332,7 @@ export function ClienteDashboard() {
                       {formatDateTime(v.fecha_salida)}
                     </p>
                   </div>
-                  <CountdownBadge until={v.cierre_inscripcion} />
+                  <CountdownBadge until={v.fecha_limite_inscripcion || v.cierre_inscripcion} />
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
@@ -329,18 +360,20 @@ export function ClienteDashboard() {
                     reservando === v.id ||
                     v.cupos_disponibles <= 0 ||
                     !!miReserva ||
-                    !inscripcionAbierta(v.cierre_inscripcion)
+                    !inscripcionAbierta(v.fecha_limite_inscripcion || v.cierre_inscripcion)
                   }
-                  onClick={() => handleReservar(v.id)}
-                  className="w-full md:w-auto px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={() => handleInscribir(v.id)}
+                  className="w-full py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed font-medium shadow-sm"
                 >
                   {reservando === v.id
                     ? 'Inscribiendo...'
-                    : miReserva
+                    : !!miReserva
                       ? 'Ya tienes un viaje activo'
-                      : v.cupos_disponibles <= 0
-                        ? 'Sin cupos'
-                        : 'Inscribirme en este viaje'}
+                      : !inscripcionAbierta(v.fecha_limite_inscripcion || v.cierre_inscripcion)
+                        ? 'Inscripción cerrada'
+                        : v.cupos_disponibles <= 0
+                          ? 'Sin cupos'
+                          : 'Inscribirme en este viaje'}
                 </button>
               </div>
             ))}

@@ -48,7 +48,11 @@ export function ViajesView() {
       ]);
       const embMap = new Map(embs.map((e) => [e.id, e.nombre as string]));
       setEmbarcacionesList(
-        embs.map((e) => ({ id: Number(e.id), nombre: e.nombre as string }))
+        embs.map((e) => ({
+          id: Number(e.id),
+          nombre: e.nombre as string,
+          capacidad: Number(e.capacidad_pasajeros || 0),
+        }))
       );
       setViajesLista(
         viajes.map((v) =>
@@ -131,10 +135,28 @@ export function ViajesView() {
     },
     {
       key: 'pasajeros',
-      label: 'Pasajeros',
-      render: (value: number) => (
-        <span className="font-medium text-primary">{value}</span>
-      ),
+      label: 'Ocupación',
+      render: (value: number, row: any) => {
+        const capacidad =
+          embarcacionesList.find((e) => e.nombre === row.embarcacion)?.capacidad ||
+          '?';
+        return (
+          <div className="flex flex-col">
+            <span
+              className={`font-medium ${
+                value >= Number(capacidad) ? 'text-red-600' : 'text-primary'
+              }`}
+            >
+              {value} / {capacidad}
+            </span>
+            {value >= Number(capacidad) && (
+              <span className="text-[10px] text-red-500 uppercase font-bold">
+                Lleno
+              </span>
+            )}
+          </div>
+        );
+      },
     },
     {
       key: 'estado',
@@ -201,6 +223,7 @@ export function ViajesView() {
       await api.createViaje({
         fecha_salida,
         cierre_inscripcion,
+        fecha_limite_inscripcion: cierre_inscripcion,
         origen: formData.origen,
         destino: formData.destino,
         embarcacion_id: parseInt(formData.embarcacion, 10),
@@ -454,7 +477,7 @@ export function ViajesView() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                Cierre inscripción (fecha)
+                Fecha límite de inscripción (fecha)
               </label>
               <input
                 type="date"
@@ -468,7 +491,7 @@ export function ViajesView() {
 
             <div>
               <label className="block text-sm font-medium mb-2">
-                Cierre inscripción (hora)
+                Fecha límite de inscripción (hora)
               </label>
               <input
                 type="time"

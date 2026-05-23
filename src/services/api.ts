@@ -149,8 +149,8 @@ export const api = {
       parseJson(r)
     ),
 
-  getMiReserva: async () => {
-    const r = await fetch(`${BASE}/cliente/mi-reserva`, {
+  getMiViaje: async () => {
+    const r = await fetch(`${BASE}/viajes/mi-viaje`, {
       headers: headers(),
     });
     const data = await r.json().catch(() => null);
@@ -162,12 +162,18 @@ export const api = {
     return data;
   },
 
-  reservarViaje: (viajeId: number, asiento?: string) =>
-    fetch(`${BASE}/cliente/reservar`, {
+  inscribirViaje: (viajeId: number) =>
+    fetch(`${BASE}/viajes/${viajeId}/inscribir`, {
       method: 'POST',
       headers: headers(),
-      body: JSON.stringify({ viaje_id: viajeId, asiento }),
     }).then((r) => parseJson(r)),
+
+  cancelarInscripcion: (viajeId: number) =>
+    fetch(`${BASE}/viajes/${viajeId}/cancelar-inscripcion`, {
+      method: 'DELETE',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
+
   createViaje: (data: Record<string, unknown>) =>
     fetch(`${BASE}/viajes`, {
       method: 'POST',
