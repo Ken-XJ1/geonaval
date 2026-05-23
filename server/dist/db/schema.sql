@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS viaje_pasajeros (
 
 CREATE TABLE IF NOT EXISTS ubicaciones_gps (
   id SERIAL PRIMARY KEY,
-  viaje_id INT REFERENCES viajes(id),
+  viaje_id INT REFERENCES viajes(id) ON DELETE CASCADE,
   latitud DECIMAL(10,8) NOT NULL,
   longitud DECIMAL(11,8) NOT NULL,
   timestamp TIMESTAMP DEFAULT NOW()
@@ -106,12 +106,21 @@ CREATE TABLE IF NOT EXISTS ubicaciones_gps (
 
 CREATE TABLE IF NOT EXISTS incidentes (
   id SERIAL PRIMARY KEY,
-  viaje_id INT REFERENCES viajes(id),
+  viaje_id INT REFERENCES viajes(id) ON DELETE CASCADE,
   tipo VARCHAR(50) NOT NULL,
   descripcion TEXT NOT NULL,
   severidad VARCHAR(20) CHECK (severidad IN ('baja','media','alta','critica')) DEFAULT 'media',
   estado VARCHAR(20) CHECK (estado IN ('abierto','en_revision','cerrado')) DEFAULT 'abierto',
   reportado_por VARCHAR(100),
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS notificaciones (
+  id SERIAL PRIMARY KEY,
+  usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
+  titulo VARCHAR(150) NOT NULL,
+  mensaje TEXT NOT NULL,
+  leida BOOLEAN DEFAULT false,
   created_at TIMESTAMP DEFAULT NOW()
 );
 

@@ -17,6 +17,7 @@ const gps_1 = __importDefault(require("./routes/gps"));
 const usuarios_1 = __importDefault(require("./routes/usuarios"));
 const incidentes_1 = __importDefault(require("./routes/incidentes"));
 const cliente_1 = __importDefault(require("./routes/cliente"));
+const notificaciones_1 = __importDefault(require("./routes/notificaciones"));
 const initSchema_1 = require("./db/initSchema");
 const pool_1 = __importDefault(require("./db/pool"));
 const staticDir = path_1.default.join(__dirname, '../dist');
@@ -34,6 +35,7 @@ app.use('/api/gps', gps_1.default);
 app.use('/api/usuarios', usuarios_1.default);
 app.use('/api/incidentes', incidentes_1.default);
 app.use('/api/cliente', cliente_1.default);
+app.use('/api/notificaciones', notificaciones_1.default);
 app.get('/api/health', async (_req, res) => {
     try {
         await pool_1.default.query('SELECT 1');

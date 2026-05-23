@@ -38,7 +38,7 @@ router.get('/disponibles', async (_req, res) => {
 });
 router.get('/mi-viaje', async (req, res) => {
     const user = req.user;
-    if (!user || !user.id)
+    if (!user || user.id === undefined || user.id === null)
         return res.json(null);
     const rows = await (0, safeQuery_1.safeQuery)(`SELECT v.*, vp.asiento, vp.precio_pagado, e.nombre AS embarcacion_nombre,
             e.capacidad_pasajeros,
@@ -57,6 +57,9 @@ router.get('/mi-viaje', async (req, res) => {
 router.post('/:id/inscribir', async (req, res) => {
     const user = req.user;
     const viajeId = req.params.id;
+    if (!user || user.id === undefined || user.id === null) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
     try {
         const viajeRes = await pool_1.default.query(`SELECT v.*, e.capacidad_pasajeros,
         (SELECT COUNT(*)::int FROM viaje_pasajeros WHERE viaje_id = v.id) AS ocupados
@@ -69,8 +72,8 @@ router.post('/:id/inscribir', async (req, res) => {
         if (viaje.estado !== 'programado') {
             return res.status(400).json({ error: 'Este viaje ya no acepta inscripciones' });
         }
-        if (viaje.fecha_limite_inscripcion &&
-            new Date(viaje.fecha_limite_inscripcion) < new Date()) {
+        const limite = viaje.fecha_limite_inscripcion || viaje.cierre_inscripcion;
+        if (limite && new Date(limite) < new Date()) {
             return res.status(400).json({ error: 'El periodo de inscripción ya cerró' });
         }
         if (viaje.ocupados >= viaje.capacidad_pasajeros) {
@@ -110,6 +113,9 @@ router.post('/:id/inscribir', async (req, res) => {
 router.delete('/:id/cancelar-inscripcion', async (req, res) => {
     const user = req.user;
     const viajeId = req.params.id;
+    if (!user || user.id === undefined || user.id === null) {
+        return res.status(401).json({ error: 'Usuario no autenticado' });
+    }
     try {
         const viajeRes = await pool_1.default.query('SELECT estado FROM viajes WHERE id = $1', [viajeId]);
         if (!viajeRes.rows[0])
@@ -176,21 +182,23 @@ router.get('/:id', async (req, res) => {
     return res.json(rows[0]);
 });
 router.post('/', async (req, res) => {
-    const { fecha_salida, cierre_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
+    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
     if (!fecha_salida || !origen || !destino || !embarcacion_id) {
         return res.status(400).json({
             error: 'Fecha, origen, destino y embarcación son requeridos',
         });
     }
     const user = req.user;
-    const cierre = cierre_inscripcion ||
+    const cierre = fecha_limite_inscripcion ||
+        cierre_inscripcion ||
         new Date(new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000).toISOString();
     try {
         const result = await pool_1.default.query(`INSERT INTO viajes
-        (fecha_salida, cierre_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
        RETURNING *`, [
             fecha_salida,
+            cierre,
             cierre,
             origen,
             destino,
@@ -200,7 +208,23 @@ router.post('/', async (req, res) => {
             justificacion_cancelacion,
             user?.id && user.id > 0 ? user.id : null,
         ]);
-        return res.status(201).json(result.rows[0]);
+        const nuevoViaje = result.rows[0];
+        // Notificar a todos los clientes
+        try {
+            const clientes = await pool_1.default.query("SELECT id FROM usuarios WHERE rol = 'cliente' AND activo = true");
+            for (const c of clientes.rows) {
+                await pool_1.default.query(`INSERT INTO notificaciones (usuario_id, titulo, mensaje)
+           VALUES ($1, $2, $3)`, [
+                    c.id,
+                    'Nuevo Viaje Disponible',
+                    `Se ha programado un nuevo viaje: ${origen} → ${destino} para el día ${new Date(fecha_salida).toLocaleDateString()}. ¡Inscríbete ahora!`
+                ]);
+            }
+        }
+        catch (notifErr) {
+            console.error('Error enviando notificaciones:', notifErr);
+        }
+        return res.status(201).json(nuevoViaje);
     }
     catch (err) {
         console.error('POST viaje:', err.message);
@@ -210,21 +234,23 @@ router.post('/', async (req, res) => {
     }
 });
 router.put('/:id', async (req, res) => {
-    const { fecha_salida, cierre_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
+    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
     try {
         const result = await pool_1.default.query(`UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
         cierre_inscripcion = COALESCE($2, cierre_inscripcion),
-        origen = COALESCE($3, origen),
-        destino = COALESCE($4, destino),
-        embarcacion_id = COALESCE($5, embarcacion_id),
-        precio = COALESCE($6, precio),
-        estado = COALESCE($7, estado),
-        justificacion_cancelacion = COALESCE($8, justificacion_cancelacion)
-       WHERE id = $9
+        fecha_limite_inscripcion = COALESCE($3, fecha_limite_inscripcion),
+        origen = COALESCE($4, origen),
+        destino = COALESCE($5, destino),
+        embarcacion_id = COALESCE($6, embarcacion_id),
+        precio = COALESCE($7, precio),
+        estado = COALESCE($8, estado),
+        justificacion_cancelacion = COALESCE($9, justificacion_cancelacion)
+       WHERE id = $10
        RETURNING *`, [
             fecha_salida,
             cierre_inscripcion,
+            fecha_limite_inscripcion,
             origen,
             destino,
             embarcacion_id,
@@ -244,13 +270,16 @@ router.put('/:id', async (req, res) => {
 });
 router.delete('/:id', async (req, res) => {
     try {
+        // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
+        // ahora tienen ON DELETE CASCADE (o se están actualizando vía migraciones)
         const result = await pool_1.default.query('DELETE FROM viajes WHERE id = $1 RETURNING id', [req.params.id]);
         if (!result.rows[0])
             return res.status(404).json({ error: 'No encontrado' });
         return res.json({ message: 'Eliminado' });
     }
-    catch {
-        return res.status(500).json({ error: 'Error del servidor' });
+    catch (err) {
+        console.error('DELETE viaje:', err.message);
+        return res.status(500).json({ error: 'Error del servidor al eliminar el viaje' });
     }
 });
 exports.default = router;

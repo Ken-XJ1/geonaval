@@ -235,6 +235,23 @@ export const api = {
       headers: headers(),
       body: JSON.stringify(data),
     }).then((r) => parseJson(r)),
+  getNotificaciones: () =>
+    fetch(`${BASE}/notificaciones`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+
+  marcarNotificacionLeida: (id: number) =>
+    fetch(`${BASE}/notificaciones/${id}/leida`, {
+      method: 'PUT',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
+
+  marcarTodasNotificacionesLeidas: () =>
+    fetch(`${BASE}/notificaciones/marcar-todas-leidas`, {
+      method: 'PUT',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
+
   deleteUsuario: (id: number) =>
     fetch(`${BASE}/usuarios/${id}`, {
       method: 'DELETE',
