@@ -75,7 +75,7 @@ function useCountdown(target: string | null | undefined) {
 
   useEffect(() => {
     if (!target) {
-      setText('Sin límite');
+      setText('Abierto');
       return;
     }
     const tick = () => {
@@ -84,10 +84,16 @@ function useCountdown(target: string | null | undefined) {
         setText('Inscripción cerrada');
         return;
       }
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setText(`${h}h ${m}m ${s}s`);
+      
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+      let result = '';
+      if (d > 0) result += `${d}d `;
+      result += `${h}h ${m}m ${s}s`;
+      setText(result);
     };
     tick();
     const id = setInterval(tick, 1000);
@@ -105,6 +111,10 @@ function inscripcionAbierta(until: string | null | undefined) {
 function CountdownBadge({ until }: { until: string | null | undefined }) {
   const text = useCountdown(until);
   const closed = text === 'Inscripción cerrada';
+  const open = text === 'Abierto';
+  
+  if (open) return null; // No mostrar si está siempre abierto
+
   return (
     <span
       className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
