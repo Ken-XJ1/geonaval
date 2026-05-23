@@ -3,9 +3,21 @@ import { Logo } from './Logo';
 
 interface ConfiguracionViewProps {
   onLogout: () => void;
+  user: {
+    nombre: string;
+    email: string;
+    rol: string;
+  } | null;
 }
 
-export function ConfiguracionView({ onLogout }: ConfiguracionViewProps) {
+export function ConfiguracionView({ onLogout, user }: ConfiguracionViewProps) {
+  const roleLabels: Record<string, string> = {
+    administrador: 'Administrador',
+    operador: 'Operador Fluvial',
+    cliente: 'Cliente',
+    autoridad: 'Autoridad',
+  };
+  const roleName = roleLabels[user?.rol || ''] || 'Usuario';
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -21,9 +33,9 @@ export function ConfiguracionView({ onLogout }: ConfiguracionViewProps) {
             <User className="w-10 h-10 text-white" />
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-lg">Administrador del Sistema</h3>
-            <p className="text-sm text-muted-foreground">admin@geonaval.com</p>
-            <p className="text-xs text-muted-foreground mt-1">Rol: Administrador</p>
+            <h3 className="font-semibold text-lg">{user?.nombre || 'Usuario'}</h3>
+            <p className="text-sm text-muted-foreground">{user?.email || 'geonaval@colombia.gov.co'}</p>
+            <p className="text-xs text-muted-foreground mt-1">Rol: {roleName}</p>
           </div>
           <button className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
             Editar Perfil

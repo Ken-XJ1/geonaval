@@ -11,7 +11,8 @@ import {
   Settings,
   User,
   AlertTriangle,
-  Ticket
+  Ticket,
+  Bell
 } from 'lucide-react';
 import { LogoFull } from './Logo';
 
@@ -34,6 +35,7 @@ const adminMenuItems = [
   { id: 'reportes', label: 'Reportes', icon: FileText },
   { id: 'autoridades', label: 'Autoridades', icon: Shield },
   { id: 'usuarios', label: 'Usuarios', icon: User },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];
 
@@ -43,12 +45,14 @@ const operadorMenuItems = [
   { id: 'mis-pasajeros', label: 'Mis Pasajeros', icon: UserCheck },
   { id: 'mi-ruta', label: 'Mi Ruta GPS', icon: Radar },
   { id: 'reportar', label: 'Reportar Incidente', icon: AlertTriangle },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];
 
 // Menú básico para Cliente
 const clienteMenuItems = [
   { id: 'dashboard', label: 'Mi Viaje', icon: LayoutDashboard },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'configuracion', label: 'Mi Perfil', icon: Settings },
 ];
 
@@ -59,6 +63,7 @@ const autoridadMenuItems = [
   { id: 'consultas', label: 'Consultas', icon: FileText },
   { id: 'reportes', label: 'Reportes Oficiales', icon: FileText },
   { id: 'alertas', label: 'Alertas', icon: AlertTriangle },
+  { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];
 

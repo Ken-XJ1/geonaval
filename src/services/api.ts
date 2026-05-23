@@ -50,6 +50,7 @@ export const api = {
     if (data.id != null) localStorage.setItem('userId', String(data.id));
     if (data.email) localStorage.setItem('userEmail', data.email);
     if (data.nombre) localStorage.setItem('userNombre', data.nombre);
+    if (data.rol) localStorage.setItem('userRole', data.rol);
     return data;
   },
 

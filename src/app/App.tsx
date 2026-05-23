@@ -18,23 +18,44 @@ import { ReportarIncidenteView } from './components/ReportarIncidenteView';
 import { ClienteDashboard } from './components/ClienteDashboard';
 import { Footer } from './components/Footer';
 import { ComprasView } from './components/ComprasView';
+import { NotificacionesView } from './components/NotificacionesView';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userRole, setUserRole] = useState('');
+  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [user, setUser] = useState<{
+    nombre: string;
+    email: string;
+    rol: string;
+  } | null>(() => {
+    const rol = localStorage.getItem('userRole');
+    if (!rol) return null;
+    return {
+      nombre: localStorage.getItem('userNombre') || 'Usuario',
+      email: localStorage.getItem('userEmail') || '',
+      rol: rol,
+    };
+  });
   const [activeView, setActiveView] = useState('dashboard');
 
-  const handleLogin = (role: string) => {
-    setUserRole(role);
+  const handleLogin = (userData: {
+    nombre: string;
+    email: string;
+    rol: string;
+  }) => {
+    setUser(userData);
     setIsLoggedIn(true);
+    localStorage.setItem('userRole', userData.rol);
     setActiveView('dashboard');
   };
 
   const handleLogout = () => {
+    localStorage.clear();
     setIsLoggedIn(false);
-    setUserRole('');
+    setUser(null);
     setActiveView('dashboard');
   };
+
+  const userRole = user?.rol || '';
 
   const getViewTitle = () => {
     // Títulos específicos por rol
@@ -44,6 +65,7 @@ export default function App() {
         'mis-pasajeros': 'Mis Pasajeros',
         'mi-ruta': 'Mi Ruta GPS',
         reportar: 'Reportar Incidente',
+        notificaciones: 'Centro de Notificaciones',
         configuracion: 'Configuración',
       };
       return operadorTitles[activeView] || 'Mis Viajes';
@@ -52,6 +74,7 @@ export default function App() {
     if (userRole === 'cliente') {
       const clienteTitles: Record<string, string> = {
         dashboard: 'Mi Viaje',
+        notificaciones: 'Centro de Notificaciones',
         configuracion: 'Mi Perfil',
       };
       return clienteTitles[activeView] || 'Mi Viaje';
@@ -64,6 +87,7 @@ export default function App() {
         consultas: 'Consultas',
         reportes: 'Reportes Oficiales',
         alertas: 'Alertas de Emergencia',
+        notificaciones: 'Centro de Notificaciones',
         configuracion: 'Configuración',
       };
       return autoridadTitles[activeView] || 'Panel de Supervisión';
@@ -82,6 +106,7 @@ export default function App() {
       reportes: 'Reportes y Estadísticas',
       autoridades: 'Acceso para Autoridades',
       usuarios: 'Gestión de Usuarios',
+      notificaciones: 'Centro de Notificaciones',
       configuracion: 'Configuración del Sistema',
     };
     return adminTitles[activeView] || 'Dashboard Principal';
@@ -103,8 +128,10 @@ export default function App() {
           return <MonitoreoView />;
         case 'reportar':
           return <ReportarIncidenteView />;
+        case 'notificaciones':
+          return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} />;
+          return <ConfiguracionView onLogout={handleLogout} user={user} />;
         default:
           return (
             <OperadorDashboard
@@ -118,8 +145,10 @@ export default function App() {
       switch (activeView) {
         case 'dashboard':
           return <ClienteDashboard />;
+        case 'notificaciones':
+          return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} />;
+          return <ConfiguracionView onLogout={handleLogout} user={user} />;
         default:
           return <ClienteDashboard />;
       }
@@ -142,8 +171,10 @@ export default function App() {
               <p className="text-muted-foreground">Sistema de alertas y emergencias</p>
             </div>
           );
+        case 'notificaciones':
+          return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} />;
+          return <ConfiguracionView onLogout={handleLogout} user={user} />;
         default:
           return <AutoridadesView />;
       }
@@ -173,15 +204,24 @@ export default function App() {
         return <AutoridadesView />;
       case 'usuarios':
         return <UsuariosView />;
+      case 'notificaciones':
+        return <NotificacionesView />;
       case 'configuracion':
-        return <ConfiguracionView onLogout={handleLogout} />;
+        return <ConfiguracionView onLogout={handleLogout} user={user} />;
       default:
         return <Dashboard />;
     }
   };
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={handleLogin} />;
+    return <LoginScreen onLogin={(role) => {
+      setUser({
+        nombre: localStorage.getItem('userNombre') || 'Usuario',
+        email: localStorage.getItem('userEmail') || '',
+        rol: localStorage.getItem('userRole') || role,
+      });
+      setIsLoggedIn(true);
+    }} />;
   }
 
   const getRoleName = () => {
@@ -204,7 +244,13 @@ export default function App() {
       <Sidebar activeView={activeView} onNavigate={setActiveView} userRole={userRole} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header title={getViewTitle()} userName={getRoleName()} onLogout={handleLogout} />
+        <Header 
+          title={getViewTitle()} 
+          userName={user?.nombre || getRoleName()} 
+          userEmail={user?.email}
+          onLogout={handleLogout} 
+          onNavigate={setActiveView}
+        />
 
         <main className="flex-1 overflow-y-auto">
           <div className="p-6">
@@ -215,4 +261,4 @@ export default function App() {
       </div>
     </div>
   );
-}
+  }

@@ -5,7 +5,9 @@ import { api } from '../../services/api';
 interface HeaderProps {
   title: string;
   userName?: string;
+  userEmail?: string;
   onLogout?: () => void;
+  onNavigate?: (view: string) => void;
 }
 
 type Notificacion = {
@@ -16,7 +18,7 @@ type Notificacion = {
   created_at: string;
 };
 
-export function Header({ title, userName = "Administrador", onLogout }: HeaderProps) {
+export function Header({ title, userName = "Administrador", userEmail = "geonaval@colombia.gov.co", onLogout, onNavigate }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -170,10 +172,16 @@ export function Header({ title, userName = "Administrador", onLogout }: HeaderPr
               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-border z-20">
                 <div className="p-3 border-b border-border">
                   <p className="font-medium text-sm">{userName}</p>
-                  <p className="text-xs text-muted-foreground">geonaval@colombia.gov.co</p>
+                  <p className="text-xs text-muted-foreground">{userEmail}</p>
                 </div>
                 <div className="p-2">
-                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left">
+                  <button 
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      onNavigate?.('configuracion');
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-muted transition-colors text-left"
+                  >
                     <Settings className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">Configuración</span>
                   </button>
