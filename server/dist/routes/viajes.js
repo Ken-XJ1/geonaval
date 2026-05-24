@@ -12,11 +12,25 @@ router.use(auth_1.verifyToken);
 const VIAJES_LIST_SQL = `
   SELECT v.*,
     COUNT(vp.pasajero_id)::int AS pasajeros_count,
-    e.nombre AS embarcacion_nombre
+    e.nombre AS embarcacion_nombre,
+    pr.nombre AS propietario_nombre,
+    (
+      SELECT t.nombre
+      FROM viaje_tripulacion vt
+      INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+      WHERE vt.viaje_id = v.id
+      ORDER BY CASE t.rol
+        WHEN 'capitan' THEN 0
+        WHEN 'copiloto' THEN 1
+        ELSE 2
+      END, t.id
+      LIMIT 1
+    ) AS operador_nombre
   FROM viajes v
   LEFT JOIN viaje_pasajeros vp ON vp.viaje_id = v.id
   LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-  GROUP BY v.id, e.nombre
+  LEFT JOIN propietarios pr ON pr.id = e.propietario_id
+  GROUP BY v.id, e.nombre, pr.nombre
   ORDER BY v.fecha_salida DESC
 `;
 router.get('/', async (_req, res) => {
@@ -206,18 +220,32 @@ router.post('/:id/pasajeros', async (req, res) => {
 router.get('/:id', async (req, res) => {
     const rows = await (0, safeQuery_1.safeQuery)(`SELECT v.*,
       COUNT(vp.pasajero_id)::int AS pasajeros_count,
-      e.nombre AS embarcacion_nombre
+      e.nombre AS embarcacion_nombre,
+      pr.nombre AS propietario_nombre,
+      (
+        SELECT t.nombre
+        FROM viaje_tripulacion vt
+        INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+        WHERE vt.viaje_id = v.id
+        ORDER BY CASE t.rol
+          WHEN 'capitan' THEN 0
+          WHEN 'copiloto' THEN 1
+          ELSE 2
+        END, t.id
+        LIMIT 1
+      ) AS operador_nombre
      FROM viajes v
      LEFT JOIN viaje_pasajeros vp ON vp.viaje_id = v.id
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+     LEFT JOIN propietarios pr ON pr.id = e.propietario_id
      WHERE v.id = $1
-     GROUP BY v.id, e.nombre`, [req.params.id]);
+     GROUP BY v.id, e.nombre, pr.nombre`, [req.params.id]);
     if (!rows[0])
         return res.status(404).json({ error: 'No encontrado' });
     return res.json(rows[0]);
 });
 router.post('/', async (req, res) => {
-    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
+    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, tripulante_id, } = req.body;
     if (!fecha_salida || !origen || !destino || !embarcacion_id) {
         return res.status(400).json({
             error: 'Fecha, origen, destino y embarcación son requeridos',
@@ -244,6 +272,11 @@ router.post('/', async (req, res) => {
             user?.id && user.id > 0 ? user.id : null,
         ]);
         const nuevoViaje = result.rows[0];
+        if (tripulante_id) {
+            await pool_1.default.query(`INSERT INTO viaje_tripulacion (viaje_id, tripulante_id)
+         VALUES ($1, $2)
+         ON CONFLICT (viaje_id, tripulante_id) DO NOTHING`, [nuevoViaje.id, tripulante_id]);
+        }
         // Notificar a todos los clientes
         try {
             const clientes = await pool_1.default.query("SELECT id FROM usuarios WHERE rol = 'cliente' AND activo = true");

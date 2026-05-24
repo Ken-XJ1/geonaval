@@ -167,7 +167,7 @@ export function mapViajeToUI(
     horaLlegadaReal: formatTime(fecha),
     ruta: `${origen} - ${destino}`,
     embarcacion: emb,
-    operador: '—',
+    operador: (row.operador_nombre as string) || '—',
     pasajeros: count,
     precio: Number(row.precio ?? 0),
     cierreInscripcion: row.cierre_inscripcion as string | undefined,
@@ -178,8 +178,7 @@ export function mapViajeToUI(
 
 export function mapViajeToDashboard(
   row: Record<string, unknown>,
-  embarcacionNombre = '—',
-  propietarioNombre = '—'
+  embarcacionNombre?: string
 ) {
   const fecha = row.fecha_salida as string;
   const origen = row.origen as string;
@@ -187,11 +186,14 @@ export function mapViajeToDashboard(
   const estado = row.estado as string;
   return {
     ruta: `${origen} - ${destino}`,
-    embarcacion: embarcacionNombre,
-    propietario: propietarioNombre,
+    embarcacion:
+      embarcacionNombre ||
+      (row.embarcacion_nombre as string) ||
+      '—',
+    propietario: (row.propietario_nombre as string) || '—',
     horaSalida: formatTime(fecha),
     horaLlegada: formatTime(fecha),
-    operador: '—',
+    operador: (row.operador_nombre as string) || '—',
     estado: (estado === 'en_curso'
       ? 'en-curso'
       : estado) as 'en-curso' | 'finalizado' | 'programado',

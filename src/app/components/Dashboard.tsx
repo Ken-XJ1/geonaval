@@ -40,13 +40,8 @@ export function Dashboard() {
         totalPasajeros: pasajeros.length,
         viajesHoy,
       });
-      const embMap = new Map(
-        embs.map((e) => [e.id, e.nombre as string])
-      );
       setRecentTrips(
-        viajes.slice(0, 5).map((v) =>
-          mapViajeToDashboard(v, embMap.get(v.embarcacion_id as number) || '—', '—')
-        )
+        viajes.slice(0, 5).map((v) => mapViajeToDashboard(v))
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar datos');

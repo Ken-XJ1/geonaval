@@ -9,11 +9,25 @@ router.use(verifyToken);
 const VIAJES_LIST_SQL = `
   SELECT v.*,
     COUNT(vp.pasajero_id)::int AS pasajeros_count,
-    e.nombre AS embarcacion_nombre
+    e.nombre AS embarcacion_nombre,
+    pr.nombre AS propietario_nombre,
+    (
+      SELECT t.nombre
+      FROM viaje_tripulacion vt
+      INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+      WHERE vt.viaje_id = v.id
+      ORDER BY CASE t.rol
+        WHEN 'capitan' THEN 0
+        WHEN 'copiloto' THEN 1
+        ELSE 2
+      END, t.id
+      LIMIT 1
+    ) AS operador_nombre
   FROM viajes v
   LEFT JOIN viaje_pasajeros vp ON vp.viaje_id = v.id
   LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-  GROUP BY v.id, e.nombre
+  LEFT JOIN propietarios pr ON pr.id = e.propietario_id
+  GROUP BY v.id, e.nombre, pr.nombre
   ORDER BY v.fecha_salida DESC
 `;
 
@@ -262,12 +276,26 @@ router.get('/:id', async (req: Request, res: Response) => {
   const rows = await safeQuery(
     `SELECT v.*,
       COUNT(vp.pasajero_id)::int AS pasajeros_count,
-      e.nombre AS embarcacion_nombre
+      e.nombre AS embarcacion_nombre,
+      pr.nombre AS propietario_nombre,
+      (
+        SELECT t.nombre
+        FROM viaje_tripulacion vt
+        INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+        WHERE vt.viaje_id = v.id
+        ORDER BY CASE t.rol
+          WHEN 'capitan' THEN 0
+          WHEN 'copiloto' THEN 1
+          ELSE 2
+        END, t.id
+        LIMIT 1
+      ) AS operador_nombre
      FROM viajes v
      LEFT JOIN viaje_pasajeros vp ON vp.viaje_id = v.id
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+     LEFT JOIN propietarios pr ON pr.id = e.propietario_id
      WHERE v.id = $1
-     GROUP BY v.id, e.nombre`,
+     GROUP BY v.id, e.nombre, pr.nombre`,
     [req.params.id]
   );
   if (!rows[0]) return res.status(404).json({ error: 'No encontrado' });
@@ -285,6 +313,7 @@ router.post('/', async (req: Request, res: Response) => {
     precio,
     estado,
     justificacion_cancelacion,
+    tripulante_id,
   } = req.body;
   if (!fecha_salida || !origen || !destino || !embarcacion_id) {
     return res.status(400).json({
@@ -317,6 +346,15 @@ router.post('/', async (req: Request, res: Response) => {
     );
 
     const nuevoViaje = result.rows[0];
+
+    if (tripulante_id) {
+      await pool.query(
+        `INSERT INTO viaje_tripulacion (viaje_id, tripulante_id)
+         VALUES ($1, $2)
+         ON CONFLICT (viaje_id, tripulante_id) DO NOTHING`,
+        [nuevoViaje.id, tripulante_id]
+      );
+    }
 
     // Notificar a todos los clientes
     try {

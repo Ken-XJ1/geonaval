@@ -11,7 +11,10 @@ export function ViajesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [embarcacionesList, setEmbarcacionesList] = useState<
-    { id: number; nombre: string }[]
+    { id: number; nombre: string; capacidad?: number }[]
+  >([]);
+  const [tripulacionList, setTripulacionList] = useState<
+    { id: number; nombre: string; rol: string }[]
   >([]);
   const [filtroFecha, setFiltroFecha] = useState('');
   const [conflictoDetectado, setConflictoDetectado] = useState(false);
@@ -42,9 +45,10 @@ export function ViajesView() {
     setLoading(true);
     setError(null);
     try {
-      const [viajes, embs] = await Promise.all([
+      const [viajes, embs, trip] = await Promise.all([
         api.getViajes() as Promise<Record<string, unknown>[]>,
         api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
+        api.getTripulacion() as Promise<Record<string, unknown>[]>,
       ]);
       const embMap = new Map(embs.map((e) => [e.id, e.nombre as string]));
       setEmbarcacionesList(
@@ -53,6 +57,15 @@ export function ViajesView() {
           nombre: e.nombre as string,
           capacidad: Number(e.capacidad_pasajeros || 0),
         }))
+      );
+      setTripulacionList(
+        trip
+          .filter((t) => t.activo !== false)
+          .map((t) => ({
+            id: Number(t.id),
+            nombre: t.nombre as string,
+            rol: t.rol as string,
+          }))
       );
       setViajesLista(
         viajes.map((v) =>
@@ -229,6 +242,9 @@ export function ViajesView() {
         embarcacion_id: parseInt(formData.embarcacion, 10),
         precio: parseFloat(formData.precio) || 0,
         estado: 'programado',
+        tripulante_id: formData.operador
+          ? parseInt(formData.operador, 10)
+          : undefined,
       });
       setShowForm(false);
       setSaveOk('Viaje programado correctamente. Aparece en la lista con estado Programado.');
@@ -454,6 +470,23 @@ export function ViajesView() {
                 {embarcacionesList.map((e) => (
                   <option key={e.id} value={String(e.id)}>
                     {e.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Operador Asignado</label>
+              <select
+                value={formData.operador}
+                onChange={(e) => handleFormChange('operador', e.target.value)}
+                className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              >
+                <option value="">Seleccionar operador</option>
+                {tripulacionList.map((t) => (
+                  <option key={t.id} value={String(t.id)}>
+                    {t.nombre}
+                    {t.rol === 'capitan' ? ' (Capitán)' : ''}
                   </option>
                 ))}
               </select>
