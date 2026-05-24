@@ -20,6 +20,7 @@ const incidentes_1 = __importDefault(require("./routes/incidentes"));
 const cliente_1 = __importDefault(require("./routes/cliente"));
 const notificaciones_1 = __importDefault(require("./routes/notificaciones"));
 const initSchema_1 = require("./db/initSchema");
+const ensureConfigTables_1 = require("./db/ensureConfigTables");
 const pool_1 = __importDefault(require("./db/pool"));
 const staticDir = path_1.default.join(__dirname, '../dist');
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../../.env') });
@@ -60,6 +61,7 @@ app.listen(PORT, async () => {
     console.log(`Servidor GeoNaval corriendo en puerto ${PORT}`);
     if (process.env.DATABASE_URL) {
         await (0, initSchema_1.ensureSchema)();
+        await (0, ensureConfigTables_1.ensureConfigTables)();
     }
     else {
         console.warn('DATABASE_URL no configurada — solo login demo disponible');

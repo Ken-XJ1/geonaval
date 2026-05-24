@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import pool from '../db/pool';
 import { verifyToken } from '../middleware/auth';
+import { ensureConfigTables } from '../db/ensureConfigTables';
 
 const router = Router();
 router.use(verifyToken);
@@ -49,17 +50,33 @@ function getUser(req: Request): JwtUser {
 }
 
 async function resolveContext(user: JwtUser) {
+  await ensureConfigTables();
+
   if (user.id > 0) {
     try {
       const dbUser = await getDbUser(user.id);
       if (dbUser) return { mode: 'db' as const, dbUser };
     } catch {
-      /* fallback demo */
+      /* fallback demo por email */
     }
   }
-  if (user.email) {
-    return { mode: 'demo' as const, email: user.email.toLowerCase() };
+
+  const email = user.email?.trim().toLowerCase();
+  if (email) return { mode: 'demo' as const, email };
+
+  if (user.id > 0) {
+    try {
+      const byName = await pool.query(
+        'SELECT email FROM usuarios WHERE id = $1',
+        [user.id]
+      );
+      const found = byName.rows[0]?.email?.toLowerCase();
+      if (found) return { mode: 'demo' as const, email: found };
+    } catch {
+      /* ignore */
+    }
   }
+
   return null;
 }
 
@@ -121,11 +138,15 @@ async function getDbUser(userId: number) {
 }
 
 async function getPreferencias(userId: number): Promise<Preferencias> {
-  const result = await pool.query(
-    'SELECT idioma, zona_horaria, formato_fecha, tema FROM usuario_preferencias WHERE usuario_id = $1',
-    [userId]
-  );
-  return result.rows[0] || DEFAULT_PREFS;
+  try {
+    const result = await pool.query(
+      'SELECT idioma, zona_horaria, formato_fecha, tema FROM usuario_preferencias WHERE usuario_id = $1',
+      [userId]
+    );
+    return result.rows[0] || DEFAULT_PREFS;
+  } catch {
+    return DEFAULT_PREFS;
+  }
 }
 
 router.get('/perfil', async (req: Request, res: Response) => {
@@ -326,7 +347,7 @@ router.get('/sesiones', async (req: Request, res: Response) => {
     );
     return res.json(result.rows);
   } catch {
-    return res.status(500).json({ error: 'Error al cargar historial' });
+    return res.json([]);
   }
 });
 

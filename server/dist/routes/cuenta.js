@@ -8,6 +8,7 @@ const express_1 = require("express");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const pool_1 = __importDefault(require("../db/pool"));
 const auth_1 = require("../middleware/auth");
+const ensureConfigTables_1 = require("../db/ensureConfigTables");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 const DEFAULT_PREFS = {
@@ -32,6 +33,7 @@ function getUser(req) {
     return req.user;
 }
 async function resolveContext(user) {
+    await (0, ensureConfigTables_1.ensureConfigTables)();
     if (user.id > 0) {
         try {
             const dbUser = await getDbUser(user.id);
@@ -39,11 +41,22 @@ async function resolveContext(user) {
                 return { mode: 'db', dbUser };
         }
         catch {
-            /* fallback demo */
+            /* fallback demo por email */
         }
     }
-    if (user.email) {
-        return { mode: 'demo', email: user.email.toLowerCase() };
+    const email = user.email?.trim().toLowerCase();
+    if (email)
+        return { mode: 'demo', email };
+    if (user.id > 0) {
+        try {
+            const byName = await pool_1.default.query('SELECT email FROM usuarios WHERE id = $1', [user.id]);
+            const found = byName.rows[0]?.email?.toLowerCase();
+            if (found)
+                return { mode: 'demo', email: found };
+        }
+        catch {
+            /* ignore */
+        }
     }
     return null;
 }
@@ -83,8 +96,13 @@ async function getDbUser(userId) {
     return result.rows[0];
 }
 async function getPreferencias(userId) {
-    const result = await pool_1.default.query('SELECT idioma, zona_horaria, formato_fecha, tema FROM usuario_preferencias WHERE usuario_id = $1', [userId]);
-    return result.rows[0] || DEFAULT_PREFS;
+    try {
+        const result = await pool_1.default.query('SELECT idioma, zona_horaria, formato_fecha, tema FROM usuario_preferencias WHERE usuario_id = $1', [userId]);
+        return result.rows[0] || DEFAULT_PREFS;
+    }
+    catch {
+        return DEFAULT_PREFS;
+    }
 }
 router.get('/perfil', async (req, res) => {
     const user = getUser(req);
@@ -255,7 +273,7 @@ router.get('/sesiones', async (req, res) => {
         return res.json(result.rows);
     }
     catch {
-        return res.status(500).json({ error: 'Error al cargar historial' });
+        return res.json([]);
     }
 });
 exports.default = router;

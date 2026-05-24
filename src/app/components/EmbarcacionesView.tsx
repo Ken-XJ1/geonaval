@@ -38,6 +38,9 @@ export function EmbarcacionesView() {
   const [tripulacionList, setTripulacionList] = useState<
     { id: number; nombre: string; rol: string }[]
   >([]);
+  const [todosLosViajes, setTodosLosViajes] = useState<
+    { id: number; origen: string; destino: string; estado: string }[]
+  >([]);
   const [formData, setFormData] = useState({
     nombre: '',
     tipo: 'lancha',
@@ -55,10 +58,11 @@ export function EmbarcacionesView() {
     setLoading(true);
     setError(null);
     try {
-      const [embs, props, trip] = await Promise.all([
+      const [embs, props, trip, viajes] = await Promise.all([
         api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
         api.getPropietarios() as Promise<Record<string, unknown>[]>,
         api.getTripulacion() as Promise<Record<string, unknown>[]>,
+        api.getViajes() as Promise<Record<string, unknown>[]>,
       ]);
       const propMap = new Map(
         props.map((p) => [p.id, p.nombre as string])
@@ -73,6 +77,16 @@ export function EmbarcacionesView() {
             id: Number(t.id),
             nombre: t.nombre as string,
             rol: t.rol as string,
+          }))
+      );
+      setTodosLosViajes(
+        viajes
+          .filter((v) => v.estado === 'programado' || v.estado === 'en_curso')
+          .map((v) => ({
+            id: Number(v.id),
+            origen: v.origen as string,
+            destino: v.destino as string,
+            estado: v.estado as string,
           }))
       );
       setEmbarcaciones(
@@ -504,44 +518,48 @@ export function EmbarcacionesView() {
                                 Sin tripulación asignada
                               </p>
                             )}
-                            {detalles?.viajes && detalles.viajes.length > 0 && (
-                              <div className="p-3 bg-white rounded-lg border border-border space-y-2">
-                                <p className="text-xs font-medium text-primary">
-                                  Asignar operador a un viaje
+                            <div className="p-3 bg-white rounded-lg border border-border space-y-2">
+                              <p className="text-xs font-medium text-primary">
+                                Asignar operador a un viaje
+                              </p>
+                              <select
+                                value={assignViaje}
+                                onChange={(e) => setAssignViaje(e.target.value)}
+                                className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
+                              >
+                                <option value="">Seleccionar viaje</option>
+                                {todosLosViajes.map((v) => (
+                                  <option key={v.id} value={String(v.id)}>
+                                    V-{v.id}: {v.origen} - {v.destino} ({v.estado})
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                value={assignTripulante}
+                                onChange={(e) => setAssignTripulante(e.target.value)}
+                                className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
+                              >
+                                <option value="">Seleccionar tripulante</option>
+                                {tripulacionList.map((t) => (
+                                  <option key={t.id} value={String(t.id)}>
+                                    {t.nombre} — {t.rol}
+                                  </option>
+                                ))}
+                              </select>
+                              {todosLosViajes.length === 0 && (
+                                <p className="text-xs text-muted-foreground italic">
+                                  No hay viajes programados. Crea uno en Viajes (Zarpe).
                                 </p>
-                                <select
-                                  value={assignViaje}
-                                  onChange={(e) => setAssignViaje(e.target.value)}
-                                  className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
-                                >
-                                  <option value="">Seleccionar viaje</option>
-                                  {detalles.viajes.map((v) => (
-                                    <option key={v.id} value={String(v.id)}>
-                                      V-{v.id}: {v.origen} - {v.destino} ({v.estado})
-                                    </option>
-                                  ))}
-                                </select>
-                                <select
-                                  value={assignTripulante}
-                                  onChange={(e) => setAssignTripulante(e.target.value)}
-                                  className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
-                                >
-                                  <option value="">Seleccionar tripulante</option>
-                                  {tripulacionList.map((t) => (
-                                    <option key={t.id} value={String(t.id)}>
-                                      {t.nombre}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  onClick={() => handleAsignarTripulacion(emb.dbId)}
-                                  className="text-sm px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90"
-                                >
-                                  Asignar tripulación
-                                </button>
-                              </div>
-                            )}
+                              )}
+                              <button
+                                type="button"
+                                disabled={!assignViaje || !assignTripulante}
+                                onClick={() => handleAsignarTripulacion(emb.dbId)}
+                                className="text-sm px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                              >
+                                Asignar tripulación
+                              </button>
+                            </div>
                           </div>
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Viajes:</h4>

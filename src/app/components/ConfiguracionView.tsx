@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { User, Shield, Settings as SettingsIcon } from 'lucide-react';
+import { User, Shield } from 'lucide-react';
 import { Logo } from './Logo';
 import { ViewFeedback } from './ViewFeedback';
 import { api } from '../../services/api';
 
 interface ConfiguracionViewProps {
-  onLogout: () => void;
   onUserUpdate?: (user: { nombre: string; email: string; rol: string }) => void;
   user: {
     nombre: string;
@@ -49,7 +48,16 @@ function formatMemberSince(value: string | null | undefined) {
   return d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
 }
 
-export function ConfiguracionView({ onLogout, onUserUpdate, user }: ConfiguracionViewProps) {
+function loadLocalPrefs(): Preferencias | null {
+  try {
+    const raw = localStorage.getItem('geonaval_prefs');
+    return raw ? (JSON.parse(raw) as Preferencias) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function ConfiguracionView({ onUserUpdate, user }: ConfiguracionViewProps) {
   const roleLabels: Record<string, string> = {
     administrador: 'Administrador',
     operador: 'Operador Fluvial',
@@ -116,11 +124,25 @@ export function ConfiguracionView({ onLogout, onUserUpdate, user }: Configuracio
       setProfileForm({ nombre: data.nombre, email: data.email });
       if (data.preferencias) setPreferencias(data.preferencias);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Error al cargar configuración');
+      const msg = e instanceof Error ? e.message : 'Error al cargar configuración';
+      setError(msg);
+      setProfile({
+        nombre: user?.nombre || localStorage.getItem('userNombre') || '',
+        email: user?.email || localStorage.getItem('userEmail') || '',
+        rol: user?.rol || localStorage.getItem('userRole') || '',
+        ultimo_acceso: null,
+        created_at: null,
+      });
+      setProfileForm({
+        nombre: user?.nombre || localStorage.getItem('userNombre') || '',
+        email: user?.email || localStorage.getItem('userEmail') || '',
+      });
+      const local = loadLocalPrefs();
+      if (local) setPreferencias(local);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.nombre, user?.email, user?.rol]);
 
   useEffect(() => {
     load();
@@ -281,78 +303,6 @@ export function ConfiguracionView({ onLogout, onUserUpdate, user }: Configuracio
             <p className="text-sm text-muted-foreground">Miembro desde</p>
             <p className="font-medium">{formatMemberSince(profile.created_at)}</p>
           </div>
-        </div>
-      </div>
-
-      {/* Preferencias */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-purple-50 rounded-lg">
-            <SettingsIcon className="w-5 h-5 text-purple-600" />
-          </div>
-          <h3 className="font-semibold">Preferencias del Sistema</h3>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Idioma</label>
-            <select
-              value={preferencias.idioma}
-              onChange={(e) => setPreferencias({ ...preferencias, idioma: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="es">Español</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Zona Horaria</label>
-            <select
-              value={preferencias.zona_horaria}
-              onChange={(e) =>
-                setPreferencias({ ...preferencias, zona_horaria: e.target.value })
-              }
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="America/Bogota">Colombia (UTC-5)</option>
-              <option value="America/New_York">Estados Unidos Este</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Formato de Fecha</label>
-            <select
-              value={preferencias.formato_fecha}
-              onChange={(e) =>
-                setPreferencias({ ...preferencias, formato_fecha: e.target.value })
-              }
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-              <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-              <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Tema</label>
-            <select
-              value={preferencias.tema}
-              onChange={(e) => setPreferencias({ ...preferencias, tema: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="claro">Claro</option>
-              <option value="oscuro">Oscuro</option>
-              <option value="automatico">Automático</option>
-            </select>
-          </div>
-        </div>
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={handleSavePreferencias}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Guardar preferencias
-          </button>
         </div>
       </div>
 

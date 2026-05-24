@@ -1,4 +1,5 @@
-const BASE = import.meta.env.VITE_API_URL || '/api';
+/** Siempre /api: en Render va al mismo servidor; en dev Vite hace proxy a :3001 */
+const BASE = '/api';
 
 function getToken(): string {
   let token = localStorage.getItem('token');

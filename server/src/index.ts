@@ -15,6 +15,7 @@ import incidentesRoutes from './routes/incidentes';
 import clienteRoutes from './routes/cliente';
 import notificacionesRoutes from './routes/notificaciones';
 import { ensureSchema } from './db/initSchema';
+import { ensureConfigTables } from './db/ensureConfigTables';
 import pool from './db/pool';
 
 const staticDir = path.join(__dirname, '../dist');
@@ -62,6 +63,7 @@ app.listen(PORT, async () => {
   console.log(`Servidor GeoNaval corriendo en puerto ${PORT}`);
   if (process.env.DATABASE_URL) {
     await ensureSchema();
+    await ensureConfigTables();
   } else {
     console.warn('DATABASE_URL no configurada — solo login demo disponible');
   }

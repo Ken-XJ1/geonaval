@@ -57,6 +57,15 @@ export default function App() {
 
   const userRole = user?.rol || '';
 
+  const renderConfiguracion = () => (
+    <ConfiguracionView
+      user={user}
+      onUserUpdate={(updated) =>
+        setUser({ nombre: updated.nombre, email: updated.email, rol: user?.rol || '' })
+      }
+    />
+  );
+
   const getViewTitle = () => {
     // Títulos específicos por rol
     if (userRole === 'operador') {
@@ -131,7 +140,7 @@ export default function App() {
         case 'notificaciones':
           return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} user={user} />;
+          return renderConfiguracion();
         default:
           return (
             <OperadorDashboard
@@ -148,7 +157,7 @@ export default function App() {
         case 'notificaciones':
           return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} user={user} />;
+          return renderConfiguracion();
         default:
           return <ClienteDashboard />;
       }
@@ -174,7 +183,7 @@ export default function App() {
         case 'notificaciones':
           return <NotificacionesView />;
         case 'configuracion':
-          return <ConfiguracionView onLogout={handleLogout} user={user} />;
+          return renderConfiguracion();
         default:
           return <AutoridadesView />;
       }
@@ -207,13 +216,7 @@ export default function App() {
       case 'notificaciones':
         return <NotificacionesView />;
       case 'configuracion':
-        return (
-          <ConfiguracionView
-            onLogout={handleLogout}
-            user={user}
-            onUserUpdate={(updated) => setUser({ ...updated, rol: user?.rol || updated.rol || '' })}
-          />
-        );
+        return renderConfiguracion();
       default:
         return <Dashboard />;
     }
