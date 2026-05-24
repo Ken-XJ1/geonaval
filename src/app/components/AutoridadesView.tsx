@@ -101,9 +101,11 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
   const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
   const [statsViajes, setStatsViajes] = useState({ enCurso: 0, programados: 0, pasajeros: 0 });
   const [loadingStats, setLoadingStats] = useState(true);
-
+  const [viajesEnCurso, setViajesEnCurso] = useState<Record<string, unknown>[]>([]);
+  const [loadingViajes, setLoadingViajes] = useState(true);
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
+    setLoadingViajes(true);
     try {
       const viajes = (await api.getViajes()) as Record<string, unknown>[];
       const activos = viajes.filter(v => v.estado === 'en_curso' || v.estado === 'programado');
@@ -112,8 +114,9 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
         programados: activos.filter(v => v.estado === 'programado').length,
         pasajeros: activos.reduce((s, v) => s + Number(v.pasajeros_count ?? 0), 0),
       });
+      setViajesEnCurso(viajes.filter(v => v.estado === 'en_curso'));
     } catch { /* silencioso */ }
-    finally { setLoadingStats(false); }
+    finally { setLoadingStats(false); setLoadingViajes(false); }
   }, []);
 
   useEffect(() => { loadStats(); }, [loadStats]);
@@ -191,6 +194,57 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
           <p className="text-sm text-muted-foreground mb-1">Pasajeros en Tránsito</p>
           <p className="text-2xl font-bold text-blue-600">{loadingStats ? '…' : statsViajes.pasajeros}</p>
         </div>
+      </div>
+
+      {/* Tabla Viajes en Curso */}
+      <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div>
+            <h3 className="font-semibold">Viajes en Curso</h3>
+            <p className="text-sm text-muted-foreground">Supervisión en tiempo real</p>
+          </div>
+          <button
+            onClick={() => onNavigate?.('monitoreo')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm"
+          >
+            <Navigation className="w-4 h-4" />
+            Ver GPS en Vivo
+          </button>
+        </div>
+        {loadingViajes ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">Cargando…</div>
+        ) : viajesEnCurso.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">No hay viajes en curso en este momento</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Embarcación</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Ruta</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Salida</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasajeros</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {viajesEnCurso.map((v) => (
+                  <tr key={v.id as number} className="hover:bg-muted/40 transition-colors">
+                    <td className="px-6 py-4 text-sm font-mono text-muted-foreground">V-{v.id as number}</td>
+                    <td className="px-6 py-4 text-sm font-medium">{(v.embarcacion_nombre as string) || '—'}</td>
+                    <td className="px-6 py-4 text-sm">{v.origen as string} → {v.destino as string}</td>
+                    <td className="px-6 py-4 text-sm">{formatDateTime(v.fecha_salida as string)}</td>
+                    <td className="px-6 py-4 text-sm font-medium text-primary">{v.pasajeros_count as number}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <StatusBadge status={v.estado as string} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Panel de Consultas Oficiales */}

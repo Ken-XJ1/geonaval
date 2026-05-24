@@ -7,7 +7,14 @@ const router = Router();
 router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
-  const rows = await safeQuery('SELECT * FROM propietarios ORDER BY id');
+  const rows = await safeQuery(
+    `SELECT p.*,
+      COUNT(e.id)::int AS embarcaciones_count
+     FROM propietarios p
+     LEFT JOIN embarcaciones e ON e.propietario_id = p.id
+     GROUP BY p.id
+     ORDER BY p.id`
+  );
   return res.json(rows);
 });
 

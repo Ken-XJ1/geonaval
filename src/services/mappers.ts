@@ -96,7 +96,7 @@ export function mapPropietarioToUI(row: Record<string, unknown>) {
       ? `NIT ${(row.nit as string) || row.identificacion}`
       : (row.identificacion as string),
     telefono: (row.telefono as string) || '—',
-    embarcaciones: 0,
+    embarcaciones: Number(row.embarcaciones_count ?? 0),
   };
 }
 
@@ -107,11 +107,13 @@ export function mapTripulacionToUI(row: Record<string, unknown>) {
     nombre: row.nombre as string,
     documento: row.documento as string,
     rol: rolLabels[row.rol as string] || (row.rol as string),
+    rolDb: row.rol as string,
     licencias: (row.licencias as string) || '—',
     telefono: (row.telefono as string) || '—',
+    email: (row.email as string) || '',
     estado: (row.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo',
-    embarcacion: '—',
-    viajes: '—',
+    embarcacion: (row.embarcacion_nombre as string) || '—',
+    viajes: row.viajes_count != null ? String(row.viajes_count) : '0',
     horario: '—',
   };
 }
