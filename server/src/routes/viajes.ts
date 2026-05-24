@@ -46,7 +46,7 @@ router.get('/mi-viaje', async (req: Request, res: Response) => {
   if (!user || user.id === undefined || user.id === null) return res.json(null);
 
   const rows = await safeQuery(
-    `SELECT v.*, vp.asiento, vp.precio_pagado, e.nombre AS embarcacion_nombre,
+    `SELECT v.*, vp.asiento, vp.precio_pagado, vp.metodo_pago, e.nombre AS embarcacion_nombre,
             e.capacidad_pasajeros,
             (SELECT COUNT(*)::int FROM viaje_pasajeros WHERE viaje_id = v.id) AS pasajeros_count
      FROM viaje_pasajeros vp
@@ -63,9 +63,52 @@ router.get('/mi-viaje', async (req: Request, res: Response) => {
   return res.json(rows[0]);
 });
 
+// Estadísticas de compras/tickets — debe ir ANTES de /:id para no ser capturada como param
+router.get('/compras/stats', async (_req: Request, res: Response) => {
+  try {
+    const hoyInicio = new Date();
+    hoyInicio.setHours(0, 0, 0, 0);
+    const hoyFin = new Date();
+    hoyFin.setHours(23, 59, 59, 999);
+
+    const [ventasHoy, totalRecaudado, confirmados, pendientes] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*)::int AS count FROM viaje_pasajeros vp
+         INNER JOIN pasajeros p ON p.id = vp.pasajero_id
+         WHERE p.created_at >= $1 AND p.created_at <= $2`,
+        [hoyInicio.toISOString(), hoyFin.toISOString()]
+      ),
+      pool.query(
+        `SELECT COALESCE(SUM(precio_pagado), 0)::numeric AS total FROM viaje_pasajeros`
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS count FROM viaje_pasajeros vp
+         INNER JOIN viajes v ON v.id = vp.viaje_id
+         WHERE v.estado IN ('programado', 'en_curso', 'finalizado')`
+      ),
+      pool.query(
+        `SELECT COUNT(*)::int AS count FROM viaje_pasajeros vp
+         INNER JOIN viajes v ON v.id = vp.viaje_id
+         WHERE v.estado = 'cancelado'`
+      ),
+    ]);
+
+    return res.json({
+      ventasHoy: ventasHoy.rows[0].count,
+      totalRecaudado: Number(totalRecaudado.rows[0].total),
+      ticketsConfirmados: confirmados.rows[0].count,
+      ticketsPendientes: pendientes.rows[0].count,
+    });
+  } catch (err) {
+    console.error('Compras stats:', (err as Error).message);
+    return res.status(500).json({ error: 'Error al calcular estadísticas' });
+  }
+});
+
 router.post('/:id/inscribir', async (req: Request, res: Response) => {
   const user = (req as Request & { user: { id: number; nombre: string; email: string } }).user;
   const viajeId = req.params.id;
+  const { metodo_pago } = req.body;
 
   if (!user || user.id === undefined || user.id === null) {
     return res.status(401).json({ error: 'Usuario no autenticado' });
@@ -85,7 +128,7 @@ router.post('/:id/inscribir', async (req: Request, res: Response) => {
     if (viaje.estado !== 'programado') {
       return res.status(400).json({ error: 'Este viaje ya no acepta inscripciones' });
     }
-    
+
     const limite = viaje.fecha_limite_inscripcion || viaje.cierre_inscripcion;
     if (limite && new Date(limite) < new Date()) {
       return res.status(400).json({ error: 'El periodo de inscripción ya cerró' });
@@ -126,11 +169,12 @@ router.post('/:id/inscribir', async (req: Request, res: Response) => {
     }
 
     const asiento = `A-${String(viaje.ocupados + 1).padStart(2, '0')}`;
+    const metodoPagoFinal = metodo_pago || 'efectivo';
 
     await pool.query(
-      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, usuario_id, asiento, precio_pagado)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [viajeId, pasajeroId, user.id, asiento, viaje.precio || 0]
+      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, usuario_id, asiento, precio_pagado, metodo_pago)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [viajeId, pasajeroId, user.id, asiento, viaje.precio || 0, metodoPagoFinal]
     );
 
     return res.status(201).json({ message: 'Inscripción exitosa', asiento });
@@ -171,7 +215,6 @@ router.delete('/:id/cancelar-inscripcion', async (req: Request, res: Response) =
   }
 });
 
-
 router.get('/:id/pasajeros', async (req: Request, res: Response) => {
   const rows = await safeQuery(
     `SELECT p.* FROM pasajeros p
@@ -184,7 +227,7 @@ router.get('/:id/pasajeros', async (req: Request, res: Response) => {
 });
 
 router.post('/:id/pasajeros', async (req: Request, res: Response) => {
-  const { pasajero_id, asiento, precio_pagado, usuario_id } = req.body;
+  const { pasajero_id, asiento, precio_pagado, usuario_id, metodo_pago } = req.body;
   if (!pasajero_id) {
     return res.status(400).json({ error: 'pasajero_id requerido' });
   }
@@ -193,17 +236,19 @@ router.post('/:id/pasajeros', async (req: Request, res: Response) => {
       req.params.id,
     ]);
     await pool.query(
-      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, asiento, precio_pagado, usuario_id)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, asiento, precio_pagado, usuario_id, metodo_pago)
+       VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (viaje_id, pasajero_id) DO UPDATE SET
          asiento = EXCLUDED.asiento,
-         precio_pagado = EXCLUDED.precio_pagado`,
+         precio_pagado = EXCLUDED.precio_pagado,
+         metodo_pago = EXCLUDED.metodo_pago`,
       [
         req.params.id,
         pasajero_id,
         asiento || null,
         precio_pagado ?? viaje.rows[0]?.precio ?? 0,
         usuario_id || null,
+        metodo_pago || 'efectivo',
       ]
     );
     return res.status(201).json({ message: 'Pasajero asignado al viaje' });

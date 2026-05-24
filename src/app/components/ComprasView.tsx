@@ -21,6 +21,30 @@ type CompraRow = {
   vendedor: string;
 };
 
+type ComprasStats = {
+  ventasHoy: number;
+  totalRecaudado: number;
+  ticketsConfirmados: number;
+  ticketsPendientes: number;
+};
+
+function formatCOP(value: number) {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatMetodoPago(metodo: string | null | undefined) {
+  const map: Record<string, string> = {
+    efectivo: 'Efectivo',
+    tarjeta: 'Tarjeta',
+    transferencia: 'Transferencia',
+  };
+  return metodo ? (map[metodo] ?? metodo) : '—';
+}
+
 export function ComprasView() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,14 +63,22 @@ export function ComprasView() {
   });
 
   const [compras, setCompras] = useState<CompraRow[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [stats, setStats] = useState<ComprasStats>({
+    ventasHoy: 0,
+    totalRecaudado: 0,
+    ticketsConfirmados: 0,
+    ticketsPendientes: 0,
+  });
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [pasajeros, viajes] = await Promise.all([
+      const [pasajeros, viajes, statsData] = await Promise.all([
         api.getPasajeros() as Promise<Record<string, unknown>[]>,
         api.getViajesDisponibles() as Promise<Record<string, unknown>[]>,
+        api.getComprasStats() as Promise<ComprasStats>,
       ]);
       setViajesDisponibles(
         viajes.map((v) => ({
@@ -56,6 +88,7 @@ export function ComprasView() {
           precio: Number(v.precio ?? 0),
         }))
       );
+      setStats(statsData);
       setCompras(
         pasajeros.map((p) => ({
           dbId: Number(p.id),
@@ -71,9 +104,11 @@ export function ComprasView() {
             p.origen && p.destino
               ? `${p.origen} - ${p.destino}`
               : '—',
-          asiento: '—',
-          precio: '—',
-          metodoPago: '—',
+          asiento: p.asiento ? String(p.asiento) : '—',
+          precio: p.precio_pagado != null
+            ? formatCOP(Number(p.precio_pagado))
+            : '—',
+          metodoPago: formatMetodoPago(p.metodo_pago as string | null),
           estado: 'confirmado' as const,
           vendedor: 'Sistema',
         }))
@@ -115,17 +150,28 @@ export function ComprasView() {
         telefono: formData.pasajeroTelefono,
         email: null,
       })) as { id: number };
-      if (formData.viaje && created.id) {
-        const viajeSel = viajesDisponibles.find((v) => v.id === formData.viaje);
-        await api.assignPasajeroViaje(
-          parseInt(formData.viaje, 10),
-          created.id,
-          {
-            asiento: formData.asiento,
-            precio_pagado: parseFloat(formData.precio) || viajeSel?.precio || 0,
-          }
-        );
+      if (!formData.viaje) {
+        throw new Error('Debes seleccionar un viaje para generar el ticket');
       }
+      const viajeSel = viajesDisponibles.find((v) => v.id === formData.viaje);
+      await api.assignPasajeroViaje(
+        parseInt(formData.viaje, 10),
+        created.id,
+        {
+          asiento: formData.asiento,
+          precio_pagado: parseFloat(formData.precio) || viajeSel?.precio || 0,
+          metodo_pago: formData.metodoPago,
+        }
+      );
+      setFormData({
+        pasajeroNombre: '',
+        pasajeroDocumento: '',
+        pasajeroTelefono: '',
+        viaje: '',
+        asiento: '',
+        precio: '',
+        metodoPago: 'efectivo',
+      });
       setShowForm(false);
       await load();
     } catch (e) {
@@ -142,6 +188,16 @@ export function ComprasView() {
       setError(e instanceof Error ? e.message : 'Error al eliminar');
     }
   };
+
+  const filteredCompras = compras.filter((c) => {
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      c.ticket.toLowerCase().includes(q) ||
+      c.pasajero.toLowerCase().includes(q) ||
+      c.documento.toLowerCase().includes(q)
+    );
+  });
 
   if (loading) return <ViewFeedback loading />;
   if (error && compras.length === 0) return <ViewFeedback error={error} />;
@@ -310,22 +366,22 @@ export function ComprasView() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Ventas Hoy</p>
-          <p className="text-2xl font-bold text-primary">{compras.length}</p>
+          <p className="text-2xl font-bold text-primary">{stats.ventasHoy}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Total Recaudado</p>
-          <p className="text-2xl font-bold text-green-600">{compras.length}</p>
+          <p className="text-2xl font-bold text-green-600">{formatCOP(stats.totalRecaudado)}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Tickets Confirmados</p>
           <p className="text-2xl font-bold text-blue-600">
-            {compras.filter((c) => c.estado === 'confirmado').length}
+            {stats.ticketsConfirmados}
           </p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Tickets Pendientes</p>
           <p className="text-2xl font-bold text-yellow-600">
-            {compras.filter((c) => c.estado === 'pendiente').length}
+            {stats.ticketsPendientes}
           </p>
         </div>
       </div>
@@ -337,6 +393,8 @@ export function ComprasView() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input
               type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Buscar por ticket, pasajero o documento..."
               className="w-full pl-10 pr-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
             />
@@ -355,7 +413,7 @@ export function ComprasView() {
       {/* Table */}
       <DataTable
         columns={columns}
-        data={compras}
+        data={filteredCompras}
         onDelete={handleDelete}
       />
     </div>

@@ -8,8 +8,11 @@ router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
   const rows = await safeQuery(
-    `SELECT p.*,
-      v.id AS viaje_id,
+    `SELECT DISTINCT ON (p.id) p.*,
+      vp.viaje_id,
+      vp.asiento,
+      vp.precio_pagado,
+      vp.metodo_pago,
       v.origen,
       v.destino,
       v.estado AS viaje_estado,
@@ -19,7 +22,7 @@ router.get('/', async (_req: Request, res: Response) => {
      LEFT JOIN viaje_pasajeros vp ON vp.pasajero_id = p.id
      LEFT JOIN viajes v ON v.id = vp.viaje_id
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-     ORDER BY p.id`
+     ORDER BY p.id DESC, vp.viaje_id DESC NULLS LAST`
   );
   return res.json(rows);
 });

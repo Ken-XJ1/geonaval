@@ -163,10 +163,11 @@ export const api = {
     return data;
   },
 
-  inscribirViaje: (viajeId: number) =>
+  inscribirViaje: (viajeId: number, metodo_pago?: string) =>
     fetch(`${BASE}/viajes/${viajeId}/inscribir`, {
       method: 'POST',
       headers: headers(),
+      body: JSON.stringify({ metodo_pago: metodo_pago || 'efectivo' }),
     }).then((r) => parseJson(r)),
 
   cancelarInscripcion: (viajeId: number) =>
@@ -200,7 +201,7 @@ export const api = {
   assignPasajeroViaje: (
     viajeId: number,
     pasajeroId: number,
-    extra?: { asiento?: string; precio_pagado?: number }
+    extra?: { asiento?: string; precio_pagado?: number; metodo_pago?: string }
   ) =>
     fetch(`${BASE}/viajes/${viajeId}/pasajeros`, {
       method: 'POST',
@@ -252,6 +253,11 @@ export const api = {
       method: 'PUT',
       headers: headers(),
     }).then((r) => parseJson(r)),
+
+  getComprasStats: () =>
+    fetch(`${BASE}/viajes/compras/stats`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
 
   deleteUsuario: (id: number) =>
     fetch(`${BASE}/usuarios/${id}`, {

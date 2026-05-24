@@ -1,4 +1,4 @@
-import { Search, Bell, User, ChevronDown, LogOut, Settings, Check } from 'lucide-react';
+import { Bell, User, ChevronDown, LogOut, Settings, Check } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 
@@ -65,16 +65,6 @@ export function Header({ title, userName = "Administrador", userEmail = "geonava
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            className="pl-10 pr-4 py-2 w-64 bg-muted rounded-lg border border-transparent focus:border-primary focus:outline-none transition-colors"
-          />
-        </div>
-
         {/* Notifications */}
         <div className="relative">
           <button 

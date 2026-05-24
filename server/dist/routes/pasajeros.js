@@ -10,8 +10,11 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    const rows = await (0, safeQuery_1.safeQuery)(`SELECT p.*,
-      v.id AS viaje_id,
+    const rows = await (0, safeQuery_1.safeQuery)(`SELECT DISTINCT ON (p.id) p.*,
+      vp.viaje_id,
+      vp.asiento,
+      vp.precio_pagado,
+      vp.metodo_pago,
       v.origen,
       v.destino,
       v.estado AS viaje_estado,
@@ -21,7 +24,7 @@ router.get('/', async (_req, res) => {
      LEFT JOIN viaje_pasajeros vp ON vp.pasajero_id = p.id
      LEFT JOIN viajes v ON v.id = vp.viaje_id
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-     ORDER BY p.id`);
+     ORDER BY p.id DESC, vp.viaje_id DESC NULLS LAST`);
     return res.json(rows);
 });
 router.get('/:id', async (req, res) => {

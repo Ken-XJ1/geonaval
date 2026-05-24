@@ -93,6 +93,7 @@ CREATE TABLE IF NOT EXISTS viaje_pasajeros (
   usuario_id INT REFERENCES usuarios(id),
   asiento VARCHAR(20),
   precio_pagado DECIMAL(12,2),
+  metodo_pago VARCHAR(20) DEFAULT 'efectivo',
   PRIMARY KEY (viaje_id, pasajero_id)
 );
 

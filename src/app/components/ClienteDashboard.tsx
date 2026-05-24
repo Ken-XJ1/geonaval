@@ -29,6 +29,7 @@ type MiReserva = ViajeDisponible & {
   asiento: string;
   precio_pagado: number;
   estado: string;
+  metodo_pago: string | null;
 };
 
 function formatCOP(value: number) {
@@ -134,6 +135,9 @@ export function ClienteDashboard() {
   const [miReserva, setMiReserva] = useState<MiReserva | null>(null);
   const [reservando, setReservando] = useState<number | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
+  // Estado para el modal de método de pago
+  const [viajeSeleccionado, setViajeSeleccionado] = useState<ViajeDisponible | null>(null);
+  const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta' | 'transferencia'>('efectivo');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -163,14 +167,22 @@ export function ClienteDashboard() {
     setError(null);
     setOkMsg(null);
     try {
-      await api.inscribirViaje(viajeId);
+      await api.inscribirViaje(viajeId, metodoPago);
       setOkMsg('¡Inscripción exitosa! Tu viaje aparece abajo.');
+      setViajeSeleccionado(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo inscribir');
     } finally {
       setReservando(null);
     }
+  };
+
+  const abrirModalInscripcion = (viaje: ViajeDisponible) => {
+    setViajeSeleccionado(viaje);
+    setMetodoPago('efectivo');
+    setError(null);
+    setOkMsg(null);
   };
 
   const handleCancelarInscripcion = async (viajeId: number) => {
@@ -211,6 +223,57 @@ export function ClienteDashboard() {
           {okMsg}
         </div>
       ) : null}
+
+      {/* Modal de método de pago */}
+      {viajeSeleccionado && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <h3 className="text-lg font-semibold mb-1">Confirmar inscripción</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              {viajeSeleccionado.origen} → {viajeSeleccionado.destino} ·{' '}
+              {formatCOP(Number(viajeSeleccionado.precio || 0))}
+            </p>
+
+            <div className="mb-5">
+              <label className="block text-sm font-medium mb-2">Método de pago</label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['efectivo', 'tarjeta', 'transferencia'] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setMetodoPago(m)}
+                    className={`py-2.5 rounded-lg border text-sm font-medium capitalize transition-colors ${
+                      metodoPago === m
+                        ? 'bg-primary text-white border-primary'
+                        : 'border-border hover:bg-muted'
+                    }`}
+                  >
+                    {m.charAt(0).toUpperCase() + m.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setViajeSeleccionado(null)}
+                className="flex-1 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={reservando === viajeSeleccionado.id}
+                onClick={() => handleInscribir(viajeSeleccionado.id)}
+                className="flex-1 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed text-sm font-medium"
+              >
+                {reservando === viajeSeleccionado.id ? 'Inscribiendo...' : 'Confirmar inscripción'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {miReserva ? (
         <div className="bg-white rounded-xl border border-border shadow-sm p-6">
@@ -270,6 +333,14 @@ export function ClienteDashboard() {
               <p className="text-sm text-muted-foreground">Valor pagado</p>
               <p className="font-bold text-green-700">
                 {formatCOP(Number(miReserva.precio_pagado || miReserva.precio || 0))}
+              </p>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg md:col-span-3">
+              <p className="text-sm text-muted-foreground">Método de pago</p>
+              <p className="font-medium capitalize">
+                {miReserva.metodo_pago
+                  ? miReserva.metodo_pago.charAt(0).toUpperCase() + miReserva.metodo_pago.slice(1)
+                  : '—'}
               </p>
             </div>
           </div>
@@ -362,7 +433,7 @@ export function ClienteDashboard() {
                     !!miReserva ||
                     !inscripcionAbierta(v.fecha_limite_inscripcion || v.cierre_inscripcion)
                   }
-                  onClick={() => handleInscribir(v.id)}
+                  onClick={() => abrirModalInscripcion(v)}
                   className="w-full py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed font-medium shadow-sm"
                 >
                   {reservando === v.id
