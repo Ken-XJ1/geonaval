@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Menu, X } from 'lucide-react';
 import { LoginScreen } from './components/LoginScreen';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
@@ -36,6 +37,7 @@ export default function App() {
     };
   });
   const [activeView, setActiveView] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleLogin = (userData: {
     nombre: string;
@@ -250,19 +252,44 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      <Sidebar activeView={activeView} onNavigate={setActiveView} userRole={userRole} />
+      {/* Overlay para móvil */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header 
-          title={getViewTitle()} 
-          userName={user?.nombre || getRoleName()} 
+      {/* Sidebar — fijo en desktop, drawer en móvil */}
+      <div
+        className={`
+          fixed inset-y-0 left-0 z-30 transform transition-transform duration-300 ease-in-out
+          lg:relative lg:translate-x-0 lg:z-auto
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <Sidebar
+          activeView={activeView}
+          onNavigate={(view) => {
+            setActiveView(view);
+            setSidebarOpen(false);
+          }}
+          userRole={userRole}
+        />
+      </div>
+
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <Header
+          title={getViewTitle()}
+          userName={user?.nombre || getRoleName()}
           userEmail={user?.email}
-          onLogout={handleLogout} 
+          onLogout={handleLogout}
           onNavigate={setActiveView}
+          onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
         />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6">
+          <div className="p-4 md:p-6">
             {renderView()}
           </div>
           <Footer />

@@ -91,7 +91,6 @@ export function Sidebar({ activeView, onNavigate, userRole }: SidebarProps) {
       <div className="p-6 border-b border-border">
         <LogoFull size="md" />
       </div>
-
       {/* Navigation Menu */}
       <nav className="flex-1 overflow-y-auto p-4">
         <div className="space-y-1">

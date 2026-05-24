@@ -1,4 +1,4 @@
-import { Bell, User, ChevronDown, LogOut, Settings, Check } from 'lucide-react';
+import { Bell, User, ChevronDown, LogOut, Settings, Check, Menu } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 
@@ -8,6 +8,7 @@ interface HeaderProps {
   userEmail?: string;
   onLogout?: () => void;
   onNavigate?: (view: string) => void;
+  onMenuToggle?: () => void;
 }
 
 type Notificacion = {
@@ -18,7 +19,7 @@ type Notificacion = {
   created_at: string;
 };
 
-export function Header({ title, userName = "Administrador", userEmail = "geonaval@colombia.gov.co", onLogout, onNavigate }: HeaderProps) {
+export function Header({ title, userName = "Administrador", userEmail = "geonaval@colombia.gov.co", onLogout, onNavigate, onMenuToggle }: HeaderProps) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -59,9 +60,17 @@ export function Header({ title, userName = "Administrador", userEmail = "geonava
   };
 
   return (
-    <header className="h-16 bg-white border-b border-border shadow-sm flex items-center justify-between px-6">
-      <div className="flex items-center gap-4">
-        <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+    <header className="h-16 bg-white border-b border-border shadow-sm flex items-center justify-between px-4 md:px-6">
+      <div className="flex items-center gap-3">
+        {/* Botón hamburger — solo en móvil */}
+        <button
+          onClick={onMenuToggle}
+          className="p-2 rounded-lg hover:bg-muted transition-colors lg:hidden"
+          aria-label="Abrir menú"
+        >
+          <Menu className="w-5 h-5 text-foreground" />
+        </button>
+        <h2 className="text-base md:text-xl font-semibold text-foreground truncate max-w-[160px] sm:max-w-none">{title}</h2>
       </div>
 
       <div className="flex items-center gap-4">

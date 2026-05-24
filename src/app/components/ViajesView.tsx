@@ -16,7 +16,11 @@ export function ViajesView() {
       nombre: string;
       capacidad?: number;
       propietarioNombre?: string;
+      propietarioId?: number;
     }[]
+  >([]);
+  const [propietariosList, setPropietariosList] = useState<
+    { id: number; nombre: string }[]
   >([]);
   const [tripulacionList, setTripulacionList] = useState<
     { id: number; nombre: string; rol: string }[]
@@ -52,10 +56,11 @@ export function ViajesView() {
     setLoading(true);
     setError(null);
     try {
-      const [viajes, embs, trip] = await Promise.all([
+      const [viajes, embs, trip, props] = await Promise.all([
         api.getViajes() as Promise<Record<string, unknown>[]>,
         api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
         api.getTripulacion() as Promise<Record<string, unknown>[]>,
+        api.getPropietarios() as Promise<Record<string, unknown>[]>,
       ]);
       const embMap = new Map(embs.map((e) => [e.id, e.nombre as string]));
       setEmbarcacionesList(
@@ -63,8 +68,12 @@ export function ViajesView() {
           id: Number(e.id),
           nombre: e.nombre as string,
           capacidad: Number(e.capacidad_pasajeros || 0),
-          propietarioNombre: (e.propietario_nombre as string) || '—',
+          propietarioNombre: (e.propietario_nombre as string) || '',
+          propietarioId: e.propietario_id ? Number(e.propietario_id) : undefined,
         }))
+      );
+      setPropietariosList(
+        props.map((p) => ({ id: Number(p.id), nombre: p.nombre as string }))
       );
       setTripulacionList(
         trip
@@ -489,11 +498,10 @@ export function ViajesView() {
                 onChange={(e) => {
                   const id = e.target.value;
                   const sel = embarcacionesList.find((v) => String(v.id) === id);
-                  handleFormChange('embarcacion', id);
                   setFormData((prev) => ({
                     ...prev,
                     embarcacion: id,
-                    propietario: sel?.propietarioNombre || '—',
+                    propietario: sel?.propietarioId ? String(sel.propietarioId) : '',
                   }));
                   setTimeout(validarConflictoHorarios, 100);
                 }}
@@ -511,13 +519,23 @@ export function ViajesView() {
 
             <div>
               <label className="block text-sm font-medium mb-2">Propietario</label>
-              <input
-                type="text"
+              <select
                 value={formData.propietario}
-                readOnly
-                className="w-full px-4 py-2 bg-muted/70 rounded-lg border border-border text-muted-foreground"
-                placeholder="Se completa al elegir embarcación"
-              />
+                onChange={(e) => setFormData((prev) => ({ ...prev, propietario: e.target.value }))}
+                className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              >
+                <option value="">Sin propietario asignado</option>
+                {propietariosList.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+              {formData.embarcacion && !formData.propietario && (
+                <p className="text-xs text-amber-600 mt-1">
+                  Esta embarcación no tiene propietario. Puedes asignarlo aquí o en Propietarios.
+                </p>
+              )}
             </div>
 
             <div>
