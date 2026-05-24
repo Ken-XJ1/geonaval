@@ -168,11 +168,11 @@ export default function App() {
     if (userRole === 'autoridad') {
       switch (activeView) {
         case 'dashboard':
-          return <AutoridadesView />;
+          return <AutoridadesView onNavigate={setActiveView} />;
         case 'monitoreo':
           return <MonitoreoView />;
         case 'consultas':
-          return <AutoridadesView />;
+          return <AutoridadesView onNavigate={setActiveView} />;
         case 'reportes':
           return <ReportesView />;
         case 'alertas':
@@ -187,7 +187,7 @@ export default function App() {
         case 'configuracion':
           return renderConfiguracion();
         default:
-          return <AutoridadesView />;
+          return <AutoridadesView onNavigate={setActiveView} />;
       }
     }
 
@@ -212,7 +212,7 @@ export default function App() {
       case 'reportes':
         return <ReportesView />;
       case 'autoridades':
-        return <AutoridadesView />;
+        return <AutoridadesView onNavigate={setActiveView} />;
       case 'usuarios':
         return <UsuariosView />;
       case 'notificaciones':

@@ -158,13 +158,6 @@ export function ViajesView() {
       ),
     },
     {
-      key: 'duracion',
-      label: 'Duración',
-      render: (value: string) => (
-        <span className="text-sm font-medium text-blue-600">{value}</span>
-      ),
-    },
-    {
       key: 'pasajeros',
       label: 'Ocupación',
       render: (value: number, row: any) => {

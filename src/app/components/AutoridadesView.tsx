@@ -1,90 +1,172 @@
-import { useState } from 'react';
-import { Shield, Search, Download, Eye, Clock, Navigation, AlertTriangle } from 'lucide-react';
-import { DataTable } from './DataTable';
+import { useState, useEffect, useCallback } from 'react';
+import { Shield, Search, Download, Clock, Navigation, AlertTriangle, User, Ship, Users, Navigation2 } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
+import { ViewFeedback } from './ViewFeedback';
+import { api } from '../../services/api';
 
-export function AutoridadesView() {
-  const [busqueda, setBusqueda] = useState({
-    tipo: 'pasajero',
-    criterio: '',
-  });
+type ResultadoConsulta = Record<string, unknown>;
 
-  const viajesActivos = [
-    {
-      id: 'V-001',
-      fecha: '09/05/2026',
-      embarcacion: 'Ferry San José',
-      ruta: 'Quibdó - Istmina',
-      operador: 'Juan Pérez',
-      pasajeros: 45,
-      estado: 'en-curso' as const,
-    },
-    {
-      id: 'V-002',
-      fecha: '09/05/2026',
-      embarcacion: 'Lancha Rápida 7',
-      ruta: 'Quibdó - Tadó',
-      operador: 'María González',
-      pasajeros: 18,
-      estado: 'en-curso' as const,
-    },
-  ];
+const TIPOS = [
+  { value: 'pasajero',    label: 'Pasajero',    placeholder: 'Nombre o número de documento' },
+  { value: 'tripulacion', label: 'Tripulación', placeholder: 'Nombre o documento del tripulante' },
+  { value: 'embarcacion', label: 'Embarcación', placeholder: 'Nombre o NIC de la embarcación' },
+  { value: 'viaje',       label: 'Viaje',       placeholder: 'ID del viaje (ej: 3) o ruta (ej: Quibdó)' },
+];
 
+function formatDateTime(d: string | null | undefined) {
+  if (!d) return '—';
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function ResultadoPasajero({ r }: { r: ResultadoConsulta }) {
+  return (
+    <div className="p-4 bg-white border border-border rounded-lg space-y-2">
+      <div className="flex items-center gap-2">
+        <User className="w-4 h-4 text-primary" />
+        <span className="font-semibold">{r.nombre as string}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        <span>Documento: <strong className="text-foreground">{r.documento as string}</strong></span>
+        <span>Teléfono: <strong className="text-foreground">{(r.telefono as string) || '—'}</strong></span>
+        {r.origen && <span>Ruta: <strong className="text-foreground">{r.origen as string} → {r.destino as string}</strong></span>}
+        {r.viaje_estado && <span>Estado viaje: <StatusBadge status={r.viaje_estado as string} /></span>}
+        {r.fecha_salida && <span>Salida: <strong className="text-foreground">{formatDateTime(r.fecha_salida as string)}</strong></span>}
+        {r.asiento && <span>Asiento: <strong className="text-foreground">{r.asiento as string}</strong></span>}
+      </div>
+    </div>
+  );
+}
+
+function ResultadoTripulacion({ r }: { r: ResultadoConsulta }) {
+  return (
+    <div className="p-4 bg-white border border-border rounded-lg space-y-2">
+      <div className="flex items-center gap-2">
+        <Users className="w-4 h-4 text-blue-600" />
+        <span className="font-semibold">{r.nombre as string}</span>
+        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full capitalize">{r.rol as string}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        <span>Documento: <strong className="text-foreground">{r.documento as string}</strong></span>
+        <span>Teléfono: <strong className="text-foreground">{(r.telefono as string) || '—'}</strong></span>
+        <span>Estado: <strong className={r.activo ? 'text-green-600' : 'text-red-600'}>{r.activo ? 'Activo' : 'Inactivo'}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+function ResultadoEmbarcacion({ r }: { r: ResultadoConsulta }) {
+  return (
+    <div className="p-4 bg-white border border-border rounded-lg space-y-2">
+      <div className="flex items-center gap-2">
+        <Ship className="w-4 h-4 text-primary" />
+        <span className="font-semibold">{r.nombre as string}</span>
+        <StatusBadge status={r.estado as string} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        <span>NIC: <strong className="text-foreground">{r.nic as string}</strong></span>
+        <span>Tipo: <strong className="text-foreground capitalize">{r.tipo as string}</strong></span>
+        <span>Capacidad: <strong className="text-foreground">{r.capacidad_pasajeros as number} pasajeros</strong></span>
+        {r.propietario_nombre && <span>Propietario: <strong className="text-foreground">{r.propietario_nombre as string}</strong></span>}
+      </div>
+    </div>
+  );
+}
+
+function ResultadoViaje({ r }: { r: ResultadoConsulta }) {
+  return (
+    <div className="p-4 bg-white border border-border rounded-lg space-y-2">
+      <div className="flex items-center gap-2">
+        <Navigation2 className="w-4 h-4 text-primary" />
+        <span className="font-semibold">V-{r.id as number}: {r.origen as string} → {r.destino as string}</span>
+        <StatusBadge status={r.estado as string} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+        <span>Salida: <strong className="text-foreground">{formatDateTime(r.fecha_salida as string)}</strong></span>
+        <span>Embarcación: <strong className="text-foreground">{(r.embarcacion_nombre as string) || '—'}</strong></span>
+        <span>Pasajeros: <strong className="text-foreground">{r.pasajeros_count as number}</strong></span>
+        <span>Precio: <strong className="text-foreground">{new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(r.precio ?? 0))}</strong></span>
+      </div>
+    </div>
+  );
+}
+
+export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) => void }) {
+  const [tipo, setTipo] = useState('pasajero');
+  const [criterio, setCriterio] = useState('');
+  const [resultados, setResultados] = useState<ResultadoConsulta[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const [buscado, setBuscado] = useState(false);
+  const [errorBusqueda, setErrorBusqueda] = useState<string | null>(null);
+  const [statsViajes, setStatsViajes] = useState({ enCurso: 0, programados: 0, pasajeros: 0 });
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const viajes = (await api.getViajes()) as Record<string, unknown>[];
+      const activos = viajes.filter(v => v.estado === 'en_curso' || v.estado === 'programado');
+      setStatsViajes({
+        enCurso: activos.filter(v => v.estado === 'en_curso').length,
+        programados: activos.filter(v => v.estado === 'programado').length,
+        pasajeros: activos.reduce((s, v) => s + Number(v.pasajeros_count ?? 0), 0),
+      });
+    } catch { /* silencioso */ }
+    finally { setLoadingStats(false); }
+  }, []);
+
+  useEffect(() => { loadStats(); }, [loadStats]);
+
+  const handleConsultar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!criterio.trim()) return;
+    setBuscando(true);
+    setBuscado(false);
+    setErrorBusqueda(null);
+    setResultados([]);
+    try {
+      const q = criterio.trim().toLowerCase();
+      let data: ResultadoConsulta[] = [];
+      if (tipo === 'pasajero') {
+        const rows = (await api.getPasajeros()) as Record<string, unknown>[];
+        data = rows.filter(r => (r.nombre as string)?.toLowerCase().includes(q) || (r.documento as string)?.toLowerCase().includes(q));
+      } else if (tipo === 'tripulacion') {
+        const rows = (await api.getTripulacion()) as Record<string, unknown>[];
+        data = rows.filter(r => (r.nombre as string)?.toLowerCase().includes(q) || (r.documento as string)?.toLowerCase().includes(q));
+      } else if (tipo === 'embarcacion') {
+        const rows = (await api.getEmbarcaciones()) as Record<string, unknown>[];
+        data = rows.filter(r => (r.nombre as string)?.toLowerCase().includes(q) || (r.nic as string)?.toLowerCase().includes(q));
+      } else if (tipo === 'viaje') {
+        const rows = (await api.getViajes()) as Record<string, unknown>[];
+        data = rows.filter(r =>
+          String(r.id) === q ||
+          (r.origen as string)?.toLowerCase().includes(q) ||
+          (r.destino as string)?.toLowerCase().includes(q) ||
+          (r.embarcacion_nombre as string)?.toLowerCase().includes(q)
+        );
+      }
+      setResultados(data);
+      setBuscado(true);
+    } catch (e) {
+      setErrorBusqueda(e instanceof Error ? e.message : 'Error al consultar');
+    } finally {
+      setBuscando(false);
+    }
+  };
+
+  const tipoActual = TIPOS.find(t => t.value === tipo)!;
   const alertasEmergencia = [
-    {
-      id: 'A-001',
-      tipo: 'warning',
-      embarcacion: 'Ferry San José',
-      mensaje: 'Retraso de 15 minutos por condiciones climáticas',
-      hora: '10:15 AM',
-      prioridad: 'Media',
-    },
-    {
-      id: 'A-002',
-      tipo: 'info',
-      embarcacion: 'Bote Atrato',
-      mensaje: 'Señal GPS intermitente en sector río medio',
-      hora: '09:45 AM',
-      prioridad: 'Baja',
-    },
-  ];
-
-  const consultasRecientes = [
-    {
-      id: 'C-001',
-      fecha: '09/05/2026 10:30',
-      tipo: 'Pasajero',
-      criterio: 'Doc: 1234567890',
-      usuario: 'Autoridad Marina',
-      resultados: 1,
-    },
-    {
-      id: 'C-002',
-      fecha: '09/05/2026 09:15',
-      tipo: 'Viaje',
-      criterio: 'V-001',
-      usuario: 'Policía Fluvial',
-      resultados: 1,
-    },
-  ];
-
-  const columns = [
-    { key: 'embarcacion', label: 'Embarcación' },
-    { key: 'ruta', label: 'Ruta' },
-    { key: 'operador', label: 'Operador' },
-    { key: 'pasajeros', label: 'Pasajeros' },
-    {
-      key: 'estado',
-      label: 'Estado',
-      render: (value: any) => <StatusBadge status={value} />,
-    },
+    { id: 'A-001', tipo: 'warning', embarcacion: 'Ferry San José', mensaje: 'Retraso de 15 minutos por condiciones climáticas', hora: '10:15 AM', prioridad: 'Media' },
+    { id: 'A-002', tipo: 'info', embarcacion: 'Bote Atrato', mensaje: 'Señal GPS intermitente en sector río medio', hora: '09:45 AM', prioridad: 'Baja' },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header de Autoridad */}
+
+      {/* Header */}
       <div className="bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3">
           <div className="p-3 bg-white/20 rounded-lg">
             <Shield className="w-8 h-8" />
           </div>
@@ -96,94 +178,87 @@ export function AutoridadesView() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Viajes Activos</p>
-          <p className="text-2xl font-bold text-primary">8</p>
+          <p className="text-sm text-muted-foreground mb-1">Viajes en Curso</p>
+          <p className="text-2xl font-bold text-primary">{loadingStats ? '…' : statsViajes.enCurso}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Embarcaciones Operando</p>
-          <p className="text-2xl font-bold text-green-600">24</p>
+          <p className="text-sm text-muted-foreground mb-1">Viajes Programados</p>
+          <p className="text-2xl font-bold text-green-600">{loadingStats ? '…' : statsViajes.programados}</p>
         </div>
         <div className="bg-white rounded-lg border border-border p-4">
           <p className="text-sm text-muted-foreground mb-1">Pasajeros en Tránsito</p>
-          <p className="text-2xl font-bold text-blue-600">156</p>
-        </div>
-        <div className="bg-white rounded-lg border border-border p-4">
-          <p className="text-sm text-muted-foreground mb-1">Alertas Activas</p>
-          <p className="text-2xl font-bold text-orange-600">2</p>
+          <p className="text-2xl font-bold text-blue-600">{loadingStats ? '…' : statsViajes.pasajeros}</p>
         </div>
       </div>
 
-      {/* Panel de Búsqueda */}
+      {/* Panel de Consultas Oficiales */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
         <h3 className="font-semibold mb-4 flex items-center gap-2">
           <Search className="w-5 h-5 text-primary" />
           Panel de Consultas Oficiales
         </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Tipo de Consulta</label>
-            <select
-              value={busqueda.tipo}
-              onChange={(e) => setBusqueda({ ...busqueda, tipo: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="pasajero">Pasajero</option>
-              <option value="tripulacion">Tripulación</option>
-              <option value="embarcacion">Embarcación</option>
-              <option value="viaje">Viaje</option>
-              <option value="ruta">Ruta</option>
-            </select>
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-2">Criterio de Búsqueda</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={busqueda.criterio}
-                onChange={(e) => setBusqueda({ ...busqueda, criterio: e.target.value })}
-                className="flex-1 px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="Documento, nombre, ID, NIC, etc."
-              />
-              <button className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
-                <Search className="w-4 h-4" />
-                Consultar
+        <form onSubmit={handleConsultar} className="space-y-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {TIPOS.map(t => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => { setTipo(t.value); setResultados([]); setBuscado(false); setCriterio(''); }}
+                className={`py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                  tipo === t.value ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40 text-foreground'
+                }`}
+              >
+                {t.label}
               </button>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={criterio}
+              onChange={(e) => setCriterio(e.target.value)}
+              className="flex-1 px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              placeholder={tipoActual.placeholder}
+              required
+            />
+            <button
+              type="submit"
+              disabled={buscando || !criterio.trim()}
+              className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              <Search className="w-4 h-4" />
+              {buscando ? 'Buscando…' : 'Consultar'}
+            </button>
+          </div>
+        </form>
+        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3">
+          <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-purple-700">
+            Todas las consultas son registradas y auditadas. Solo personal autorizado puede acceder a esta información.
+          </p>
+        </div>
+        {errorBusqueda && <div className="mt-4"><ViewFeedback error={errorBusqueda} /></div>}
+        {buscado && !errorBusqueda && (
+          <div className="mt-5">
+            <p className="text-sm font-medium mb-3 text-muted-foreground">
+              {resultados.length === 0
+                ? `Sin resultados para "${criterio}" en ${tipoActual.label}`
+                : `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${criterio}"`}
+            </p>
+            <div className="space-y-3">
+              {resultados.map((r, i) => (
+                <div key={i}>
+                  {tipo === 'pasajero'    && <ResultadoPasajero r={r} />}
+                  {tipo === 'tripulacion' && <ResultadoTripulacion r={r} />}
+                  {tipo === 'embarcacion' && <ResultadoEmbarcacion r={r} />}
+                  {tipo === 'viaje'       && <ResultadoViaje r={r} />}
+                </div>
+              ))}
             </div>
           </div>
-        </div>
-
-        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3">
-          <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-purple-900">Acceso Restringido y Auditado</p>
-            <p className="text-sm text-purple-700 mt-1">
-              Todas las consultas son registradas y auditadas. Solo personal autorizado puede acceder a esta información.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Viajes Activos en Supervisión */}
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold">Viajes en Curso - Supervisión en Tiempo Real</h3>
-            <p className="text-sm text-muted-foreground">Monitoreo activo de embarcaciones</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">
-            <Eye className="w-4 h-4" />
-            Ver GPS en Vivo
-          </button>
-        </div>
-        <DataTable
-          columns={columns}
-          data={viajesActivos}
-          onView={(row) => console.log('Ver detalles', row)}
-        />
+        )}
       </div>
 
       {/* Alertas de Emergencia */}
@@ -197,45 +272,36 @@ export function AutoridadesView() {
         </div>
         <div className="space-y-3">
           {alertasEmergencia.map((alerta) => (
-            <div
-              key={alerta.id}
-              className={`p-4 rounded-lg border ${
-                alerta.tipo === 'warning'
-                  ? 'bg-orange-50 border-orange-200'
-                  : 'bg-blue-50 border-blue-200'
-              }`}
-            >
+            <div key={alerta.id} className={`p-4 rounded-lg border ${alerta.tipo === 'warning' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-semibold">{alerta.embarcacion}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      alerta.prioridad === 'Media' ? 'bg-orange-200 text-orange-800' : 'bg-blue-200 text-blue-800'
-                    }`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${alerta.prioridad === 'Media' ? 'bg-orange-200 text-orange-800' : 'bg-blue-200 text-blue-800'}`}>
                       {alerta.prioridad}
                     </span>
                   </div>
                   <p className="text-sm">{alerta.mensaje}</p>
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">
-                  {alerta.hora}
-                </span>
+                <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">{alerta.hora}</span>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Funciones Especiales */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
+      {/* Accesos rápidos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <button
+          onClick={() => onNavigate?.('monitoreo')}
+          className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+        >
           <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
             <Navigation className="w-6 h-6 text-primary" />
           </div>
           <h4 className="font-semibold mb-1">GPS en Tiempo Real</h4>
           <p className="text-sm text-muted-foreground">Ver ubicación de embarcaciones</p>
         </button>
-
         <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
           <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-3">
             <Download className="w-6 h-6 text-green-600" />
@@ -243,15 +309,6 @@ export function AutoridadesView() {
           <h4 className="font-semibold mb-1">Reportes Oficiales</h4>
           <p className="text-sm text-muted-foreground">Descargar informes</p>
         </button>
-
-        <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
-          <div className="w-12 h-12 bg-purple-50 rounded-lg flex items-center justify-center mb-3">
-            <Shield className="w-6 h-6 text-purple-600" />
-          </div>
-          <h4 className="font-semibold mb-1">Consulta de Registros</h4>
-          <p className="text-sm text-muted-foreground">Historial completo</p>
-        </button>
-
         <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
           <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
             <Clock className="w-6 h-6 text-orange-600" />
@@ -261,46 +318,6 @@ export function AutoridadesView() {
         </button>
       </div>
 
-      {/* Historial de Consultas */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <h3 className="font-semibold mb-4">Historial de Consultas (Auditoría)</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Fecha y Hora
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Tipo
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Criterio
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Usuario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Resultados
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {consultasRecientes.map((consulta) => (
-                <tr key={consulta.id} className="hover:bg-muted/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{consulta.fecha}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{consulta.tipo}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-xs">{consulta.criterio}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">{consulta.usuario}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span className="font-medium text-primary">{consulta.resultados}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </div>
   );
 }
