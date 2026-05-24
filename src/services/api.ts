@@ -75,6 +75,10 @@ export const api = {
       method: 'DELETE',
       headers: headers(),
     }).then((r) => parseJson(r)),
+  getEmbarcacionDetalles: (id: number) =>
+    fetch(`${BASE}/embarcaciones/${id}/detalles`, { headers: headers() }).then(
+      (r) => parseJson(r)
+    ),
 
   getPropietarios: () =>
     fetch(`${BASE}/propietarios`, { headers: headers() }).then((r) =>
@@ -210,6 +214,12 @@ export const api = {
         pasajero_id: pasajeroId,
         ...extra,
       }),
+    }).then((r) => parseJson(r)),
+  assignTripulacionViaje: (viajeId: number, tripulanteId: number) =>
+    fetch(`${BASE}/viajes/${viajeId}/tripulacion`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ tripulante_id: tripulanteId }),
     }).then((r) => parseJson(r)),
 
   getIncidentes: () =>

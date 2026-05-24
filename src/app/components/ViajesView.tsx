@@ -11,7 +11,12 @@ export function ViajesView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [embarcacionesList, setEmbarcacionesList] = useState<
-    { id: number; nombre: string; capacidad?: number }[]
+    {
+      id: number;
+      nombre: string;
+      capacidad?: number;
+      propietarioNombre?: string;
+    }[]
   >([]);
   const [tripulacionList, setTripulacionList] = useState<
     { id: number; nombre: string; rol: string }[]
@@ -28,6 +33,7 @@ export function ViajesView() {
     origen: 'Quibdó',
     destino: '',
     embarcacion: '',
+    propietario: '',
     operador: '',
     precio: '',
     pasajeros: [] as string[],
@@ -40,6 +46,7 @@ export function ViajesView() {
     ReturnType<typeof mapViajeToUI>[]
   >([]);
   const [saveOk, setSaveOk] = useState<string | null>(null);
+  const [assignOperador, setAssignOperador] = useState<Record<number, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -56,6 +63,7 @@ export function ViajesView() {
           id: Number(e.id),
           nombre: e.nombre as string,
           capacidad: Number(e.capacidad_pasajeros || 0),
+          propietarioNombre: (e.propietario_nombre as string) || '—',
         }))
       );
       setTripulacionList(
@@ -126,6 +134,7 @@ export function ViajesView() {
       ),
     },
     { key: 'embarcacion', label: 'Embarcación' },
+    { key: 'propietario', label: 'Propietario' },
     { key: 'operador', label: 'Operador Asignado' },
     {
       key: 'fechaSalida',
@@ -233,6 +242,9 @@ export function ViajesView() {
         : new Date(
             new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000
           ).toISOString();
+      if (!formData.operador) {
+        throw new Error('Debes asignar un operador al viaje');
+      }
       await api.createViaje({
         fecha_salida,
         cierre_inscripcion,
@@ -264,6 +276,21 @@ export function ViajesView() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al actualizar');
+    }
+  };
+
+  const handleAsignarOperador = async (viajeId: number) => {
+    const tripulanteId = assignOperador[viajeId];
+    if (!tripulanteId) {
+      setError('Selecciona un operador para asignar');
+      return;
+    }
+    try {
+      await api.assignTripulacionViaje(viajeId, parseInt(tripulanteId, 10));
+      setSaveOk('Operador asignado correctamente');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al asignar operador');
     }
   };
 
@@ -460,7 +487,14 @@ export function ViajesView() {
               <select
                 value={formData.embarcacion}
                 onChange={(e) => {
-                  handleFormChange('embarcacion', e.target.value);
+                  const id = e.target.value;
+                  const sel = embarcacionesList.find((v) => String(v.id) === id);
+                  handleFormChange('embarcacion', id);
+                  setFormData((prev) => ({
+                    ...prev,
+                    embarcacion: id,
+                    propietario: sel?.propietarioNombre || '—',
+                  }));
                   setTimeout(validarConflictoHorarios, 100);
                 }}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
@@ -476,11 +510,23 @@ export function ViajesView() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Operador Asignado</label>
+              <label className="block text-sm font-medium mb-2">Propietario</label>
+              <input
+                type="text"
+                value={formData.propietario}
+                readOnly
+                className="w-full px-4 py-2 bg-muted/70 rounded-lg border border-border text-muted-foreground"
+                placeholder="Se completa al elegir embarcación"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Operador Asignado *</label>
               <select
                 value={formData.operador}
                 onChange={(e) => handleFormChange('operador', e.target.value)}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                required
               >
                 <option value="">Seleccionar operador</option>
                 {tripulacionList.map((t) => (
@@ -677,7 +723,35 @@ export function ViajesView() {
               key: 'acciones',
               label: 'Acciones',
               render: (_: unknown, row: ReturnType<typeof mapViajeToUI>) => (
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 items-center">
+                  {row.operador === '—' && (
+                    <>
+                      <select
+                        value={assignOperador[row.dbId] || ''}
+                        onChange={(e) =>
+                          setAssignOperador((prev) => ({
+                            ...prev,
+                            [row.dbId]: e.target.value,
+                          }))
+                        }
+                        className="text-xs px-2 py-1 border border-border rounded"
+                      >
+                        <option value="">Operador...</option>
+                        {tripulacionList.map((t) => (
+                          <option key={t.id} value={String(t.id)}>
+                            {t.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => handleAsignarOperador(row.dbId)}
+                        className="text-xs px-2 py-1 bg-primary text-white rounded"
+                      >
+                        Asignar
+                      </button>
+                    </>
+                  )}
                   {row.estado === 'programado' && (
                     <button
                       type="button"

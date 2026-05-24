@@ -217,6 +217,32 @@ router.post('/:id/pasajeros', async (req, res) => {
         return res.status(500).json({ error: 'No se pudo asignar el pasajero' });
     }
 });
+router.post('/:id/tripulacion', async (req, res) => {
+    const { tripulante_id } = req.body;
+    if (!tripulante_id) {
+        return res.status(400).json({ error: 'tripulante_id requerido' });
+    }
+    try {
+        const viaje = await pool_1.default.query('SELECT id FROM viajes WHERE id = $1', [
+            req.params.id,
+        ]);
+        if (!viaje.rows[0]) {
+            return res.status(404).json({ error: 'Viaje no encontrado' });
+        }
+        await pool_1.default.query(`INSERT INTO viaje_tripulacion (viaje_id, tripulante_id)
+       VALUES ($1, $2)
+       ON CONFLICT (viaje_id, tripulante_id) DO NOTHING`, [req.params.id, tripulante_id]);
+        const operador = await pool_1.default.query(`SELECT t.nombre FROM tripulacion t WHERE t.id = $1`, [tripulante_id]);
+        return res.status(201).json({
+            message: 'Operador asignado al viaje',
+            operador_nombre: operador.rows[0]?.nombre || null,
+        });
+    }
+    catch (err) {
+        console.error('Asignar tripulación:', err.message);
+        return res.status(500).json({ error: 'No se pudo asignar el operador' });
+    }
+});
 router.get('/:id', async (req, res) => {
     const rows = await (0, safeQuery_1.safeQuery)(`SELECT v.*,
       COUNT(vp.pasajero_id)::int AS pasajeros_count,

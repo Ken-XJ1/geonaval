@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { Plus, Ship, ChevronDown, ChevronUp, MapPin, Wrench } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
@@ -15,6 +15,29 @@ export function EmbarcacionesView() {
     { id: number; nombre: string }[]
   >([]);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [detallesCache, setDetallesCache] = useState<
+    Record<
+      number,
+      {
+        embarcacion: Record<string, unknown>;
+        viajes: Array<{
+          id: number;
+          origen: string;
+          destino: string;
+          estado: string;
+          operadores?: string;
+        }>;
+        tripulacion: Array<{ id: number; nombre: string; rol: string }>;
+      }
+    >
+  >({});
+  const [loadingDetalles, setLoadingDetalles] = useState<number | null>(null);
+  const [assignViaje, setAssignViaje] = useState('');
+  const [assignTripulante, setAssignTripulante] = useState('');
+  const [assignPropietario, setAssignPropietario] = useState('');
+  const [tripulacionList, setTripulacionList] = useState<
+    { id: number; nombre: string; rol: string }[]
+  >([]);
   const [formData, setFormData] = useState({
     nombre: '',
     tipo: 'lancha',
@@ -32,9 +55,10 @@ export function EmbarcacionesView() {
     setLoading(true);
     setError(null);
     try {
-      const [embs, props] = await Promise.all([
+      const [embs, props, trip] = await Promise.all([
         api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
         api.getPropietarios() as Promise<Record<string, unknown>[]>,
+        api.getTripulacion() as Promise<Record<string, unknown>[]>,
       ]);
       const propMap = new Map(
         props.map((p) => [p.id, p.nombre as string])
@@ -42,11 +66,22 @@ export function EmbarcacionesView() {
       setPropietariosList(
         props.map((p) => ({ id: Number(p.id), nombre: p.nombre as string }))
       );
+      setTripulacionList(
+        trip
+          .filter((t) => t.activo !== false)
+          .map((t) => ({
+            id: Number(t.id),
+            nombre: t.nombre as string,
+            rol: t.rol as string,
+          }))
+      );
       setEmbarcaciones(
         embs.map((e) =>
           mapEmbarcacionToUI(
             e,
-            propMap.get(e.propietario_id as number) || '—'
+            (e.propietario_nombre as string) ||
+              propMap.get(e.propietario_id as number) ||
+              '—'
           )
         )
       );
@@ -85,6 +120,87 @@ export function EmbarcacionesView() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar');
+    }
+  };
+
+  const handleToggleDetalles = async (emb: ReturnType<typeof mapEmbarcacionToUI>) => {
+    if (expandedRow === emb.id) {
+      setExpandedRow(null);
+      return;
+    }
+    setExpandedRow(emb.id);
+    setAssignViaje('');
+    setAssignTripulante('');
+    setAssignPropietario('');
+    setLoadingDetalles(emb.dbId);
+    try {
+      const data = (await api.getEmbarcacionDetalles(emb.dbId)) as {
+        embarcacion: Record<string, unknown>;
+        viajes: Array<{
+          id: number;
+          origen: string;
+          destino: string;
+          estado: string;
+          operadores?: string;
+        }>;
+        tripulacion: Array<{ id: number; nombre: string; rol: string }>;
+      };
+      setDetallesCache((prev) => ({ ...prev, [emb.dbId]: data }));
+      if (data.embarcacion.propietario_id) {
+        setAssignPropietario(String(data.embarcacion.propietario_id));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cargar detalles');
+    } finally {
+      setLoadingDetalles(null);
+    }
+  };
+
+  const handleAsignarTripulacion = async (embDbId: number) => {
+    if (!assignViaje || !assignTripulante) {
+      setError('Selecciona un viaje y un tripulante');
+      return;
+    }
+    try {
+      await api.assignTripulacionViaje(
+        parseInt(assignViaje, 10),
+        parseInt(assignTripulante, 10)
+      );
+      const data = (await api.getEmbarcacionDetalles(embDbId)) as typeof detallesCache[number];
+      setDetallesCache((prev) => ({ ...prev, [embDbId]: data }));
+      setAssignViaje('');
+      setAssignTripulante('');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al asignar tripulación');
+    }
+  };
+
+  const handleAsignarPropietario = async (emb: ReturnType<typeof mapEmbarcacionToUI>) => {
+    if (!assignPropietario) {
+      setError('Selecciona un propietario');
+      return;
+    }
+    try {
+      const raw = (await api.getEmbarcaciones()) as Record<string, unknown>[];
+      const current = raw.find((e) => Number(e.id) === emb.dbId);
+      if (!current) throw new Error('Embarcación no encontrada');
+      await api.updateEmbarcacion(emb.dbId, {
+        nic: current.nic,
+        nombre: current.nombre,
+        tipo: current.tipo,
+        capacidad_pasajeros: current.capacidad_pasajeros,
+        motor: current.motor,
+        potencia: current.potencia,
+        dimensiones: current.dimensiones,
+        estado: current.estado,
+        propietario_id: parseInt(assignPropietario, 10),
+      });
+      await load();
+      const data = (await api.getEmbarcacionDetalles(emb.dbId)) as typeof detallesCache[number];
+      setDetallesCache((prev) => ({ ...prev, [emb.dbId]: data }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al asignar propietario');
     }
   };
 
@@ -283,9 +399,11 @@ export function EmbarcacionesView() {
                   </td>
                 </tr>
               ) : null}
-              {embarcaciones.map((emb) => (
-                <>
-                  <tr key={emb.id} className="hover:bg-muted/50 transition-colors">
+              {embarcaciones.map((emb) => {
+                const detalles = detallesCache[emb.dbId];
+                return (
+                <Fragment key={emb.id}>
+                  <tr className="hover:bg-muted/50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{emb.nombre}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{emb.tipo}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">{emb.propietario}</td>
@@ -297,7 +415,8 @@ export function EmbarcacionesView() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <button
-                        onClick={() => setExpandedRow(expandedRow === emb.id ? null : emb.id)}
+                        type="button"
+                        onClick={() => handleToggleDetalles(emb)}
                         className="flex items-center gap-1 text-primary hover:text-primary/80"
                       >
                         {expandedRow === emb.id ? (
@@ -317,6 +436,10 @@ export function EmbarcacionesView() {
                   {expandedRow === emb.id && (
                     <tr>
                       <td colSpan={6} className="px-6 py-4 bg-blue-50">
+                        {loadingDetalles === emb.dbId ? (
+                          <p className="text-sm text-muted-foreground">Cargando detalles...</p>
+                        ) : (
+                        <>
                         {/* Alerta de Mantenimiento */}
                         {emb.estado === 'mantenimiento' && emb.ubicacionMantenimiento && (
                           <div className="mb-4 p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
@@ -368,34 +491,110 @@ export function EmbarcacionesView() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Tripulación Asignada:</h4>
-                            {emb.tripulacion.length > 0 ? (
-                              <ul className="text-sm space-y-1">
-                                {emb.tripulacion.map((t, i) => (
-                                  <li key={i} className="text-muted-foreground">• {t}</li>
+                            {detalles?.tripulacion && detalles.tripulacion.length > 0 ? (
+                              <ul className="text-sm space-y-1 mb-4">
+                                {detalles.tripulacion.map((t) => (
+                                  <li key={t.id} className="text-muted-foreground">
+                                    • {t.nombre} ({t.rol})
+                                  </li>
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-sm text-muted-foreground italic">Sin tripulación asignada</p>
+                              <p className="text-sm text-muted-foreground italic mb-4">
+                                Sin tripulación asignada
+                              </p>
+                            )}
+                            {detalles?.viajes && detalles.viajes.length > 0 && (
+                              <div className="p-3 bg-white rounded-lg border border-border space-y-2">
+                                <p className="text-xs font-medium text-primary">
+                                  Asignar operador a un viaje
+                                </p>
+                                <select
+                                  value={assignViaje}
+                                  onChange={(e) => setAssignViaje(e.target.value)}
+                                  className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
+                                >
+                                  <option value="">Seleccionar viaje</option>
+                                  {detalles.viajes.map((v) => (
+                                    <option key={v.id} value={String(v.id)}>
+                                      V-{v.id}: {v.origen} - {v.destino} ({v.estado})
+                                    </option>
+                                  ))}
+                                </select>
+                                <select
+                                  value={assignTripulante}
+                                  onChange={(e) => setAssignTripulante(e.target.value)}
+                                  className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
+                                >
+                                  <option value="">Seleccionar tripulante</option>
+                                  {tripulacionList.map((t) => (
+                                    <option key={t.id} value={String(t.id)}>
+                                      {t.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAsignarTripulacion(emb.dbId)}
+                                  className="text-sm px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                >
+                                  Asignar tripulación
+                                </button>
+                              </div>
                             )}
                           </div>
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Viajes:</h4>
-                            {emb.viajes.length > 0 ? (
-                              <ul className="text-sm space-y-1">
-                                {emb.viajes.map((v, i) => (
-                                  <li key={i} className="text-muted-foreground">• {v}</li>
+                            {detalles?.viajes && detalles.viajes.length > 0 ? (
+                              <ul className="text-sm space-y-1 mb-4">
+                                {detalles.viajes.map((v) => (
+                                  <li key={v.id} className="text-muted-foreground">
+                                    • V-{v.id}: {v.origen} - {v.destino} ({v.estado})
+                                    {v.operadores ? ` — ${v.operadores}` : ' — sin operador'}
+                                  </li>
                                 ))}
                               </ul>
                             ) : (
-                              <p className="text-sm text-muted-foreground italic">Sin viajes asignados</p>
+                              <p className="text-sm text-muted-foreground italic mb-4">
+                                Sin viajes asignados. Programa uno en Viajes (Zarpe).
+                              </p>
+                            )}
+                            {(emb.propietario === '—' || !detalles?.embarcacion?.propietario_id) && (
+                              <div className="p-3 bg-white rounded-lg border border-border space-y-2">
+                                <p className="text-xs font-medium text-primary">
+                                  Asignar propietario
+                                </p>
+                                <select
+                                  value={assignPropietario}
+                                  onChange={(e) => setAssignPropietario(e.target.value)}
+                                  className="w-full text-sm px-3 py-2 bg-muted rounded-lg border border-border"
+                                >
+                                  <option value="">Seleccionar propietario</option>
+                                  {propietariosList.map((p) => (
+                                    <option key={p.id} value={String(p.id)}>
+                                      {p.nombre}
+                                    </option>
+                                  ))}
+                                </select>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAsignarPropietario(emb)}
+                                  className="text-sm px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90"
+                                >
+                                  Guardar propietario
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
+                        </>
+                        )}
                       </td>
                     </tr>
                   )}
-                </>
-              ))}
+                </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>

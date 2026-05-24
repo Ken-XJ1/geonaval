@@ -7,8 +7,65 @@ const router = Router();
 router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
-  const rows = await safeQuery('SELECT * FROM embarcaciones ORDER BY id');
+  const rows = await safeQuery(
+    `SELECT e.*,
+      pr.nombre AS propietario_nombre,
+      (SELECT COUNT(*)::int FROM viajes v WHERE v.embarcacion_id = e.id) AS viajes_count
+     FROM embarcaciones e
+     LEFT JOIN propietarios pr ON pr.id = e.propietario_id
+     ORDER BY e.id`
+  );
   return res.json(rows);
+});
+
+router.get('/:id/detalles', async (req: Request, res: Response) => {
+  const id = req.params.id;
+  try {
+    const emb = await pool.query(
+      `SELECT e.*, pr.nombre AS propietario_nombre
+       FROM embarcaciones e
+       LEFT JOIN propietarios pr ON pr.id = e.propietario_id
+       WHERE e.id = $1`,
+      [id]
+    );
+    if (!emb.rows[0]) {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+
+    const viajes = await safeQuery(
+      `SELECT v.id, v.origen, v.destino, v.fecha_salida, v.estado,
+        COALESCE(
+          (SELECT string_agg(t.nombre || ' (' || t.rol || ')', ', ')
+           FROM viaje_tripulacion vt
+           INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+           WHERE vt.viaje_id = v.id),
+          ''
+        ) AS operadores
+       FROM viajes v
+       WHERE v.embarcacion_id = $1
+       ORDER BY v.fecha_salida DESC`,
+      [id]
+    );
+
+    const tripulacion = await safeQuery(
+      `SELECT DISTINCT t.id, t.nombre, t.rol
+       FROM viaje_tripulacion vt
+       INNER JOIN tripulacion t ON t.id = vt.tripulante_id
+       INNER JOIN viajes v ON v.id = vt.viaje_id
+       WHERE v.embarcacion_id = $1
+       ORDER BY t.nombre`,
+      [id]
+    );
+
+    return res.json({
+      embarcacion: emb.rows[0],
+      viajes,
+      tripulacion,
+    });
+  } catch (err) {
+    console.error('Detalles embarcación:', (err as Error).message);
+    return res.status(500).json({ error: 'Error al cargar detalles' });
+  }
 });
 
 router.get('/:id', async (req: Request, res: Response) => {

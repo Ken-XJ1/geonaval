@@ -65,7 +65,7 @@ export function mapEmbarcacionToUI(
     capacidad: row.capacidad_pasajeros as number,
     estado: estado as 'operativa' | 'mantenimiento' | 'fuera_servicio' | 'inspeccion',
     propietario: propietarioNombre,
-    viajesAsignados: 0,
+    viajesAsignados: Number(row.viajes_count ?? 0),
     tripulacion: [],
     viajes: [],
     ubicacionMantenimiento:
@@ -167,6 +167,7 @@ export function mapViajeToUI(
     horaLlegadaReal: formatTime(fecha),
     ruta: `${origen} - ${destino}`,
     embarcacion: emb,
+    propietario: (row.propietario_nombre as string) || '—',
     operador: (row.operador_nombre as string) || '—',
     pasajeros: count,
     precio: Number(row.precio ?? 0),
