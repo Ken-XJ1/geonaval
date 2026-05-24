@@ -274,4 +274,35 @@ export const api = {
       method: 'DELETE',
       headers: headers(),
     }).then((r) => parseJson(r)),
+
+  getPerfil: () =>
+    fetch(`${BASE}/cuenta/perfil`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  updatePerfil: (data: { nombre: string; email: string }) =>
+    fetch(`${BASE}/cuenta/perfil`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  getPreferencias: () =>
+    fetch(`${BASE}/cuenta/preferencias`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  updatePreferencias: (data: Record<string, unknown>) =>
+    fetch(`${BASE}/cuenta/preferencias`, {
+      method: 'PUT',
+      headers: headers(),
+      body: JSON.stringify(data),
+    }).then((r) => parseJson(r)),
+  cambiarPassword: (password_actual: string, password_nueva: string) =>
+    fetch(`${BASE}/cuenta/cambiar-password`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ password_actual, password_nueva }),
+    }).then((r) => parseJson(r)),
+  getSesiones: () =>
+    fetch(`${BASE}/cuenta/sesiones`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
 };

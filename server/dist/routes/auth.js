@@ -7,6 +7,7 @@ const express_1 = require("express");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const pool_1 = __importDefault(require("../db/pool"));
+const cuenta_1 = require("./cuenta");
 const router = (0, express_1.Router)();
 /** Cuentas de prueba — funcionan aunque PostgreSQL no esté disponible */
 const DEMO_ACCOUNTS = [
@@ -67,7 +68,9 @@ router.post('/login', async (req, res) => {
     }
     const demo = findDemoAccount(email, password);
     if (demo) {
-        return res.json(signToken({ ...demo, email }));
+        const payload = signToken({ ...demo, email });
+        (0, cuenta_1.recordLoginSession)({ id: demo.id, email }, req);
+        return res.json(payload);
     }
     try {
         const result = await pool_1.default.query('SELECT * FROM usuarios WHERE LOWER(email) = $1 AND activo = true', [email]);
@@ -83,12 +86,14 @@ router.post('/login', async (req, res) => {
                 error: 'Credenciales inválidas. Prueba: test@test.com / 123456',
             });
         }
-        return res.json(signToken({
+        const payload = signToken({
             id: user.id,
             rol: user.rol,
             nombre: user.nombre,
             email: user.email,
-        }));
+        });
+        (0, cuenta_1.recordLoginSession)({ id: user.id, email: user.email }, req);
+        return res.json(payload);
     }
     catch {
         return res.status(503).json({

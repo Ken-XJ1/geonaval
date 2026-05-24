@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import authRoutes from './routes/auth';
+import cuentaRoutes from './routes/cuenta';
 import embarcacionesRoutes from './routes/embarcaciones';
 import propietariosRoutes from './routes/propietarios';
 import tripulacionRoutes from './routes/tripulacion';
@@ -25,6 +26,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/cuenta', cuentaRoutes);
 app.use('/api/embarcaciones', embarcacionesRoutes);
 app.use('/api/propietarios', propietariosRoutes);
 app.use('/api/tripulacion', tripulacionRoutes);

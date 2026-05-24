@@ -207,7 +207,13 @@ export default function App() {
       case 'notificaciones':
         return <NotificacionesView />;
       case 'configuracion':
-        return <ConfiguracionView onLogout={handleLogout} user={user} />;
+        return (
+          <ConfiguracionView
+            onLogout={handleLogout}
+            user={user}
+            onUserUpdate={(updated) => setUser({ ...updated, rol: user?.rol || updated.rol || '' })}
+          />
+        );
       default:
         return <Dashboard />;
     }

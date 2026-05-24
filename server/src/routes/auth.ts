@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import pool from '../db/pool';
+import { recordLoginSession } from './cuenta';
 
 const router = Router();
 
@@ -80,7 +81,9 @@ router.post('/login', async (req: Request, res: Response) => {
 
   const demo = findDemoAccount(email, password);
   if (demo) {
-    return res.json(signToken({ ...demo, email }));
+    const payload = signToken({ ...demo, email });
+    recordLoginSession({ id: demo.id, email }, req);
+    return res.json(payload);
   }
 
   try {
@@ -104,14 +107,14 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    return res.json(
-      signToken({
+    const payload = signToken({
         id: user.id,
         rol: user.rol,
         nombre: user.nombre,
         email: user.email,
-      })
-    );
+      });
+    recordLoginSession({ id: user.id, email: user.email }, req);
+    return res.json(payload);
   } catch {
     return res.status(503).json({
       error:
