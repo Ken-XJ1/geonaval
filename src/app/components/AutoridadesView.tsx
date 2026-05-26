@@ -103,6 +103,7 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
   const [loadingStats, setLoadingStats] = useState(true);
   const [viajesEnCurso, setViajesEnCurso] = useState<Record<string, unknown>[]>([]);
   const [loadingViajes, setLoadingViajes] = useState(true);
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     setLoadingViajes(true);
@@ -356,14 +357,20 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
           <h4 className="font-semibold mb-1">GPS en Tiempo Real</h4>
           <p className="text-sm text-muted-foreground">Ver ubicación de embarcaciones</p>
         </button>
-        <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
+        <button
+          onClick={() => onNavigate?.('reportes')}
+          className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+        >
           <div className="w-12 h-12 bg-green-50 rounded-lg flex items-center justify-center mb-3">
             <Download className="w-6 h-6 text-green-600" />
           </div>
           <h4 className="font-semibold mb-1">Reportes Oficiales</h4>
           <p className="text-sm text-muted-foreground">Descargar informes</p>
         </button>
-        <button className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left">
+        <button
+          onClick={() => setMostrarHistorial(!mostrarHistorial)}
+          className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow text-left"
+        >
           <div className="w-12 h-12 bg-orange-50 rounded-lg flex items-center justify-center mb-3">
             <Clock className="w-6 h-6 text-orange-600" />
           </div>
@@ -371,6 +378,68 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
           <p className="text-sm text-muted-foreground">Ver auditoría</p>
         </button>
       </div>
+
+      {/* Panel de Historial de Consultas */}
+      {mostrarHistorial && (
+        <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-orange-600" />
+              Historial de Consultas del Sistema
+            </h3>
+            <button
+              onClick={() => setMostrarHistorial(false)}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4 flex gap-3">
+            <Shield className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-orange-700">
+              Registro de auditoría de todas las consultas realizadas por autoridades. Información protegida y confidencial.
+            </p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-muted">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha/Hora</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Usuario</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Criterio</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Resultados</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr className="hover:bg-muted/40 transition-colors">
+                  <td className="px-4 py-3 text-sm">{formatDateTime(new Date().toISOString())}</td>
+                  <td className="px-4 py-3 text-sm font-medium">Autoridad Demo</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Pasajero</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono">Consulta de ejemplo</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">0 registros</td>
+                </tr>
+                <tr className="hover:bg-muted/40 transition-colors">
+                  <td className="px-4 py-3 text-sm">{formatDateTime(new Date(Date.now() - 3600000).toISOString())}</td>
+                  <td className="px-4 py-3 text-sm font-medium">Autoridad Demo</td>
+                  <td className="px-4 py-3 text-sm">
+                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Embarcación</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm font-mono">Consulta de ejemplo</td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">0 registros</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Mostrando las últimas consultas realizadas. El historial completo se almacena de forma segura.
+            </p>
+          </div>
+        </div>
+      )}
 
     </div>
   );
