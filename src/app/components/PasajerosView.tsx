@@ -13,11 +13,14 @@ export function PasajerosView() {
   >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [viajes, setViajes] = useState<Record<string, unknown>[]>([]);
+  const [viajeSeleccionado, setViajeSeleccionado] = useState<Record<string, unknown> | null>(null);
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     documento: '',
     telefono: '',
     email: '',
+    viajeId: '',
   });
 
   const load = useCallback(async () => {
@@ -34,9 +37,21 @@ export function PasajerosView() {
     }
   }, []);
 
+  const loadViajes = useCallback(async () => {
+    try {
+      const viajesData = (await api.getViajes()) as Record<string, unknown>[];
+      // Filtrar solo viajes programados
+      const viajesProgramados = viajesData.filter(v => v.estado === 'programado');
+      setViajes(viajesProgramados);
+    } catch (e) {
+      console.error('Error cargando viajes:', e);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadViajes();
+  }, [load, loadViajes]);
 
   const estadoConfig = {
     confirmado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmado' },
@@ -75,10 +90,32 @@ export function PasajerosView() {
         telefono: formData.telefono,
         email: formData.email,
       };
-      if (editingId) await api.updatePasajero(editingId, body);
-      else await api.createPasajero(body);
+      
+      let pasajeroId: number;
+      
+      if (editingId) {
+        await api.updatePasajero(editingId, body);
+        pasajeroId = editingId;
+      } else {
+        const result = await api.createPasajero(body) as { id: number };
+        pasajeroId = result.id;
+      }
+      
+      // Si se seleccionó un viaje, asignar el pasajero al viaje
+      if (formData.viajeId && pasajeroId) {
+        await api.assignPasajeroViaje(Number(formData.viajeId), pasajeroId);
+      }
+      
       setShowForm(false);
       setEditingId(null);
+      setFormData({
+        nombreCompleto: '',
+        documento: '',
+        telefono: '',
+        email: '',
+        viajeId: '',
+      });
+      setViajeSeleccionado(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al guardar');
@@ -92,8 +129,39 @@ export function PasajerosView() {
       documento: row.documento,
       telefono: row.telefono === '—' ? '' : row.telefono,
       email: '',
+      viajeId: '',
     });
+    setViajeSeleccionado(null);
     setShowForm(true);
+  };
+
+  const handleViajeChange = (viajeId: string) => {
+    setFormData({ ...formData, viajeId });
+    if (viajeId) {
+      const viaje = viajes.find(v => String(v.id) === viajeId);
+      setViajeSeleccionado(viaje || null);
+    } else {
+      setViajeSeleccionado(null);
+    }
+  };
+
+  const formatFecha = (fecha: string) => {
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-CO', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      timeZone: 'America/Bogota',
+    });
+  };
+
+  const formatHora = (fecha: string) => {
+    const date = new Date(fecha);
+    return date.toLocaleTimeString('es-CO', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Bogota',
+    });
   };
 
   const handleDelete = async (row: ReturnType<typeof mapPasajeroToUI>) => {
@@ -120,6 +188,14 @@ export function PasajerosView() {
         <button
           onClick={() => {
             setEditingId(null);
+            setFormData({
+              nombreCompleto: '',
+              documento: '',
+              telefono: '',
+              email: '',
+              viajeId: '',
+            });
+            setViajeSeleccionado(null);
             setShowForm(!showForm);
           }}
           className="flex items-center gap-2 bg-primary text-white px-4 py-2.5 rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
@@ -183,8 +259,62 @@ export function PasajerosView() {
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
               />
             </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Asignar Viaje (Opcional)</label>
+              <select
+                value={formData.viajeId}
+                onChange={(e) => handleViajeChange(e.target.value)}
+                className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+              >
+                <option value="">Sin asignar</option>
+                {viajes.map((viaje) => (
+                  <option key={viaje.id as number} value={viaje.id as number}>
+                    {viaje.origen as string} → {viaje.destino as string} - {formatFecha(viaje.fecha_salida as string)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {viajeSeleccionado && (
+              <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-semibold text-sm mb-3 text-primary">Información del Viaje</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                  <div>
+                    <p className="text-muted-foreground mb-1">Embarcación</p>
+                    <p className="font-medium">{(viajeSeleccionado.embarcacion_nombre as string) || '—'}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Ruta</p>
+                    <p className="font-medium">{viajeSeleccionado.origen as string} → {viajeSeleccionado.destino as string}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Salida</p>
+                    <p className="font-medium">{formatHora(viajeSeleccionado.fecha_salida as string)}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1">Llegada Est.</p>
+                    <p className="font-medium">{formatHora(viajeSeleccionado.fecha_salida as string)}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div className="md:col-span-2 flex gap-3 justify-end">
-              <button type="button" onClick={() => setShowForm(false)} className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowForm(false);
+                  setFormData({
+                    nombreCompleto: '',
+                    documento: '',
+                    telefono: '',
+                    email: '',
+                    viajeId: '',
+                  });
+                  setViajeSeleccionado(null);
+                }} 
+                className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
                 Cancelar
               </button>
               <button type="submit" className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors">

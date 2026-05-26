@@ -137,11 +137,11 @@ export function mapPasajeroToUI(row: Record<string, unknown>) {
     nombre: row.nombre as string,
     documento: row.documento as string,
     telefono: (row.telefono as string) || '—',
-    viajeAsociado: row.viaje_id ? `V-${row.viaje_id}` : '—',
-    embarcacion: (row.embarcacion_nombre as string) || '—',
-    ruta: origen && destino ? `${origen} - ${destino}` : '—',
-    horaSalida: fecha ? formatTime(fecha) : '—',
-    horaLlegada: fecha ? formatTime(fecha) : '—',
+    viajeAsociado: row.viaje_id ? `V-${row.viaje_id}` : 'Pendiente',
+    embarcacion: (row.embarcacion_nombre as string) || 'Pendiente',
+    ruta: origen && destino ? `${origen} - ${destino}` : 'Pendiente',
+    horaSalida: fecha ? formatTime(fecha) : 'Pendiente',
+    horaLlegada: fecha ? formatTime(fecha) : 'Pendiente',
     estado: estadoPasajero as 'confirmado' | 'pendiente' | 'embarcado',
     estadoViaje: (viajeEstado || 'programado') as
       | 'programado'
