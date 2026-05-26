@@ -147,22 +147,31 @@ export function PasajerosView() {
   };
 
   const formatFecha = (fecha: string) => {
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-CO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      timeZone: 'America/Bogota',
-    });
+    if (!fecha) return '—';
+    const dateStr = String(fecha);
+    // Si ya es una fecha en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss)
+    if (dateStr.includes('T') || dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const [year, month, day] = parts;
+        return `${day}/${month}/${year}`;
+      }
+    }
+    return dateStr;
   };
 
   const formatHora = (fecha: string) => {
-    const date = new Date(fecha);
-    return date.toLocaleTimeString('es-CO', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'America/Bogota',
-    });
+    if (!fecha) return '—';
+    const dateStr = String(fecha);
+    // Si es una fecha ISO con hora (YYYY-MM-DDTHH:mm:ss)
+    if (dateStr.includes('T')) {
+      const timePart = dateStr.split('T')[1];
+      if (timePart) {
+        const [hours, minutes] = timePart.split(':');
+        return `${hours}:${minutes}`;
+      }
+    }
+    return '—';
   };
 
   const handleDelete = async (row: ReturnType<typeof mapPasajeroToUI>) => {

@@ -1,24 +1,31 @@
 export type WithDbId<T> = T & { dbId: number };
 
 function formatDate(d: string | Date): string {
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return String(d);
-  return date.toLocaleDateString('es-CO', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    timeZone: 'America/Bogota',
-  });
+  if (!d) return '—';
+  const dateStr = String(d);
+  // Si ya es una fecha en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss)
+  if (dateStr.includes('T') || dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const [year, month, day] = parts;
+      return `${day}/${month}/${year}`;
+    }
+  }
+  return dateStr;
 }
 
 function formatTime(d: string | Date): string {
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString('es-CO', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'America/Bogota',
-  });
+  if (!d) return '—';
+  const dateStr = String(d);
+  // Si es una fecha ISO con hora (YYYY-MM-DDTHH:mm:ss)
+  if (dateStr.includes('T')) {
+    const timePart = dateStr.split('T')[1];
+    if (timePart) {
+      const [hours, minutes] = timePart.split(':');
+      return `${hours}:${minutes}`;
+    }
+  }
+  return '—';
 }
 
 const rolLabels: Record<string, string> = {
