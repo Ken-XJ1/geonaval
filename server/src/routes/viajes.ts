@@ -57,7 +57,7 @@ router.get('/disponibles', async (_req: Request, res: Response) => {
 });
 
 router.get('/mi-viaje', async (req: Request, res: Response) => {
-  const user = (req as Request & { user: { id: number } }).user;
+  const user = (req as Request & { user: { id: number; nombre?: string; email?: string } }).user;
   if (!user || user.id === undefined || user.id === null) return res.json(null);
 
   const rows = await safeQuery(
@@ -206,7 +206,7 @@ router.post('/:id/inscribir', async (req: Request, res: Response) => {
 });
 
 router.delete('/:id/cancelar-inscripcion', async (req: Request, res: Response) => {
-  const user = (req as Request & { user: { id: number } }).user;
+  const user = (req as Request & { user: { id: number; nombre: string; email: string } }).user;
   const viajeId = req.params.id;
 
   if (!user || user.id === undefined || user.id === null) {
