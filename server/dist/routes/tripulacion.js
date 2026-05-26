@@ -10,7 +10,23 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    const rows = await (0, safeQuery_1.safeQuery)('SELECT * FROM tripulacion ORDER BY id');
+    const rows = await (0, safeQuery_1.safeQuery)(`SELECT t.*,
+      -- Embarcación más reciente asignada
+      (SELECT e.nombre
+       FROM viaje_tripulacion vt
+       INNER JOIN viajes v ON v.id = vt.viaje_id
+       INNER JOIN embarcaciones e ON e.id = v.embarcacion_id
+       WHERE vt.tripulante_id = t.id
+       ORDER BY v.fecha_salida DESC
+       LIMIT 1
+      ) AS embarcacion_nombre,
+      -- Total de viajes asignados
+      (SELECT COUNT(*)::int
+       FROM viaje_tripulacion vt
+       WHERE vt.tripulante_id = t.id
+      ) AS viajes_count
+     FROM tripulacion t
+     ORDER BY t.id`);
     return res.json(rows);
 });
 router.get('/:id', async (req, res) => {

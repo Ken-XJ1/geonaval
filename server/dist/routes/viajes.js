@@ -7,6 +7,7 @@ const express_1 = require("express");
 const pool_1 = __importDefault(require("../db/pool"));
 const safeQuery_1 = require("../db/safeQuery");
 const auth_1 = require("../middleware/auth");
+const notificaciones_1 = require("../utils/notificaciones");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 const VIAJES_LIST_SQL = `
@@ -150,6 +151,8 @@ router.post('/:id/inscribir', async (req, res) => {
         const metodoPagoFinal = metodo_pago || 'efectivo';
         await pool_1.default.query(`INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, usuario_id, asiento, precio_pagado, metodo_pago)
        VALUES ($1, $2, $3, $4, $5, $6)`, [viajeId, pasajeroId, user.id, asiento, viaje.precio || 0, metodoPagoFinal]);
+        // Notificar a los administradores sobre la inscripción
+        await (0, notificaciones_1.notificarAdministradores)('Nueva Inscripción a Viaje', `${user.nombre} se ha inscrito al viaje ${viaje.origen} → ${viaje.destino} (${(0, notificaciones_1.formatearFechaColombia)(viaje.fecha_salida)}). Asiento: ${asiento}`);
         return res.status(201).json({ message: 'Inscripción exitosa', asiento });
     }
     catch (err) {
@@ -173,6 +176,13 @@ router.delete('/:id/cancelar-inscripcion', async (req, res) => {
         const result = await pool_1.default.query('DELETE FROM viaje_pasajeros WHERE viaje_id = $1 AND usuario_id = $2 RETURNING *', [viajeId, user.id]);
         if (result.rowCount === 0) {
             return res.status(404).json({ error: 'No estás inscrito en este viaje' });
+        }
+        // Obtener información del viaje para la notificación
+        const viajeInfo = viajeRes.rows[0];
+        const viajeDetalle = await pool_1.default.query('SELECT origen, destino, fecha_salida FROM viajes WHERE id = $1', [viajeId]);
+        if (viajeDetalle.rows[0]) {
+            const v = viajeDetalle.rows[0];
+            await (0, notificaciones_1.notificarAdministradores)('Cancelación de Inscripción', `${user.nombre} ha cancelado su inscripción al viaje ${v.origen} → ${v.destino} (${(0, notificaciones_1.formatearFechaColombia)(v.fecha_salida)})`);
         }
         return res.json({ message: 'Inscripción cancelada' });
     }
@@ -303,21 +313,8 @@ router.post('/', async (req, res) => {
          VALUES ($1, $2)
          ON CONFLICT (viaje_id, tripulante_id) DO NOTHING`, [nuevoViaje.id, tripulante_id]);
         }
-        // Notificar a todos los clientes
-        try {
-            const clientes = await pool_1.default.query("SELECT id FROM usuarios WHERE rol = 'cliente' AND activo = true");
-            for (const c of clientes.rows) {
-                await pool_1.default.query(`INSERT INTO notificaciones (usuario_id, titulo, mensaje)
-           VALUES ($1, $2, $3)`, [
-                    c.id,
-                    'Nuevo Viaje Disponible',
-                    `Se ha programado un nuevo viaje: ${origen} → ${destino} para el día ${new Date(fecha_salida).toLocaleDateString()}. ¡Inscríbete ahora!`
-                ]);
-            }
-        }
-        catch (notifErr) {
-            console.error('Error enviando notificaciones:', notifErr);
-        }
+        // Notificar a todos los clientes sobre el nuevo viaje
+        await (0, notificaciones_1.notificarClientes)('Nuevo Viaje Disponible', `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${(0, notificaciones_1.formatearFechaColombia)(fecha_salida)}. ¡Inscríbete ahora!`);
         return res.status(201).json(nuevoViaje);
     }
     catch (err) {
@@ -330,6 +327,11 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
     try {
+        // Obtener el viaje anterior para comparar cambios
+        const viajeAnterior = await pool_1.default.query('SELECT * FROM viajes WHERE id = $1', [req.params.id]);
+        if (!viajeAnterior.rows[0]) {
+            return res.status(404).json({ error: 'No encontrado' });
+        }
         const result = await pool_1.default.query(`UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
         cierre_inscripcion = COALESCE($2, cierre_inscripcion),
@@ -353,9 +355,39 @@ router.put('/:id', async (req, res) => {
             justificacion_cancelacion,
             req.params.id,
         ]);
-        if (!result.rows[0])
-            return res.status(404).json({ error: 'No encontrado' });
-        return res.json(result.rows[0]);
+        const viajeActualizado = result.rows[0];
+        const viajeAnteriorData = viajeAnterior.rows[0];
+        // Notificar a los pasajeros inscritos sobre cambios importantes
+        let cambios = [];
+        if (estado && estado !== viajeAnteriorData.estado) {
+            if (estado === 'cancelado') {
+                const razon = justificacion_cancelacion || 'No especificada';
+                await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Cancelado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${(0, notificaciones_1.formatearFechaColombia)(viajeActualizado.fecha_salida)}) ha sido cancelado. Razón: ${razon}`);
+                cambios.push('cancelado');
+            }
+            else if (estado === 'en_curso') {
+                await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Iniciado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha iniciado. ¡Buen viaje!`);
+                cambios.push('iniciado');
+            }
+        }
+        if (fecha_salida && fecha_salida !== viajeAnteriorData.fecha_salida) {
+            await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Cambio de Fecha de Viaje', `La fecha del viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha cambiado a ${(0, notificaciones_1.formatearFechaColombia)(fecha_salida)}`);
+            cambios.push('fecha modificada');
+        }
+        if (origen && origen !== viajeAnteriorData.origen) {
+            cambios.push('origen modificado');
+        }
+        if (destino && destino !== viajeAnteriorData.destino) {
+            cambios.push('destino modificado');
+        }
+        if (precio !== undefined && precio !== viajeAnteriorData.precio) {
+            cambios.push('precio modificado');
+        }
+        // Si hubo cambios generales, notificar a los pasajeros
+        if (cambios.length > 0 && !cambios.includes('cancelado') && !cambios.includes('iniciado')) {
+            await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Modificado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${(0, notificaciones_1.formatearFechaColombia)(viajeActualizado.fecha_salida)}) ha sido modificado. Cambios: ${cambios.join(', ')}`);
+        }
+        return res.json(viajeActualizado);
     }
     catch (err) {
         console.error('PUT viaje:', err.message);
@@ -364,11 +396,17 @@ router.put('/:id', async (req, res) => {
 });
 router.delete('/:id', async (req, res) => {
     try {
+        // Obtener información del viaje antes de eliminarlo
+        const viajeInfo = await pool_1.default.query('SELECT origen, destino, fecha_salida FROM viajes WHERE id = $1', [req.params.id]);
+        if (!viajeInfo.rows[0]) {
+            return res.status(404).json({ error: 'No encontrado' });
+        }
+        const viaje = viajeInfo.rows[0];
+        // Notificar a los pasajeros inscritos antes de eliminar
+        await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Eliminado', `El viaje ${viaje.origen} → ${viaje.destino} (${(0, notificaciones_1.formatearFechaColombia)(viaje.fecha_salida)}) ha sido eliminado del sistema`);
         // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
         // ahora tienen ON DELETE CASCADE (o se están actualizando vía migraciones)
         const result = await pool_1.default.query('DELETE FROM viajes WHERE id = $1 RETURNING id', [req.params.id]);
-        if (!result.rows[0])
-            return res.status(404).json({ error: 'No encontrado' });
         return res.json({ message: 'Eliminado' });
     }
     catch (err) {

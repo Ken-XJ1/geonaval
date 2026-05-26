@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Download, Filter } from 'lucide-react';
+import { Download, Filter, BarChart3, Users, Anchor, AlertTriangle } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -136,16 +136,150 @@ export function ReportesView() {
   }, [viajesFiltrados, pasajeros.length, incidentes.length]);
 
   const reportesDisponibles = [
-    { id: 'viajes-mes', titulo: 'Viajes del período', descripcion: `${resumen.totalViajes} viajes en el filtro actual`, icono: '📊' },
-    { id: 'pasajeros', titulo: 'Pasajeros', descripcion: `${resumen.pasajeros} registrados`, icono: '👥' },
-    { id: 'embarcaciones', titulo: 'Embarcaciones', descripcion: `${embarcaciones.length} en flota`, icono: '⚓' },
-    { id: 'incidentes', titulo: 'Incidentes', descripcion: `${resumen.incidentes} reportados`, icono: '⚠️' },
+    { id: 'viajes-mes', titulo: 'Viajes del período', descripcion: `${resumen.totalViajes} viajes en el filtro actual`, icono: 'chart-bar' },
+    { id: 'pasajeros', titulo: 'Pasajeros', descripcion: `${resumen.pasajeros} registrados`, icono: 'users' },
+    { id: 'embarcaciones', titulo: 'Embarcaciones', descripcion: `${embarcaciones.length} en flota`, icono: 'anchor' },
+    { id: 'incidentes', titulo: 'Incidentes', descripcion: `${resumen.incidentes} reportados`, icono: 'alert-triangle' },
   ];
 
-  const handleExportar = (formato: 'pdf' | 'excel') => {
-    alert(
-      `Resumen (${formato.toUpperCase()}): ${resumen.totalViajes} viajes, ${resumen.pasajeros} pasajeros, ${resumen.incidentes} incidentes.`
-    );
+  const descargarExcel = (reporteId: string) => {
+    let csvContent = '';
+    let filename = '';
+
+    switch (reporteId) {
+      case 'viajes-mes':
+        filename = 'viajes_periodo.csv';
+        csvContent = 'ID,Fecha Salida,Origen,Destino,Embarcación,Pasajeros,Estado,Precio\n';
+        viajesFiltrados.forEach((v) => {
+          const fecha = new Date(v.fecha_salida as string).toLocaleDateString('es-CO');
+          csvContent += `V-${v.id},${fecha},${v.origen},${v.destino},${v.embarcacion_nombre || 'N/A'},${v.pasajeros_count || 0},${v.estado},${v.precio || 0}\n`;
+        });
+        break;
+
+      case 'pasajeros':
+        filename = 'pasajeros.csv';
+        csvContent = 'ID,Nombre,Documento,Teléfono,Email\n';
+        pasajeros.forEach((p) => {
+          csvContent += `PS-${p.id},${p.nombre},${p.documento},${p.telefono || 'N/A'},${p.email || 'N/A'}\n`;
+        });
+        break;
+
+      case 'embarcaciones':
+        filename = 'embarcaciones.csv';
+        csvContent = 'ID,Nombre,Tipo,Capacidad,Estado,Viajes Realizados\n';
+        embarcaciones.forEach((e) => {
+          const viajesRealizados = viajesFiltrados.filter(v => v.embarcacion_id === e.id).length;
+          csvContent += `E-${e.id},${e.nombre},${e.tipo || 'N/A'},${e.capacidad_pasajeros || 0},${e.estado},${viajesRealizados}\n`;
+        });
+        break;
+
+      case 'incidentes':
+        filename = 'incidentes.csv';
+        csvContent = 'ID,Viaje,Tipo,Descripción,Severidad,Estado,Fecha\n';
+        incidentes.forEach((i) => {
+          const fecha = i.created_at ? new Date(i.created_at as string).toLocaleDateString('es-CO') : 'N/A';
+          csvContent += `I-${i.id},V-${i.viaje_id || 'N/A'},${i.tipo},${(i.descripcion as string).replace(/,/g, ';')},${i.severidad},${i.estado},${fecha}\n`;
+        });
+        break;
+    }
+
+    // Crear y descargar el archivo
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  };
+
+  const descargarPDF = (reporteId: string) => {
+    let contenido = '';
+    let titulo = '';
+
+    switch (reporteId) {
+      case 'viajes-mes':
+        titulo = 'Reporte de Viajes del Período';
+        contenido = `Total de viajes: ${resumen.totalViajes}\n`;
+        contenido += `Período: ${filtros.fechaInicio || 'Inicio'} - ${filtros.fechaFin || 'Fin'}\n\n`;
+        contenido += 'Listado de Viajes:\n';
+        viajesFiltrados.forEach((v) => {
+          const fecha = new Date(v.fecha_salida as string).toLocaleDateString('es-CO');
+          contenido += `- V-${v.id}: ${v.origen} → ${v.destino} (${fecha}) - ${v.pasajeros_count || 0} pasajeros\n`;
+        });
+        break;
+
+      case 'pasajeros':
+        titulo = 'Reporte de Pasajeros';
+        contenido = `Total de pasajeros registrados: ${resumen.pasajeros}\n\n`;
+        contenido += 'Listado de Pasajeros:\n';
+        pasajeros.slice(0, 50).forEach((p) => {
+          contenido += `- PS-${p.id}: ${p.nombre} (${p.documento})\n`;
+        });
+        if (pasajeros.length > 50) {
+          contenido += `\n... y ${pasajeros.length - 50} pasajeros más\n`;
+        }
+        break;
+
+      case 'embarcaciones':
+        titulo = 'Reporte de Embarcaciones';
+        contenido = `Total de embarcaciones: ${embarcaciones.length}\n\n`;
+        contenido += 'Listado de Embarcaciones:\n';
+        embarcaciones.forEach((e) => {
+          const viajesRealizados = viajesFiltrados.filter(v => v.embarcacion_id === e.id).length;
+          contenido += `- E-${e.id}: ${e.nombre} (${e.estado}) - ${viajesRealizados} viajes\n`;
+        });
+        break;
+
+      case 'incidentes':
+        titulo = 'Reporte de Incidentes';
+        contenido = `Total de incidentes: ${resumen.incidentes}\n\n`;
+        contenido += 'Listado de Incidentes:\n';
+        incidentes.forEach((i) => {
+          contenido += `- I-${i.id}: ${i.tipo} (${i.severidad}) - ${i.estado}\n`;
+          contenido += `  ${i.descripcion}\n\n`;
+        });
+        break;
+    }
+
+    // Crear contenido HTML para impresión/PDF
+    const ventana = window.open('', '_blank');
+    if (ventana) {
+      ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${titulo}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; }
+            h1 { color: #0B5ED7; border-bottom: 2px solid #0B5ED7; padding-bottom: 10px; }
+            pre { white-space: pre-wrap; font-family: 'Courier New', monospace; }
+            .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #ccc; font-size: 12px; color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>${titulo}</h1>
+          <p><strong>Generado:</strong> ${new Date().toLocaleString('es-CO')}</p>
+          <p><strong>Sistema:</strong> GeoNaval - Gestión de Transporte Fluvial</p>
+          <hr>
+          <pre>${contenido}</pre>
+          <div class="footer">
+            <p>GeoNaval © ${new Date().getFullYear()} - Reporte generado automáticamente</p>
+          </div>
+        </body>
+        </html>
+      `);
+      ventana.document.close();
+      setTimeout(() => {
+        ventana.print();
+      }, 250);
+    }
+  };
+
+  const handleExportar = (formato: 'pdf' | 'excel', reporteId: string) => {
+    if (formato === 'excel') {
+      descargarExcel(reporteId);
+    } else {
+      descargarPDF(reporteId);
+    }
   };
 
   if (loading) return <ViewFeedback loading />;
@@ -297,34 +431,44 @@ export function ReportesView() {
       <div>
         <h3 className="font-semibold mb-4">Reportes Disponibles</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {reportesDisponibles.map((reporte) => (
-            <div
-              key={reporte.id}
-              className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow"
-            >
-              <div className="text-4xl mb-3">{reporte.icono}</div>
-              <h4 className="font-semibold mb-2">{reporte.titulo}</h4>
-              <p className="text-sm text-muted-foreground mb-4">{reporte.descripcion}</p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleExportar('pdf')}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  PDF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleExportar('excel')}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Excel
-                </button>
+          {reportesDisponibles.map((reporte) => {
+            const IconComponent = 
+              reporte.icono === 'chart-bar' ? BarChart3 :
+              reporte.icono === 'users' ? Users :
+              reporte.icono === 'anchor' ? Anchor :
+              AlertTriangle;
+            
+            return (
+              <div
+                key={reporte.id}
+                className="bg-white rounded-xl border border-border shadow-sm p-6 hover:shadow-md transition-shadow"
+              >
+                <div className="w-12 h-12 bg-blue-50 rounded-lg flex items-center justify-center mb-3">
+                  <IconComponent className="w-6 h-6 text-primary" />
+                </div>
+                <h4 className="font-semibold mb-2">{reporte.titulo}</h4>
+                <p className="text-sm text-muted-foreground mb-4">{reporte.descripcion}</p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleExportar('pdf', reporte.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    PDF
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleExportar('excel', reporte.id)}
+                    className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors text-sm"
+                  >
+                    <Download className="w-4 h-4" />
+                    Excel
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

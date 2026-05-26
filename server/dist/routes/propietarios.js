@@ -10,7 +10,12 @@ const auth_1 = require("../middleware/auth");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    const rows = await (0, safeQuery_1.safeQuery)('SELECT * FROM propietarios ORDER BY id');
+    const rows = await (0, safeQuery_1.safeQuery)(`SELECT p.*,
+      COUNT(e.id)::int AS embarcaciones_count
+     FROM propietarios p
+     LEFT JOIN embarcaciones e ON e.propietario_id = p.id
+     GROUP BY p.id
+     ORDER BY p.id`);
     return res.json(rows);
 });
 router.get('/:id', async (req, res) => {
