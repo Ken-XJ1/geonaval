@@ -123,11 +123,12 @@ export function PasajerosView() {
   };
 
   const handleEdit = (row: ReturnType<typeof mapPasajeroToUI>) => {
+    console.log('handleEdit llamado con:', row);
     setEditingId(row.dbId);
     setFormData({
       nombreCompleto: row.nombre,
       documento: row.documento,
-      telefono: row.telefono === '—' ? '' : row.telefono,
+      telefono: row.telefono === '—' || row.telefono === 'Pendiente' ? '' : row.telefono,
       email: '',
       viajeId: '',
     });
@@ -165,7 +166,8 @@ export function PasajerosView() {
   };
 
   const handleDelete = async (row: ReturnType<typeof mapPasajeroToUI>) => {
-    if (!confirm('¿Eliminar este pasajero?')) return;
+    console.log('handleDelete llamado con:', row);
+    if (!confirm(`¿Está seguro de eliminar al pasajero ${row.nombre}?`)) return;
     try {
       await api.deletePasajero(row.dbId);
       await load();

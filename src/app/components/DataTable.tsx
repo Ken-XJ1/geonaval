@@ -59,27 +59,44 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
                       <div className="flex items-center justify-end gap-2">
                         {onView && (
                           <button
-                            onClick={() => onView(row)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onView(row);
+                            }}
                             className="p-2 text-primary hover:bg-blue-50 rounded-lg transition-colors"
                             title="Ver detalles"
+                            type="button"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                         )}
                         {onEdit && (
                           <button
-                            onClick={() => onEdit(row)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Botón editar clickeado, row:', row);
+                              onEdit(row);
+                            }}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Editar"
+                            type="button"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                         )}
                         {onDelete && (
                           <button
-                            onClick={() => onDelete(row)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              console.log('Botón eliminar clickeado, row:', row);
+                              onDelete(row);
+                            }}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Eliminar"
+                            type="button"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
