@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
+import { notificarClientes, notificarPasajerosViaje, notificarAdministradores } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -191,6 +192,12 @@ router.post('/:id/inscribir', async (req: Request, res: Response) => {
       [viajeId, pasajeroId, user.id, asiento, viaje.precio || 0, metodoPagoFinal]
     );
 
+    // Notificar a los administradores sobre la inscripción
+    await notificarAdministradores(
+      'Nueva Inscripción a Viaje',
+      `${user.nombre} se ha inscrito al viaje ${viaje.origen} → ${viaje.destino} (${new Date(viaje.fecha_salida).toLocaleDateString()}). Asiento: ${asiento}`
+    );
+
     return res.status(201).json({ message: 'Inscripción exitosa', asiento });
   } catch (err) {
     console.error('Inscribir:', (err as Error).message);
@@ -220,6 +227,21 @@ router.delete('/:id/cancelar-inscripcion', async (req: Request, res: Response) =
 
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'No estás inscrito en este viaje' });
+    }
+
+    // Obtener información del viaje para la notificación
+    const viajeInfo = viajeRes.rows[0];
+    const viajeDetalle = await pool.query(
+      'SELECT origen, destino, fecha_salida FROM viajes WHERE id = $1',
+      [viajeId]
+    );
+    
+    if (viajeDetalle.rows[0]) {
+      const v = viajeDetalle.rows[0];
+      await notificarAdministradores(
+        'Cancelación de Inscripción',
+        `${user.nombre} ha cancelado su inscripción al viaje ${v.origen} → ${v.destino} (${new Date(v.fecha_salida).toLocaleDateString()})`
+      );
     }
 
     return res.json({ message: 'Inscripción cancelada' });
@@ -388,23 +410,11 @@ router.post('/', async (req: Request, res: Response) => {
       );
     }
 
-    // Notificar a todos los clientes
-    try {
-      const clientes = await pool.query("SELECT id FROM usuarios WHERE rol = 'cliente' AND activo = true");
-      for (const c of clientes.rows) {
-        await pool.query(
-          `INSERT INTO notificaciones (usuario_id, titulo, mensaje)
-           VALUES ($1, $2, $3)`,
-          [
-            c.id,
-            'Nuevo Viaje Disponible',
-            `Se ha programado un nuevo viaje: ${origen} → ${destino} para el día ${new Date(fecha_salida).toLocaleDateString()}. ¡Inscríbete ahora!`
-          ]
-        );
-      }
-    } catch (notifErr) {
-      console.error('Error enviando notificaciones:', notifErr);
-    }
+    // Notificar a todos los clientes sobre el nuevo viaje
+    await notificarClientes(
+      'Nuevo Viaje Disponible',
+      `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${new Date(fecha_salida).toLocaleDateString()}. ¡Inscríbete ahora!`
+    );
 
     return res.status(201).json(nuevoViaje);
   } catch (err) {
@@ -428,6 +438,16 @@ router.put('/:id', async (req: Request, res: Response) => {
     justificacion_cancelacion,
   } = req.body;
   try {
+    // Obtener el viaje anterior para comparar cambios
+    const viajeAnterior = await pool.query(
+      'SELECT * FROM viajes WHERE id = $1',
+      [req.params.id]
+    );
+    
+    if (!viajeAnterior.rows[0]) {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+
     const result = await pool.query(
       `UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
@@ -454,9 +474,63 @@ router.put('/:id', async (req: Request, res: Response) => {
         req.params.id,
       ]
     );
-    if (!result.rows[0])
-      return res.status(404).json({ error: 'No encontrado' });
-    return res.json(result.rows[0]);
+
+    const viajeActualizado = result.rows[0];
+    const viajeAnteriorData = viajeAnterior.rows[0];
+
+    // Notificar a los pasajeros inscritos sobre cambios importantes
+    let cambios: string[] = [];
+    
+    if (estado && estado !== viajeAnteriorData.estado) {
+      if (estado === 'cancelado') {
+        const razon = justificacion_cancelacion || 'No especificada';
+        await notificarPasajerosViaje(
+          Number(req.params.id),
+          'Viaje Cancelado',
+          `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${new Date(viajeActualizado.fecha_salida).toLocaleDateString()}) ha sido cancelado. Razón: ${razon}`
+        );
+        cambios.push('cancelado');
+      } else if (estado === 'en_curso') {
+        await notificarPasajerosViaje(
+          Number(req.params.id),
+          'Viaje Iniciado',
+          `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha iniciado. ¡Buen viaje!`
+        );
+        cambios.push('iniciado');
+      }
+    }
+
+    if (fecha_salida && fecha_salida !== viajeAnteriorData.fecha_salida) {
+      await notificarPasajerosViaje(
+        Number(req.params.id),
+        'Cambio de Fecha de Viaje',
+        `La fecha del viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha cambiado a ${new Date(fecha_salida).toLocaleDateString()}`
+      );
+      cambios.push('fecha modificada');
+    }
+
+    if (origen && origen !== viajeAnteriorData.origen) {
+      cambios.push('origen modificado');
+    }
+
+    if (destino && destino !== viajeAnteriorData.destino) {
+      cambios.push('destino modificado');
+    }
+
+    if (precio !== undefined && precio !== viajeAnteriorData.precio) {
+      cambios.push('precio modificado');
+    }
+
+    // Si hubo cambios generales, notificar a los pasajeros
+    if (cambios.length > 0 && !cambios.includes('cancelado') && !cambios.includes('iniciado')) {
+      await notificarPasajerosViaje(
+        Number(req.params.id),
+        'Viaje Modificado',
+        `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${new Date(viajeActualizado.fecha_salida).toLocaleDateString()}) ha sido modificado. Cambios: ${cambios.join(', ')}`
+      );
+    }
+
+    return res.json(viajeActualizado);
   } catch (err) {
     console.error('PUT viaje:', (err as Error).message);
     return res.status(500).json({ error: 'No se pudo actualizar el viaje' });
@@ -465,14 +539,32 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
+    // Obtener información del viaje antes de eliminarlo
+    const viajeInfo = await pool.query(
+      'SELECT origen, destino, fecha_salida FROM viajes WHERE id = $1',
+      [req.params.id]
+    );
+
+    if (!viajeInfo.rows[0]) {
+      return res.status(404).json({ error: 'No encontrado' });
+    }
+
+    const viaje = viajeInfo.rows[0];
+
+    // Notificar a los pasajeros inscritos antes de eliminar
+    await notificarPasajerosViaje(
+      Number(req.params.id),
+      'Viaje Eliminado',
+      `El viaje ${viaje.origen} → ${viaje.destino} (${new Date(viaje.fecha_salida).toLocaleDateString()}) ha sido eliminado del sistema`
+    );
+
     // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
     // ahora tienen ON DELETE CASCADE (o se están actualizando vía migraciones)
     const result = await pool.query(
       'DELETE FROM viajes WHERE id = $1 RETURNING id',
       [req.params.id]
     );
-    if (!result.rows[0])
-      return res.status(404).json({ error: 'No encontrado' });
+
     return res.json({ message: 'Eliminado' });
   } catch (err) {
     console.error('DELETE viaje:', (err as Error).message);
