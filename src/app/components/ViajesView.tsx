@@ -309,11 +309,101 @@ export function ViajesView() {
   const fechasUnicas = [...new Set(viajesLista.map((v) => v.fechaSalida))];
 
   const handleExportarPDF = () => {
-    alert('Exportando viajes finalizados en PDF...');
+    const titulo = 'Reporte de Viajes - GeoNaval';
+    const filtroDesc = filtroFecha ? `Fecha: ${filtroFecha}` : 'Todas las fechas';
+    const estadoDesc = filtroEstado !== 'todos' ? ` | Estado: ${filtroEstado}` : '';
+
+    const filas = viajesFiltrados.map((v) => `
+      <tr>
+        <td>${v.id}</td>
+        <td>${v.ruta}</td>
+        <td>${v.embarcacion}</td>
+        <td>${v.operador}</td>
+        <td>${v.fechaSalida}</td>
+        <td>${v.horaSalida}</td>
+        <td>${v.pasajeros}</td>
+        <td>${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(v.precio ?? 0)}</td>
+        <td>${v.estado}</td>
+      </tr>
+    `).join('');
+
+    const ventana = window.open('', '_blank');
+    if (ventana) {
+      ventana.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${titulo}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 30px; font-size: 13px; }
+            h1 { color: #0B5ED7; border-bottom: 2px solid #0B5ED7; padding-bottom: 8px; margin-bottom: 4px; }
+            .meta { color: #666; font-size: 12px; margin-bottom: 20px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+            th { background: #0B5ED7; color: white; padding: 8px 10px; text-align: left; font-size: 12px; }
+            td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+            tr:nth-child(even) td { background: #f9fafb; }
+            .resumen { display: flex; gap: 24px; margin: 16px 0; }
+            .stat { background: #f0f4ff; border-radius: 8px; padding: 12px 20px; text-align: center; }
+            .stat strong { display: block; font-size: 22px; color: #0B5ED7; }
+            .stat span { font-size: 11px; color: #666; }
+            .footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ccc; font-size: 11px; color: #888; }
+            @media print { button { display: none; } }
+          </style>
+        </head>
+        <body>
+          <h1>${titulo}</h1>
+          <p class="meta">Filtro: ${filtroDesc}${estadoDesc} &nbsp;|&nbsp; Generado: ${new Date().toLocaleString('es-CO')}</p>
+          <div class="resumen">
+            <div class="stat"><strong>${viajesFiltrados.length}</strong><span>Total viajes</span></div>
+            <div class="stat"><strong>${viajesFiltrados.reduce((s, v) => s + v.pasajeros, 0)}</strong><span>Pasajeros</span></div>
+            <div class="stat"><strong>${viajesFiltrados.filter(v => v.estado === 'finalizado').length}</strong><span>Finalizados</span></div>
+            <div class="stat"><strong>${viajesFiltrados.filter(v => v.estado === 'cancelado').length}</strong><span>Cancelados</span></div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Ruta</th><th>Embarcación</th><th>Operador</th>
+                <th>Fecha</th><th>Hora</th><th>Pasajeros</th><th>Precio</th><th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>${filas}</tbody>
+          </table>
+          <div class="footer">GeoNaval © ${new Date().getFullYear()} — Reporte generado automáticamente del sistema de gestión de transporte fluvial</div>
+          <script>setTimeout(() => window.print(), 300);</script>
+        </body>
+        </html>
+      `);
+      ventana.document.close();
+    }
   };
 
   const handleExportarExcel = () => {
-    alert('Exportando viajes finalizados en Excel...');
+    const encabezados = ['ID', 'Ruta', 'Embarcación', 'Propietario', 'Operador', 'Fecha Salida', 'Hora Salida', 'Pasajeros', 'Precio (COP)', 'Estado'];
+    const filas = viajesFiltrados.map((v) => [
+      v.id,
+      v.ruta,
+      v.embarcacion,
+      v.propietario,
+      v.operador,
+      v.fechaSalida,
+      v.horaSalida,
+      v.pasajeros,
+      v.precio ?? 0,
+      v.estado,
+    ]);
+
+    const csvContent = [encabezados, ...filas]
+      .map((fila) => fila.map((celda) => `"${String(celda).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    const fechaHoy = new Date().toISOString().split('T')[0];
+    link.download = `viajes_geonaval_${fechaHoy}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (loading) return <ViewFeedback loading />;
