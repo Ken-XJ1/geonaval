@@ -1,0 +1,683 @@
+\documentclass[12pt,a4paper]{report}
+
+% ── Codificación y fuentes ──────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{lmodern}
+
+% ── Márgenes y geometría ────────────────────────────────────────────────────
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+
+% ── Colores ─────────────────────────────────────────────────────────────────
+\usepackage[dvipsnames,table]{xcolor}
+\definecolor{navyblue}{RGB}{0,51,102}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{warningyellow}{RGB}{255,193,7}
+\definecolor{noteblue}{RGB}{13,110,253}
+\definecolor{successgreen}{RGB}{25,135,84}
+
+% ── Tablas ──────────────────────────────────────────────────────────────────
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+% ── Gráficos y cajas ────────────────────────────────────────────────────────
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable,skins}
+
+% ── Encabezados y pies de página ────────────────────────────────────────────
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{navyblue}{\textbf{GEONAVAL} – Manual de Usuario}}
+\fancyhead[R]{\small\textcolor{gray}{Sistema de Registro Fluvial y Monitoreo GPS}}
+\fancyfoot[C]{\small\textcolor{gray}{Quibdó, Chocó – Colombia \quad|\quad Versión 1.0.0 – Mayo 2026}}
+\fancyfoot[R]{\small Página \thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+% ── Hipervínculos ───────────────────────────────────────────────────────────
+\usepackage[colorlinks=true, linkcolor=navyblue, urlcolor=noteblue]{hyperref}
+
+% ── Títulos de secciones ────────────────────────────────────────────────────
+\usepackage{titlesec}
+\titleformat{\chapter}[hang]
+  {\huge\bfseries\color{navyblue}}{\thechapter.}{0.5em}{}[\titlerule]
+\titleformat{\section}[hang]
+  {\large\bfseries\color{navyblue}}{\thesection}{0.5em}{}
+\titleformat{\subsection}[hang]
+  {\normalsize\bfseries\color{navyblue}}{\thesubsection}{0.5em}{}
+\titlespacing{\chapter}{0pt}{10pt}{20pt}
+
+% ── Listas ──────────────────────────────────────────────────────────────────
+\usepackage{enumitem}
+\setlist[itemize]{topsep=4pt,itemsep=2pt,leftmargin=1.5em}
+\setlist[enumerate]{topsep=4pt,itemsep=2pt,leftmargin=1.5em}
+
+% ── Cajas de Nota y Advertencia ─────────────────────────────────────────────
+\newtcolorbox{notabox}{
+  colback=noteblue!8, colframe=noteblue, fonttitle=\bfseries,
+  title={\small Nota}, breakable, left=6pt, right=6pt, top=4pt, bottom=4pt
+}
+\newtcolorbox{advertenciabox}{
+  colback=warningyellow!20, colframe=warningyellow!80!black, fonttitle=\bfseries,
+  title={\small Advertencia}, breakable, left=6pt, right=6pt, top=4pt, bottom=4pt
+}
+
+% ── Tabla de contenido ──────────────────────────────────────────────────────
+\setcounter{tocdepth}{2}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ── Portada ─────────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+  {\Huge\bfseries\color{navyblue} GEONAVAL\par}
+  \vspace{0.3cm}
+  {\Large\color{gray} Control Fluvial\par}
+  \vspace{1.2cm}
+  \rule{0.8\textwidth}{1.5pt}
+  \vspace{0.5cm}
+
+  {\LARGE\bfseries MANUAL DE USUARIO\par}
+  \vspace{0.4cm}
+  {\large Sistema de Registro Fluvial y Monitoreo GPS\par}
+  \vspace{0.2cm}
+  {\normalsize Control y Seguridad del Transporte Fluvial\par}
+
+  \vspace{1cm}
+  \rule{0.8\textwidth}{0.8pt}
+  \vspace{1cm}
+
+  \begin{tabular}{@{}ll@{}}
+    \toprule
+    \textbf{Versión}   & 1.0.0 – Mayo 2026 \\
+    \textbf{Materia}   & Ingeniería de Software \\
+    \textbf{Ubicación} & Quibdó, Chocó – Colombia \\
+    \textbf{Fecha}     & Mayo 2026 \\
+    \bottomrule
+  \end{tabular}
+
+  \vfill
+  {\small\color{gray} Quibdó, Chocó – Colombia \quad|\quad Versión 1.0.0 – Mayo 2026\par}
+\end{titlepage}
+
+% ── Tabla de contenido ──────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Introducción}
+
+\section{Descripción del Sistema}
+
+GEONAVAL es un sistema web de Registro Fluvial y Monitoreo GPS diseñado para el control y la seguridad del transporte fluvial en la región de Quibdó, Chocó, Colombia. El sistema permite gestionar de forma integral todos los actores y procesos involucrados en la operación fluvial, incluyendo embarcaciones, propietarios, tripulación, pasajeros y viajes.
+
+El sistema cuenta con monitoreo GPS en tiempo real, permitiendo a las autoridades y administradores hacer seguimiento a las embarcaciones activas sobre las rutas fluviales del río Atrato y sus afluentes.
+
+\section{Propósito del Manual}
+
+Este manual tiene como objetivo guiar a los usuarios del sistema GEONAVAL en el uso correcto de todas las funcionalidades disponibles. Está dirigido principalmente al perfil de Administrador, quien tiene acceso completo a todos los módulos del sistema.
+
+\section{Alcance}
+
+El presente manual cubre los siguientes módulos del sistema:
+
+\begin{itemize}
+  \item Inicio de sesión y autenticación
+  \item Dashboard principal con indicadores clave
+  \item Gestión de Embarcaciones
+  \item Gestión de Propietarios
+  \item Gestión de Tripulación
+  \item Gestión de Pasajeros
+  \item Viajes (Zarpe)
+  \item Monitoreo GPS en Tiempo Real
+  \item Compras y Tickets
+  \item Reportes y Estadísticas
+  \item Configuración del Sistema
+\end{itemize}
+
+\section{Convenciones del Manual}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{Texto en negrita} & Indica nombres de botones, campos o elementos de interfaz \\
+    \textbf{[Texto entre corchetes]} & Indica una acción que debe realizar el usuario \\
+    \textbf{Nota:} & Información importante a tener en cuenta \\
+    \textbf{Advertencia:} & Acción que puede tener consecuencias irreversibles \\
+    \textbf{Flechas rojas (→)} & Señalan los elementos clave en cada captura de pantalla \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Convenciones tipográficas del manual}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Requisitos del Sistema}
+
+\section{Requisitos Técnicos}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Componente} & \textbf{Descripción} \\
+    \midrule
+    \textbf{Navegador web} & Google Chrome 90+, Mozilla Firefox 88+, Microsoft Edge 90+, Safari 14+ \\
+    \textbf{Conexión a Internet} & Mínimo 2 Mbps (recomendado 5 Mbps o superior para GPS en tiempo real) \\
+    \textbf{Resolución de pantalla} & Mínimo 1280 × 720 px (recomendado 1920 × 1080) \\
+    \textbf{Sistema operativo} & Windows 10+, macOS 10.14+, Ubuntu 18.04+ \\
+    \textbf{JavaScript} & Habilitado en el navegador \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Requisitos técnicos del sistema}
+\end{table}
+
+\section{Acceso al Sistema}
+
+GEONAVAL es una aplicación web, por lo que no requiere instalación. El acceso se realiza directamente desde el navegador ingresando la URL proporcionada por el administrador de sistemas.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Inicio de Sesión}
+
+\section{Acceso al Sistema}
+
+Para ingresar a GEONAVAL, el usuario debe completar el formulario de autenticación que aparece al abrir el sistema. La siguiente imagen muestra la pantalla de inicio de sesión con sus elementos señalados:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Pantalla de Inicio de Sesión de GEONAVAL}
+  \label{fig:login}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:login})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Campo} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Correo Electrónico} & Campo donde se ingresa el correo registrado del usuario (ejemplo: \texttt{admin@geonaval.com}). \\
+    \textbf{② Contraseña} & Campo de contraseña. El ícono de ojo permite mostrar u ocultar el texto. \\
+    \textbf{③ Tipo de Usuario} & Menú desplegable para seleccionar el perfil: Administrador, Operador o Autoridad. \\
+    \textbf{④ Iniciar Sesión} & Botón principal para autenticarse en el sistema. \\
+    \textbf{⑤ Recuperar contraseña} & Enlace para restablecer la contraseña olvidada vía correo electrónico. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos de la pantalla de inicio de sesión}
+\end{table}
+
+\section{Pasos para Iniciar Sesión}
+
+\begin{enumerate}
+  \item Abra su navegador web preferido.
+  \item Ingrese la URL del sistema GEONAVAL en la barra de direcciones.
+  \item Complete el campo \textbf{Correo Electrónico} (①).
+  \item Complete el campo \textbf{Contraseña} (②).
+  \item Seleccione su \textbf{Tipo de Usuario} en el desplegable (③).
+  \item Haga clic en \textbf{Iniciar Sesión} (④).
+\end{enumerate}
+
+\section{Tipos de Usuario}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{4cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Perfil} & \textbf{Descripción} \\
+    \midrule
+    \textbf{Administrador} & Acceso completo a todos los módulos del sistema. \\
+    \textbf{Operador} & Acceso a módulos operativos: compras, tickets, viajes y consulta de embarcaciones. \\
+    \textbf{Autoridad} & Acceso de solo lectura a monitoreo, reportes y alertas. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Perfiles de usuario del sistema}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Dashboard Principal}
+
+\section{Descripción General}
+
+Una vez autenticado, el sistema redirige al Dashboard Principal. La siguiente imagen muestra sus secciones principales:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Dashboard Principal de GEONAVAL}
+  \label{fig:dashboard}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:dashboard})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Menú de navegación} & Panel lateral izquierdo con acceso a todos los módulos del sistema. \\
+    \textbf{② Embarcaciones Activas} & KPI con el número de embarcaciones operativas y variación mensual. \\
+    \textbf{③ Viajes en Curso} & KPI con el número de viajes activos y variación mensual. \\
+    \textbf{④ Perfil de usuario} & Área superior derecha con nombre, rol y opciones de sesión. \\
+    \textbf{⑤ Mapa GPS en tiempo real} & Vista del mapa fluvial con posición de embarcaciones activas. \\
+    \textbf{⑥ Próxima Llegada} & Panel con hora estimada y datos de la siguiente embarcación en llegar. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del Dashboard Principal}
+\end{table}
+
+\section{Indicadores Clave (KPIs)}
+
+Los cuatro KPIs de la parte superior muestran: \textbf{Embarcaciones Activas}, \textbf{Viajes en Curso}, \textbf{Pasajeros Transportados} y \textbf{Alertas Activas}, todos con comparativo frente al mes anterior.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Gestión de Embarcaciones}
+
+\section{Descripción}
+
+El módulo de Gestión de Embarcaciones permite registrar, consultar y administrar todas las embarcaciones fluviales. La siguiente imagen muestra la vista principal del módulo:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Módulo de Gestión de Embarcaciones}
+  \label{fig:embarcaciones}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:embarcaciones})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Nueva Embarcación} & Botón para abrir el formulario de registro de una nueva embarcación. \\
+    \textbf{② KPIs del módulo} & Resumen de totales: embarcaciones registradas, operativas, en mantenimiento y viajes. \\
+    \textbf{③ Estado: Operativa} & Etiqueta verde que indica que la embarcación está disponible para viajes. \\
+    \textbf{④ Estado: En Mantenimiento} & Etiqueta naranja que indica que la embarcación está temporalmente fuera de servicio. \\
+    \textbf{⑤ Ver detalles} & Enlace para consultar toda la información de una embarcación específica. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Gestión de Embarcaciones}
+\end{table}
+
+\section{Registrar Nueva Embarcación}
+
+\begin{enumerate}
+  \item Haga clic en \textbf{+ Nueva Embarcación} (①).
+  \item Complete el formulario: nombre, tipo, propietario y estado inicial.
+  \item Haga clic en \textbf{Guardar} para registrar.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Gestión de Propietarios}
+
+\section{Descripción}
+
+Este módulo permite administrar el registro de propietarios de embarcaciones, tanto personas naturales como empresas. La imagen a continuación muestra la vista principal:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Módulo de Gestión de Propietarios}
+  \label{fig:propietarios}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:propietarios})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Nuevo Propietario} & Botón para registrar un nuevo propietario en el sistema. \\
+    \textbf{② Tipo: Natural / Empresa} & Clasificación del propietario como persona física o jurídica. \\
+    \textbf{③ Ver / Editar / Eliminar} & Íconos de acción disponibles por cada registro. \\
+    \textbf{④ Embarcaciones asociadas} & Contador que muestra cuántas embarcaciones tiene cada propietario. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Gestión de Propietarios}
+\end{table}
+
+\begin{advertenciabox}
+Al eliminar un propietario, esta acción es \textbf{irreversible}. Verifique que no tenga embarcaciones activas antes de proceder.
+\end{advertenciabox}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Gestión de Tripulación}
+
+\section{Descripción}
+
+El módulo de Tripulación permite administrar el personal operativo de las embarcaciones. La siguiente imagen muestra la vista principal:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Módulo de Gestión de Tripulación}
+  \label{fig:tripulacion}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:tripulacion})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Nuevo Tripulante} & Botón para registrar un nuevo miembro de la tripulación. \\
+    \textbf{② KPIs del módulo} & Total de tripulantes, operadores fluviales, personal auxiliar y activos. \\
+    \textbf{③ Rol del tripulante} & Cargo asignado: Operador Fluvial, Auxiliar de Pasajeros, Motorista, etc. \\
+    \textbf{④ Estado: Activo} & Etiqueta verde que indica disponibilidad del tripulante. \\
+    \textbf{⑤ Acciones} & Íconos para Ver, Editar y Eliminar cada registro de tripulante. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Gestión de Tripulación}
+\end{table}
+
+\section{Registrar Nuevo Tripulante}
+
+\begin{enumerate}
+  \item Haga clic en \textbf{+ Nuevo Tripulante} (①).
+  \item Complete nombre completo, rol, embarcación asignada y horario.
+  \item Defina el estado inicial (Activo/Inactivo) y haga clic en \textbf{Guardar}.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Gestión de Compras y Tickets}
+
+\section{Descripción}
+
+Este módulo centraliza la venta de pasajes y la gestión de tickets de transporte fluvial. La imagen siguiente muestra la vista principal:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Módulo de Compras y Tickets}
+  \label{fig:compras}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:compras})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Nueva Compra} & Botón para registrar una nueva venta de ticket. \\
+    \textbf{② KPIs del módulo} & Ventas del día, total recaudado, tickets confirmados y pendientes. \\
+    \textbf{③ Barra de búsqueda} & Permite buscar tickets por número, pasajero o documento. \\
+    \textbf{④ Filtrar por Fecha} & Abre un selector de rango de fechas para filtrar los registros. \\
+    \textbf{⑤ Exportar} & Descarga el listado de tickets en formato Excel. \\
+    \textbf{⑥ Estado Confirmado} & Etiqueta azul que indica que el pago ha sido verificado. \\
+    \textbf{⑦ Estado Pendiente} & Etiqueta amarilla que indica que el ticket aún requiere confirmación. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Compras y Tickets}
+\end{table}
+
+\section{Crear Nueva Compra}
+
+\begin{enumerate}
+  \item Haga clic en \textbf{+ Nueva Compra} (①).
+  \item Seleccione el pasajero o regístrelo si es nuevo.
+  \item Elija la ruta, fecha, asiento y método de pago.
+  \item Confirme la transacción para generar el ticket.
+\end{enumerate}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Monitoreo GPS en Tiempo Real}
+
+\section{Descripción}
+
+El módulo de Monitoreo GPS permite hacer seguimiento en tiempo real de las embarcaciones activas. La imagen siguiente muestra la vista del mapa:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Monitoreo GPS en Tiempo Real}
+  \label{fig:gps}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:gps})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Indicador EN VIVO} & Punto rojo parpadeante que confirma que los datos son en tiempo real. \\
+    \textbf{② Embarcación en curso (verde)} & Punto verde que representa una embarcación navegando actualmente. \\
+    \textbf{③ Embarcación programada (azul)} & Punto azul que indica un viaje confirmado pendiente de inicio. \\
+    \textbf{④ Leyenda del mapa} & Guía visual de colores: verde = en curso, azul = programado, naranja = alerta. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Monitoreo GPS}
+\end{table}
+
+\begin{notabox}
+Si una embarcación no aparece en el mapa, es posible que su dispositivo GPS esté apagado o sin señal. Verifique el dispositivo a bordo de la embarcación.
+\end{notabox}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Reportes y Estadísticas}
+
+\section{Filtros y Gráficas}
+
+El módulo de Reportes ofrece herramientas de análisis estadístico. La imagen siguiente muestra los filtros y las gráficas disponibles:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Reportes: Filtros de Búsqueda y Gráficas Estadísticas}
+  \label{fig:reportes1}
+\end{figure}
+
+\section{Descripción de Elementos -- Figura~\ref{fig:reportes1}}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Filtros de búsqueda} & Permite definir Fecha Inicio, Fecha Fin, Embarcación, Ruta y Estado para acotar el reporte. \\
+    \textbf{② Aplicar / Limpiar} & Botones para aplicar los filtros seleccionados o restablecer los valores por defecto. \\
+    \textbf{③ Viajes/Pasajeros} & Gráfica de líneas con evolución mensual de viajes y pasajeros transportados. \\
+    \textbf{④ Uso de Embarcaciones} & Gráfica de barras con viajes y horas de operación por embarcación. \\
+    \textbf{⑤ Tooltip interactivo} & Al pasar el cursor sobre la gráfica se muestran los valores exactos del mes. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos de filtros y gráficas del módulo de Reportes}
+\end{table}
+
+\section{Descarga de Reportes}
+
+La imagen siguiente muestra los tipos de reportes disponibles y las opciones de descarga:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Reportes: Tipos de Reportes y Descarga}
+  \label{fig:reportes2}
+\end{figure}
+
+\section{Descripción de Elementos -- Figura~\ref{fig:reportes2}}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Tipo de reporte} & Tarjeta con el nombre y descripción del reporte (Viajes del Mes, Pasajeros, Rutas, etc.). \\
+    \textbf{② Descargar PDF} & Descarga el reporte en formato PDF (solo lectura, ideal para compartir). \\
+    \textbf{③ Descargar Excel} & Descarga el reporte en formato Excel (editable, ideal para análisis). \\
+    \textbf{④ Resumen estadístico} & Indicadores consolidados del período: total viajes, pasajeros, horas, tasa de finalización. \\
+    \textbf{⑤ Pasajeros totales} & Cifra total de pasajeros transportados en el período seleccionado. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos de descarga del módulo de Reportes}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Configuración del Sistema}
+
+\section{Descripción}
+
+El módulo de Configuración permite gestionar el perfil, notificaciones y seguridad del sistema. La imagen siguiente muestra su vista principal:
+
+\begin{figure}[H]
+  \centering
+  \fbox{\rule{0pt}{4cm}\hspace{10cm}}
+  \caption{Módulo de Configuración del Sistema}
+  \label{fig:config}
+\end{figure}
+
+\section{Descripción de Elementos (ver Figura~\ref{fig:config})}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.4}
+  \begin{tabularx}{\textwidth}{@{}L{5.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Elemento} & \textbf{Descripción} \\
+    \midrule
+    \textbf{① Editar Perfil} & Botón para modificar los datos del usuario activo (nombre, correo, etc.). \\
+    \textbf{② Datos del usuario activo} & Muestra nombre, correo, rol, último acceso y fecha de registro. \\
+    \textbf{③ Notificaciones activas} & Casillas marcadas para alertas de viajes, GPS y embarcaciones. \\
+    \textbf{④ Notificación desactivada} & Casilla desmarcada para reportes automáticos (desactivados por defecto). \\
+    \textbf{⑤ Opciones de Seguridad} & Accesos a: cambiar contraseña, autenticación 2FA, dispositivos y historial de sesiones. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Elementos del módulo de Configuración del Sistema}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Glosario de Términos}
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.5}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Término} & \textbf{Descripción} \\
+    \midrule
+    \textbf{Dashboard} & Pantalla principal del sistema con indicadores y resúmenes visuales de la operación. \\
+    \textbf{Embarcación} & Cualquier nave fluvial registrada: ferry, lancha, bote, etc. \\
+    \textbf{GPS} & Sistema de Posicionamiento Global. Permite rastrear la ubicación de las embarcaciones en tiempo real. \\
+    \textbf{KPI} & Indicador Clave de Rendimiento. Métrica para evaluar el desempeño del sistema. \\
+    \textbf{Monitoreo en tiempo real} & Seguimiento continuo y actualizado de posición y estado de embarcaciones. \\
+    \textbf{Propietario} & Persona natural o jurídica dueña de una o más embarcaciones registradas. \\
+    \textbf{Ticket} & Documento digital que representa el derecho de un pasajero a viajar en una embarcación. \\
+    \textbf{Tripulación} & Personal operativo de una embarcación: operadores, auxiliares, motoristas. \\
+    \textbf{Zarpe} & Autorización formal para que una embarcación parta hacia su destino. \\
+    \textbf{Ruta fluvial} & Trayecto definido por el río que une dos puntos (origen y destino). \\
+    \textbf{NIT} & Número de Identificación Tributaria. Código fiscal de empresas en Colombia. \\
+    \textbf{Alerta} & Notificación ante una situación anormal: desviación de ruta, fallo GPS, etc. \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Glosario de términos del sistema GEONAVAL}
+\end{table}
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Preguntas Frecuentes (FAQ)}
+
+\subsection*{¿Qué hago si olvidé mi contraseña?}
+En la pantalla de inicio de sesión, haga clic en el enlace \textit{«¿Olvidaste tu contraseña?»}. El sistema enviará un correo con instrucciones para restablecerla.
+
+\subsection*{¿Por qué no aparece una embarcación en el mapa GPS?}
+Si una embarcación no es visible en el mapa, puede deberse a que su dispositivo GPS está apagado, sin señal, o fuera del rango de cobertura. Verifique el dispositivo a bordo.
+
+\subsection*{¿Cómo exporto un reporte en Excel?}
+En el módulo de Reportes, seleccione el tipo de reporte deseado y haga clic en el botón \textbf{Excel} (verde). El archivo se descargará automáticamente.
+
+\subsection*{¿Puedo eliminar un propietario que tiene embarcaciones asociadas?}
+No se recomienda. Antes de eliminar un propietario, reasigne o elimine sus embarcaciones. El sistema podría impedir la eliminación si detecta registros relacionados activos.
+
+\subsection*{¿Cómo sé si un ticket está confirmado?}
+En el módulo de Compras y Tickets, la columna \textbf{Estado} muestra \textit{Confirmado} en azul o \textit{Pendiente} en amarillo para identificar el estado de cada ticket fácilmente.
+
+\subsection*{¿Quién puede acceder al módulo de Configuración?}
+Solo los usuarios con perfil \textbf{Administrador} tienen acceso completo. Los perfiles Operador y Autoridad tienen acceso restringido.
+
+% ══════════════════════════════════════════════════════════════════════════════
+\chapter{Contacto y Soporte Técnico}
+
+Para soporte técnico, reportes de errores o consultas sobre el sistema GEONAVAL, comuníquese a través de los siguientes canales:
+
+\begin{table}[H]
+  \centering
+  \renewcommand{\arraystretch}{1.5}
+  \begin{tabularx}{\textwidth}{@{}L{4.5cm} X@{}}
+    \toprule
+    \rowcolor{navyblue!15}
+    \textbf{Canal} & \textbf{Detalle} \\
+    \midrule
+    \textbf{Teléfono} & +57 (4) 670-1234 \\
+    \textbf{Correo electrónico} & \texttt{info@geonaval.gov.co} \\
+    \textbf{Dirección} & Calle Principal \#10-20, Quibdó, Chocó, Colombia \\
+    \textbf{Horario de atención} & Lunes a Viernes: 8:00 AM – 6:00 PM \quad|\quad Sábado: 8:00 AM – 12:00 PM \\
+    \textbf{Emergencias GPS} & Disponible 24/7 para incidentes críticos de monitoreo \\
+    \bottomrule
+  \end{tabularx}
+  \caption{Canales de contacto y soporte técnico}
+\end{table}
+
+\vspace{1cm}
+\begin{tcolorbox}[colback=navyblue!8, colframe=navyblue, title={\textbf{Información Legal}}]
+GEONAVAL es un Sistema Oficial autorizado por la Capitanía del Puerto.\\
+Versión 1.0.0 – Mayo 2026. Todos los derechos reservados.
+\end{tcolorbox}
+
+\vfill
+\begin{center}
+  \small\color{gray} Quibdó, Chocó – Colombia \quad|\quad Versión 1.0.0 – Mayo 2026
+\end{center}
+
+\end{document}
