@@ -16,13 +16,13 @@ router.get('/', async (_req: Request, res: Response) => {
       v.origen,
       v.destino,
       v.estado AS viaje_estado,
-      v.fecha_salida,
+      v.fecha_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota' AS fecha_salida,
       e.nombre AS embarcacion_nombre
      FROM pasajeros p
      LEFT JOIN viaje_pasajeros vp ON vp.pasajero_id = p.id
-     LEFT JOIN viajes v ON v.id = vp.viaje_id
+     LEFT JOIN viajes v ON v.id = vp.viaje_id AND v.estado IN ('programado', 'en_curso')
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-     ORDER BY p.id DESC, vp.viaje_id DESC NULLS LAST`
+     ORDER BY p.id DESC, v.fecha_salida DESC NULLS LAST`
   );
   return res.json(rows);
 });

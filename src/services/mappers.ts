@@ -7,6 +7,7 @@ function formatDate(d: string | Date): string {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
+    timeZone: 'America/Bogota',
   });
 }
 
@@ -16,6 +17,7 @@ function formatTime(d: string | Date): string {
   return date.toLocaleTimeString('es-CO', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'America/Bogota',
   });
 }
 

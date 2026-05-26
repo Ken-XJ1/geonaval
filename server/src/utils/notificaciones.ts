@@ -1,6 +1,19 @@
 import pool from '../db/pool';
 
 /**
+ * Formatea una fecha para mostrar en zona horaria de Colombia
+ */
+export function formatearFechaColombia(fecha: string | Date): string {
+  const date = new Date(fecha);
+  return date.toLocaleDateString('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'America/Bogota',
+  });
+}
+
+/**
  * Envía una notificación a un usuario específico
  */
 export async function enviarNotificacion(

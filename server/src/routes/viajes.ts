@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
-import { notificarClientes, notificarPasajerosViaje, notificarAdministradores } from '../utils/notificaciones';
+import { notificarClientes, notificarPasajerosViaje, notificarAdministradores, formatearFechaColombia } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -195,7 +195,7 @@ router.post('/:id/inscribir', async (req: Request, res: Response) => {
     // Notificar a los administradores sobre la inscripción
     await notificarAdministradores(
       'Nueva Inscripción a Viaje',
-      `${user.nombre} se ha inscrito al viaje ${viaje.origen} → ${viaje.destino} (${new Date(viaje.fecha_salida).toLocaleDateString()}). Asiento: ${asiento}`
+      `${user.nombre} se ha inscrito al viaje ${viaje.origen} → ${viaje.destino} (${formatearFechaColombia(viaje.fecha_salida)}). Asiento: ${asiento}`
     );
 
     return res.status(201).json({ message: 'Inscripción exitosa', asiento });
@@ -240,7 +240,7 @@ router.delete('/:id/cancelar-inscripcion', async (req: Request, res: Response) =
       const v = viajeDetalle.rows[0];
       await notificarAdministradores(
         'Cancelación de Inscripción',
-        `${user.nombre} ha cancelado su inscripción al viaje ${v.origen} → ${v.destino} (${new Date(v.fecha_salida).toLocaleDateString()})`
+        `${user.nombre} ha cancelado su inscripción al viaje ${v.origen} → ${v.destino} (${formatearFechaColombia(v.fecha_salida)})`
       );
     }
 
@@ -413,7 +413,7 @@ router.post('/', async (req: Request, res: Response) => {
     // Notificar a todos los clientes sobre el nuevo viaje
     await notificarClientes(
       'Nuevo Viaje Disponible',
-      `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${new Date(fecha_salida).toLocaleDateString()}. ¡Inscríbete ahora!`
+      `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${formatearFechaColombia(fecha_salida)}. ¡Inscríbete ahora!`
     );
 
     return res.status(201).json(nuevoViaje);
@@ -487,7 +487,7 @@ router.put('/:id', async (req: Request, res: Response) => {
         await notificarPasajerosViaje(
           Number(req.params.id),
           'Viaje Cancelado',
-          `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${new Date(viajeActualizado.fecha_salida).toLocaleDateString()}) ha sido cancelado. Razón: ${razon}`
+          `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${formatearFechaColombia(viajeActualizado.fecha_salida)}) ha sido cancelado. Razón: ${razon}`
         );
         cambios.push('cancelado');
       } else if (estado === 'en_curso') {
@@ -504,7 +504,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       await notificarPasajerosViaje(
         Number(req.params.id),
         'Cambio de Fecha de Viaje',
-        `La fecha del viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha cambiado a ${new Date(fecha_salida).toLocaleDateString()}`
+        `La fecha del viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha cambiado a ${formatearFechaColombia(fecha_salida)}`
       );
       cambios.push('fecha modificada');
     }
@@ -526,7 +526,7 @@ router.put('/:id', async (req: Request, res: Response) => {
       await notificarPasajerosViaje(
         Number(req.params.id),
         'Viaje Modificado',
-        `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${new Date(viajeActualizado.fecha_salida).toLocaleDateString()}) ha sido modificado. Cambios: ${cambios.join(', ')}`
+        `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${formatearFechaColombia(viajeActualizado.fecha_salida)}) ha sido modificado. Cambios: ${cambios.join(', ')}`
       );
     }
 
@@ -555,7 +555,7 @@ router.delete('/:id', async (req: Request, res: Response) => {
     await notificarPasajerosViaje(
       Number(req.params.id),
       'Viaje Eliminado',
-      `El viaje ${viaje.origen} → ${viaje.destino} (${new Date(viaje.fecha_salida).toLocaleDateString()}) ha sido eliminado del sistema`
+      `El viaje ${viaje.origen} → ${viaje.destino} (${formatearFechaColombia(viaje.fecha_salida)}) ha sido eliminado del sistema`
     );
 
     // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
