@@ -10,7 +10,6 @@ interface LoginScreenProps {
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('administrador');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -106,23 +105,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </div>
             </div>
 
-            {/* Role Selection */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Tipo de Usuario
-              </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full px-4 py-3 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-              >
-                <option value="administrador">Administrador</option>
-                <option value="operador">Operador Fluvial</option>
-                <option value="cliente">Cliente</option>
-                <option value="autoridad">Autoridad</option>
-              </select>
-            </div>
-
+            {/* Error */}
             {error ? (
               <p className="text-sm text-red-600 text-center">{error}</p>
             ) : null}
