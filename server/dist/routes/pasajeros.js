@@ -11,7 +11,7 @@ const notificaciones_1 = require("../utils/notificaciones");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    const rows = await (0, safeQuery_1.safeQuery)(`SELECT DISTINCT ON (p.id) p.*,
+    const rows = await (0, safeQuery_1.safeQuery)(`SELECT DISTINCT ON (p.id, vp.viaje_id) p.*,
       vp.viaje_id,
       vp.asiento,
       vp.precio_pagado,
@@ -20,12 +20,13 @@ router.get('/', async (_req, res) => {
       v.destino,
       v.estado AS viaje_estado,
       v.fecha_salida AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota' AS fecha_salida,
+      v.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'America/Bogota' AS fecha_compra,
       e.nombre AS embarcacion_nombre
      FROM pasajeros p
      LEFT JOIN viaje_pasajeros vp ON vp.pasajero_id = p.id
-     LEFT JOIN viajes v ON v.id = vp.viaje_id AND v.estado IN ('programado', 'en_curso')
+     LEFT JOIN viajes v ON v.id = vp.viaje_id
      LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
-     ORDER BY p.id DESC, v.fecha_salida DESC NULLS LAST`);
+     ORDER BY p.id DESC, vp.viaje_id DESC, v.fecha_salida DESC NULLS LAST`);
     return res.json(rows);
 });
 router.get('/:id', async (req, res) => {
@@ -40,13 +41,41 @@ router.get('/:id', async (req, res) => {
     }
 });
 router.post('/', async (req, res) => {
-    const { nombre, documento, telefono, email } = req.body;
+    const { nombre, documento, telefono, email, viaje_id, asiento, precio, metodo_pago } = req.body;
     try {
-        const result = await pool_1.default.query(`INSERT INTO pasajeros (nombre, documento, telefono, email)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`, [nombre, documento, telefono, email]);
-        await (0, notificaciones_1.auditoria)('[PASAJERO] Nuevo pasajero registrado', `Se registró al pasajero "${nombre}" con documento ${documento}.`);
-        return res.status(201).json(result.rows[0]);
+        // Si viene viaje_id, crear pasajero y asignarlo al viaje en una transacción
+        if (viaje_id) {
+            const client = await pool_1.default.connect();
+            try {
+                await client.query('BEGIN');
+                // Crear pasajero
+                const pasajeroResult = await client.query(`INSERT INTO pasajeros (nombre, documento, telefono, email)
+           VALUES ($1, $2, $3, $4)
+           RETURNING *`, [nombre, documento, telefono, email]);
+                const pasajero = pasajeroResult.rows[0];
+                // Asignar al viaje
+                await client.query(`INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, asiento, precio_pagado, metodo_pago)
+           VALUES ($1, $2, $3, $4, $5)`, [viaje_id, pasajero.id, asiento, precio, metodo_pago || 'efectivo']);
+                await client.query('COMMIT');
+                await (0, notificaciones_1.auditoria)('[COMPRA] Nueva compra de pasaje', `Pasajero "${nombre}" compró pasaje para viaje #${viaje_id}. Método: ${metodo_pago}. Precio: $${precio}.`);
+                return res.status(201).json(pasajero);
+            }
+            catch (err) {
+                await client.query('ROLLBACK');
+                throw err;
+            }
+            finally {
+                client.release();
+            }
+        }
+        else {
+            // Solo crear pasajero sin asignar a viaje
+            const result = await pool_1.default.query(`INSERT INTO pasajeros (nombre, documento, telefono, email)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`, [nombre, documento, telefono, email]);
+            await (0, notificaciones_1.auditoria)('[PASAJERO] Nuevo pasajero registrado', `Se registró al pasajero "${nombre}" con documento ${documento}.`);
+            return res.status(201).json(result.rows[0]);
+        }
     }
     catch (err) {
         console.error('POST pasajero:', err.message);

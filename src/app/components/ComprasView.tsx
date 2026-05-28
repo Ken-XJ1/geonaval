@@ -393,6 +393,7 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
   const [telefono, setTelefono] = useState('');
   const [viajeId, setViajeId] = useState('');
   const [asiento, setAsiento] = useState('');
+  const [asientosOcupados, setAsientosOcupados] = useState<string[]>([]);
   const [filtroRuta, setFiltroRuta] = useState('');
   const [filtroFecha, setFiltroFecha] = useState('');
   const [showPago, setShowPago] = useState(false);
@@ -400,10 +401,41 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
 
   const viajeSeleccionado = viajesDisponibles.find(v => v.id === viajeId);
 
+  // Cargar asientos ocupados cuando se selecciona un viaje
+  useEffect(() => {
+    if (viajeId) {
+      api.getViajePasajeros(parseInt(viajeId))
+        .then((pasajeros: any[]) => {
+          const ocupados = pasajeros
+            .map((p: any) => p.asiento)
+            .filter((a: string) => a && a.trim());
+          setAsientosOcupados(ocupados);
+        })
+        .catch(err => console.error('Error cargando asientos:', err));
+    } else {
+      setAsientosOcupados([]);
+    }
+  }, [viajeId]);
+
   const viajesFiltrados = viajesDisponibles.filter(v => {
     const q = filtroRuta.toLowerCase();
     const pasaRuta = !q || v.origen.toLowerCase().includes(q) || v.destino.toLowerCase().includes(q) || v.label.toLowerCase().includes(q);
-    const pasaFecha = !filtroFecha || v.fecha.includes(filtroFecha);
+    
+    // Convertir la fecha del viaje a formato YYYY-MM-DD para comparar
+    let pasaFecha = true;
+    if (filtroFecha) {
+      try {
+        // v.fecha está en formato "DD/MM/YYYY, HH:mm"
+        const partes = v.fecha.split(',')[0].split('/'); // Obtener solo la parte de fecha
+        if (partes.length === 3) {
+          const fechaViaje = `${partes[2]}-${partes[1]}-${partes[0]}`; // Convertir a YYYY-MM-DD
+          pasaFecha = fechaViaje === filtroFecha;
+        }
+      } catch (e) {
+        console.error('Error comparando fechas:', e);
+      }
+    }
+    
     return pasaRuta && pasaFecha;
   });
 
@@ -576,13 +608,64 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
 
             {errores.viaje && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errores.viaje}</p>}
 
-            {/* Asiento opcional */}
+            {/* Selector de asientos */}
             {viajeId && (
               <div>
-                <label className="block text-sm font-medium mb-1.5">Asiento preferido <span className="text-muted-foreground font-normal">(opcional)</span></label>
-                <input type="text" value={asiento} onChange={e=>setAsiento(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                  placeholder="Ej: A-05 (se asigna automáticamente si lo dejas vacío)"/>
+                <label className="block text-sm font-medium mb-2">Selecciona tu asiento</label>
+                <div className="bg-muted rounded-xl p-4">
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {['A', 'B', 'C', 'D'].map(fila => (
+                      <div key={fila} className="space-y-2">
+                        {[1, 2, 3, 4, 5].map(num => {
+                          const asientoId = `${fila}-${String(num).padStart(2, '0')}`;
+                          const ocupado = asientosOcupados.includes(asientoId);
+                          const seleccionado = asiento === asientoId;
+                          return (
+                            <button
+                              key={asientoId}
+                              type="button"
+                              disabled={ocupado}
+                              onClick={() => setAsiento(seleccionado ? '' : asientoId)}
+                              className={`w-full py-2 px-1 rounded-lg text-xs font-medium transition-all ${
+                                ocupado
+                                  ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                                  : seleccionado
+                                  ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
+                                  : 'bg-white border border-border hover:border-primary hover:bg-primary/5'
+                              }`}
+                            >
+                              {asientoId}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-center gap-4 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded bg-white border border-border"/>
+                      <span className="text-muted-foreground">Disponible</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded bg-primary"/>
+                      <span className="text-muted-foreground">Seleccionado</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-4 h-4 rounded bg-red-100"/>
+                      <span className="text-muted-foreground">Ocupado</span>
+                    </div>
+                  </div>
+                  {asiento && (
+                    <p className="text-center mt-3 text-sm font-medium text-primary">
+                      Asiento seleccionado: <span className="font-bold">{asiento}</span>
+                    </p>
+                  )}
+                  {!asiento && (
+                    <p className="text-center mt-3 text-xs text-muted-foreground">
+                      Selecciona un asiento o deja vacío para asignación automática
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -668,36 +751,41 @@ export function ComprasView() {
       
       console.log('🔍 DEBUG - Viajes recibidos del backend:', viajesRes);
       console.log('🔍 DEBUG - Total de viajes:', viajesRes?.length || 0);
+      console.log('🔍 DEBUG - Pasajeros recibidos:', pasajerosRes);
       
       // Mapear pasajeros a compras
       const pasajeros = pasajerosRes || [];
       const viajes = viajesRes || [];
       
-      const comprasData: CompraRow[] = pasajeros.map((p: any) => {
-        const viaje = viajes.find((v: any) => v.id === p.viaje_id);
-        const fecha = p.fecha_compra ? new Date(p.fecha_compra) : new Date();
-        return {
-          dbId: p.id,
-          id: `T-${String(p.id).padStart(5, '0')}`,
-          ticket: `TICKET-${String(p.id).padStart(6, '0')}`,
-          fecha: fecha.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-          fechaISO: fecha.toISOString(),
-          pasajero: p.nombre || '—',
-          documento: p.documento || '—',
-          viaje: viaje ? `V-${viaje.id}` : '—',
-          ruta: viaje ? `${viaje.origen} → ${viaje.destino}` : '—',
-          asiento: p.asiento || 'Auto',
-          precio: formatCOP(p.precio || 0),
-          metodoPago: formatMetodoPago(p.metodo_pago),
-          estado: p.estado === 'confirmado' ? 'confirmado' : 'pendiente',
-          vendedor: 'Admin',
-        };
-      });
+      const comprasData: CompraRow[] = pasajeros
+        .filter((p: any) => p.viaje_id) // Solo pasajeros con viaje asignado
+        .map((p: any) => {
+          const fecha = p.fecha_compra ? new Date(p.fecha_compra) : (p.created_at ? new Date(p.created_at) : new Date());
+          return {
+            dbId: p.id,
+            id: `T-${String(p.id).padStart(5, '0')}`,
+            ticket: `TICKET-${String(p.id).padStart(6, '0')}`,
+            fecha: fecha.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            fechaISO: fecha.toISOString(),
+            pasajero: p.nombre || '—',
+            documento: p.documento || '—',
+            viaje: p.viaje_id ? `V-${p.viaje_id}` : '—',
+            ruta: (p.origen && p.destino) ? `${p.origen} → ${p.destino}` : '—',
+            asiento: p.asiento || 'Auto',
+            precio: formatCOP(p.precio_pagado || 0),
+            metodoPago: formatMetodoPago(p.metodo_pago),
+            estado: 'confirmado',
+            vendedor: 'Admin',
+          };
+        });
 
       // Calcular stats
       const hoy = new Date().toDateString();
       const ventasHoy = comprasData.filter(c => new Date(c.fechaISO).toDateString() === hoy).length;
-      const totalRecaudado = pasajeros.reduce((sum: number, p: any) => sum + (p.precio || 0), 0);
+      const totalRecaudado = comprasData.reduce((sum, c) => {
+        const precio = parseFloat(c.precio.replace(/[^0-9,-]/g, '').replace(',', '.'));
+        return sum + (isNaN(precio) ? 0 : precio);
+      }, 0);
       const ticketsConfirmados = comprasData.filter(c => c.estado === 'confirmado').length;
       const ticketsPendientes = comprasData.filter(c => c.estado === 'pendiente').length;
 
@@ -796,12 +884,11 @@ export function ComprasView() {
         nombre: datos.nombre,
         documento: datos.documento,
         telefono: datos.telefono || null,
+        email: null,
         viaje_id: parseInt(datos.viajeId),
         asiento: datos.asiento || null,
         precio: datos.precio,
         metodo_pago: datos.metodo,
-        estado: 'confirmado',
-        fecha_compra: new Date().toISOString(),
       });
       setShowWizard(false);
       await cargarDatos();
@@ -815,37 +902,68 @@ export function ComprasView() {
 
   const descargarTicket = (compra: CompraRow) => {
     const contenido = `
-═══════════════════════════════════════
-         GEONAVAL - TICKET DE PASAJE
-═══════════════════════════════════════
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║              GEONAVAL - TICKET DE PASAJE                  ║
+║          Sistema de Control Fluvial - Quibdó             ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
 
-Ticket: ${compra.ticket}
-Fecha: ${compra.fecha}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INFORMACIÓN DEL TICKET
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PASAJERO
-Nombre: ${compra.pasajero}
-Documento: ${compra.documento}
+  Ticket:           ${compra.ticket}
+  Fecha de compra:  ${compra.fecha}
+  Estado:           ${compra.estado.toUpperCase()}
 
-VIAJE
-Código: ${compra.viaje}
-Ruta: ${compra.ruta}
-Asiento: ${compra.asiento}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  DATOS DEL PASAJERO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-PAGO
-Precio: ${compra.precio}
-Método: ${compra.metodoPago}
-Estado: ${compra.estado.toUpperCase()}
+  Nombre:           ${compra.pasajero}
+  Documento:        ${compra.documento}
 
-═══════════════════════════════════════
-    Gracias por viajar con GeoNaval
-═══════════════════════════════════════
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INFORMACIÓN DEL VIAJE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Código viaje:     ${compra.viaje}
+  Ruta:             ${compra.ruta}
+  Asiento:          ${compra.asiento}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INFORMACIÓN DE PAGO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Precio:           ${compra.precio}
+  Método de pago:   ${compra.metodoPago}
+  Vendedor:         ${compra.vendedor}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  INSTRUCCIONES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  • Presente este ticket al abordar la embarcación
+  • Llegue 15 minutos antes de la hora de salida
+  • Traiga un documento de identidad válido
+  • No se permiten cambios ni devoluciones
+
+╔═══════════════════════════════════════════════════════════╗
+║                                                           ║
+║         Gracias por viajar con GeoNaval                   ║
+║         Calle Principal #10-20, Quibdó, Chocó            ║
+║         Tel: +57 (4) 123-4567                            ║
+║         info@geonaval.com                                ║
+║                                                           ║
+╚═══════════════════════════════════════════════════════════╝
     `.trim();
 
-    const blob = new Blob([contenido], { type: 'text/plain' });
+    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${compra.ticket}.txt`;
+    a.download = `${compra.ticket}_${compra.pasajero.replace(/\s+/g, '_')}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
