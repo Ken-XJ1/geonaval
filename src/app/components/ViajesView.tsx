@@ -1189,7 +1189,7 @@ export function ViajesView() {
                       onClick={() => handleVerResumen(row)}
                       className="flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-medium transition-colors"
                     >
-                      📋 Ver Resumen
+                      Ver Resumen
                     </button>
                   )}
                 </div>
