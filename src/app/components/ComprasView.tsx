@@ -896,7 +896,10 @@ export function ComprasView() {
   };
 
   const descargarTicket = (compra: CompraRow) => {
-    const contenido = `
+    console.log('🎫 Descargando ticket:', compra);
+    
+    try {
+      const contenido = `
 ╔═══════════════════════════════════════════════════════════╗
 ║                                                           ║
 ║              GEONAVAL - TICKET DE PASAJE                  ║
@@ -953,13 +956,21 @@ export function ComprasView() {
 ╚═══════════════════════════════════════════════════════════╝
     `.trim();
 
-    const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${compra.ticket}_${compra.pasajero.replace(/\s+/g, '_')}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+      const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${compra.ticket}_${compra.pasajero.replace(/\s+/g, '_')}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      console.log('✅ Ticket descargado exitosamente');
+    } catch (error) {
+      console.error('❌ Error al descargar ticket:', error);
+      alert('Error al descargar el ticket. Por favor intenta de nuevo.');
+    }
   };
 
   const columns = [
@@ -977,11 +988,16 @@ export function ComprasView() {
       label: 'ACCIONES',
       render: (row: CompraRow) => (
         <button
-          onClick={() => descargarTicket(row)}
-          className="p-2 hover:bg-muted rounded-lg transition-colors"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            descargarTicket(row);
+          }}
+          className="flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
           title="Descargar ticket"
         >
-          <Download className="w-4 h-4 text-primary" />
+          <Download className="w-4 h-4" />
+          Descargar
         </button>
       ),
     },
