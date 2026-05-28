@@ -3,19 +3,16 @@ import { Plus, Ticket, Calendar, Search, Download, CreditCard, Banknote,
   ArrowLeftRight, CheckCircle, X, AlertCircle, Loader2, HelpCircle,
   Shield, Smartphone, User, Navigation, ChevronRight, Filter } from 'lucide-react';
 import { DataTable } from './DataTable';
-import { StatusBadge } from './StatusBadge';
 import { ViewFeedback } from './ViewFeedback';
 import { api } from '../../services/api';
 
 type CompraRow = {
   dbId: number; id: string; ticket: string; fecha: string; fechaISO: string;
   pasajero: string; documento: string; viaje: string; ruta: string;
-  asiento: string; precio: string; metodoPago: string;
-  estado: 'confirmado' | 'pendiente'; vendedor: string;
+  asiento: string; precio: string; metodoPago: string; vendedor: string;
 };
 type ComprasStats = {
-  ventasHoy: number; totalRecaudado: number;
-  ticketsConfirmados: number; ticketsPendientes: number;
+  ventasHoy: number; totalRecaudado: number; totalTickets: number;
 };
 type PasoPago = 'seleccion' | 'tarjeta' | 'transferencia' | 'efectivo' | 'procesando' | 'aprobado' | 'rechazado';
 type PasoWizard = 1 | 2 | 3;
@@ -734,7 +731,7 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
 // ─── Componente Principal ────────────────────────────────────────────────────
 export function ComprasView() {
   const [compras, setCompras] = useState<CompraRow[]>([]);
-  const [stats, setStats] = useState<ComprasStats>({ ventasHoy: 0, totalRecaudado: 0, ticketsConfirmados: 0, ticketsPendientes: 0 });
+  const [stats, setStats] = useState<ComprasStats>({ ventasHoy: 0, totalRecaudado: 0, totalTickets: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
@@ -774,7 +771,6 @@ export function ComprasView() {
             asiento: p.asiento || 'Auto',
             precio: formatCOP(p.precio_pagado || 0),
             metodoPago: formatMetodoPago(p.metodo_pago),
-            estado: 'confirmado',
             vendedor: 'Admin',
           };
         });
@@ -786,11 +782,10 @@ export function ComprasView() {
         const precio = parseFloat(c.precio.replace(/[^0-9,-]/g, '').replace(',', '.'));
         return sum + (isNaN(precio) ? 0 : precio);
       }, 0);
-      const ticketsConfirmados = comprasData.filter(c => c.estado === 'confirmado').length;
-      const ticketsPendientes = comprasData.filter(c => c.estado === 'pendiente').length;
+      const totalTickets = comprasData.length;
 
       setCompras(comprasData);
-      setStats({ ventasHoy, totalRecaudado, ticketsConfirmados, ticketsPendientes });
+      setStats({ ventasHoy, totalRecaudado, totalTickets });
 
       // Preparar viajes disponibles (TODOS los viajes)
       console.log('🔍 DEBUG - Procesando viajes para wizard...');
@@ -915,7 +910,6 @@ export function ComprasView() {
 
   Ticket:           ${compra.ticket}
   Fecha de compra:  ${compra.fecha}
-  Estado:           ${compra.estado.toUpperCase()}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   DATOS DEL PASAJERO
@@ -977,13 +971,7 @@ export function ComprasView() {
     { key: 'ruta', label: 'RUTA', sortable: true },
     { key: 'asiento', label: 'ASIENTO', sortable: true },
     { key: 'precio', label: 'PRECIO', sortable: true },
-    { key: 'metodoPago', label: 'MÉTODO', sortable: true },
-    { 
-      key: 'estado', 
-      label: 'ESTADO', 
-      sortable: true,
-      render: (row: CompraRow) => <StatusBadge status={row.estado} />
-    },
+    { key: 'metodoPago', label: 'MÉTODO PAGO', sortable: true },
     {
       key: 'acciones',
       label: 'ACCIONES',
@@ -1028,12 +1016,11 @@ export function ComprasView() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
           { label: 'Ventas Hoy', value: stats.ventasHoy, icon: <Calendar className="w-5 h-5" />, color: 'blue' },
           { label: 'Total Recaudado', value: formatCOP(stats.totalRecaudado), icon: <Banknote className="w-5 h-5" />, color: 'green' },
-          { label: 'Confirmados', value: stats.ticketsConfirmados, icon: <CheckCircle className="w-5 h-5" />, color: 'green' },
-          { label: 'Pendientes', value: stats.ticketsPendientes, icon: <AlertCircle className="w-5 h-5" />, color: 'amber' },
+          { label: 'Total Tickets', value: stats.totalTickets, icon: <Ticket className="w-5 h-5" />, color: 'purple' },
         ].map((stat) => (
           <div key={stat.label} className="bg-white rounded-xl border border-border p-4">
             <div className="flex items-center justify-between">
