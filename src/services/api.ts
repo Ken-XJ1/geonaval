@@ -306,4 +306,20 @@ export const api = {
     fetch(`${BASE}/cuenta/sesiones`, { headers: headers() }).then((r) =>
       parseJson(r)
     ),
+
+  // GPS
+  getGpsEnCurso: () =>
+    fetch(`${BASE}/gps/en-curso`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  getGpsViaje: (viajeId: number) =>
+    fetch(`${BASE}/gps/viaje/${viajeId}`, { headers: headers() }).then((r) =>
+      parseJson(r)
+    ),
+  postGpsUbicacion: (viaje_id: number, latitud: number, longitud: number) =>
+    fetch(`${BASE}/gps`, {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({ viaje_id, latitud, longitud }),
+    }).then((r) => parseJson(r)),
 };
