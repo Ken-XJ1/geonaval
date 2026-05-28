@@ -393,9 +393,9 @@ export function ConfiguracionView({ onUserUpdate, user }: ConfiguracionViewProps
                     No hay sesiones registradas aún. Inicia sesión de nuevo para ver tu historial.
                   </p>
                 ) : (
-                  <div className="overflow-x-auto rounded-lg border border-border">
+                  <div className="overflow-auto max-h-64 rounded-lg border border-border">
                     <table className="w-full text-sm">
-                      <thead className="bg-muted">
+                      <thead className="bg-muted sticky top-0 z-10">
                         <tr>
                           <th className="px-4 py-2 text-left">Fecha</th>
                           <th className="px-4 py-2 text-left">Dispositivo</th>

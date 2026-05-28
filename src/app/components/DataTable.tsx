@@ -17,9 +17,9 @@ interface DataTableProps {
 export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTableProps) {
   return (
     <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[480px]">
         <table className="w-full">
-          <thead className="bg-muted">
+          <thead className="bg-muted sticky top-0 z-10">
             <tr>
               {columns.map((column) => (
                 <th
@@ -59,11 +59,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
                       <div className="flex items-center justify-end gap-2">
                         {onView && (
                           <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              onView(row);
-                            }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onView(row); }}
                             className="p-2 text-primary hover:bg-blue-50 rounded-lg transition-colors"
                             title="Ver detalles"
                             type="button"
@@ -73,12 +69,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
                         )}
                         {onEdit && (
                           <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Botón editar clickeado, row:', row);
-                              onEdit(row);
-                            }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onEdit(row); }}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Editar"
                             type="button"
@@ -88,12 +79,7 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
                         )}
                         {onDelete && (
                           <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              console.log('Botón eliminar clickeado, row:', row);
-                              onDelete(row);
-                            }}
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(row); }}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Eliminar"
                             type="button"

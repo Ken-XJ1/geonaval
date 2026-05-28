@@ -381,9 +381,9 @@ export function EmbarcacionesView() {
 
       {/* Enhanced Table with Expandable Rows */}
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[480px]">
           <table className="w-full">
-            <thead className="bg-muted">
+            <thead className="bg-muted sticky top-0 z-10">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Embarcación

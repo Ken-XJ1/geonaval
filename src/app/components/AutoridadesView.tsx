@@ -217,9 +217,9 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
         ) : viajesEnCurso.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground text-sm">No hay viajes en curso en este momento</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-72">
             <table className="w-full">
-              <thead className="bg-muted">
+              <thead className="bg-muted sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Embarcación</th>
@@ -400,9 +400,9 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
               Registro de auditoría de todas las consultas realizadas por autoridades. Información protegida y confidencial.
             </p>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-64">
             <table className="w-full">
-              <thead className="bg-muted">
+              <thead className="bg-muted sticky top-0 z-10">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha/Hora</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Usuario</th>

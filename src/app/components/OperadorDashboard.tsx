@@ -94,9 +94,9 @@ export function OperadorDashboard({
           </p>
         </div>
         <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-          <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[480px]">
             <table className="w-full">
-              <thead className="bg-muted">
+              <thead className="bg-muted sticky top-0 z-10">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                     Nombre
@@ -236,24 +236,9 @@ export function OperadorDashboard({
         <h3 className="font-semibold mb-4">
           Pasajeros {viajeEnCurso ? 'del viaje en curso' : 'registrados'} ({pasajeros.length})
         </h3>
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[480px]">
           <table className="w-full">
-            <thead className="bg-muted">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Nombre
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Documento
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Destino
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Estado
-                </th>
-              </tr>
-            </thead>
+            <thead className="bg-muted sticky top-0 z-10">
             <tbody className="divide-y divide-border">
               {pasajeros.slice(0, 10).map((pasajero, idx) => (
                 <tr key={idx} className="hover:bg-muted/50">
