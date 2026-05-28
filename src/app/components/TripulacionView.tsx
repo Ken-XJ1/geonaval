@@ -227,16 +227,16 @@ export function TripulacionView() {
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-auto max-h-[480px]">
           <table className="w-full">
-            <thead className="bg-muted sticky top-0 z-10">
+            <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Documento</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Rol</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Embarcación</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Viajes</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Horario</th>
-                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">Acciones</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Documento</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Rol</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Embarcación</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Viajes</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Horario</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Estado</th>
+                <th className="px-4 py-3 text-right text-xs font-black text-black uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

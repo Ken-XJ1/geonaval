@@ -19,18 +19,18 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
     <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
       <div className="overflow-auto max-h-[480px]">
         <table className="w-full">
-          <thead className="bg-muted sticky top-0 z-10">
+          <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider"
                 >
                   {column.label}
                 </th>
               ))}
               {(onEdit || onDelete || onView) && (
-                <th className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-black text-black uppercase tracking-wider">
                   Acciones
                 </th>
               )}

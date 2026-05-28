@@ -395,12 +395,12 @@ export function ConfiguracionView({ onUserUpdate, user }: ConfiguracionViewProps
                 ) : (
                   <div className="overflow-auto max-h-64 rounded-lg border border-border">
                     <table className="w-full text-sm">
-                      <thead className="bg-muted sticky top-0 z-10">
+                      <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
                         <tr>
-                          <th className="px-4 py-2 text-left font-bold text-foreground uppercase text-xs tracking-wider">Fecha</th>
-                          <th className="px-4 py-2 text-left font-bold text-foreground uppercase text-xs tracking-wider">Dispositivo</th>
-                          <th className="px-4 py-2 text-left font-bold text-foreground uppercase text-xs tracking-wider">IP</th>
-                          <th className="px-4 py-2 text-left font-bold text-foreground uppercase text-xs tracking-wider">Estado</th>
+                          <th className="px-4 py-2 text-left font-black text-black uppercase text-xs tracking-wider">Fecha</th>
+                          <th className="px-4 py-2 text-left font-black text-black uppercase text-xs tracking-wider">Dispositivo</th>
+                          <th className="px-4 py-2 text-left font-black text-black uppercase text-xs tracking-wider">IP</th>
+                          <th className="px-4 py-2 text-left font-black text-black uppercase text-xs tracking-wider">Estado</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">

@@ -382,24 +382,24 @@ export function EmbarcacionesView() {
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="overflow-auto max-h-[480px]">
           <table className="w-full">
-            <thead className="bg-muted sticky top-0 z-10">
+            <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Embarcación
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Tipo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Propietario
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Viajes Asignados
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-black text-black uppercase tracking-wider">
                   Detalles
                 </th>
               </tr>
