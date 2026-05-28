@@ -44,7 +44,6 @@ export async function enviarNotificacionPorRol(
       'SELECT id FROM usuarios WHERE rol = $1 AND activo = true',
       [rol]
     );
-    
     for (const usuario of usuarios.rows) {
       await enviarNotificacion(usuario.id, titulo, mensaje);
     }
@@ -89,11 +88,22 @@ export async function notificarPasajerosViaje(
        WHERE vp.viaje_id = $1 AND u.activo = true AND vp.usuario_id IS NOT NULL`,
       [viajeId]
     );
-    
     for (const pasajero of pasajeros.rows) {
       await enviarNotificacion(pasajero.usuario_id, titulo, mensaje);
     }
   } catch (err) {
     console.error('Error notificando pasajeros del viaje:', err);
   }
+}
+
+/**
+ * Registra un evento de auditoría enviándolo a todos los administradores.
+ * Prefijos de categoría en el título:
+ *   [USUARIO] [TRIPULACIÓN] [PROPIETARIO] [EMBARCACIÓN] [VIAJE] [PASAJERO] [INCIDENTE]
+ */
+export async function auditoria(
+  titulo: string,
+  mensaje: string
+): Promise<void> {
+  await notificarAdministradores(titulo, mensaje);
 }

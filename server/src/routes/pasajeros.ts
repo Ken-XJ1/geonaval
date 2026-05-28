@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
+import { auditoria } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -50,8 +51,13 @@ router.post('/', async (req: Request, res: Response) => {
        RETURNING *`,
       [nombre, documento, telefono, email]
     );
+    await auditoria(
+      '[PASAJERO] Nuevo pasajero registrado',
+      `Se registró al pasajero "${nombre}" con documento ${documento}.`
+    );
     return res.status(201).json(result.rows[0]);
-  } catch {
+  } catch (err) {
+    console.error('POST pasajero:', (err as Error).message);
     return res.status(500).json({ error: 'Error del servidor' });
   }
 });
@@ -68,22 +74,38 @@ router.put('/:id', async (req: Request, res: Response) => {
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
+    await auditoria(
+      '[PASAJERO] Pasajero modificado',
+      `Se actualizaron los datos del pasajero "${nombre}" (doc: ${documento}).`
+    );
     return res.json(result.rows[0]);
-  } catch {
+  } catch (err) {
+    console.error('PUT pasajero:', (err as Error).message);
     return res.status(500).json({ error: 'Error del servidor' });
   }
 });
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
+    const info = await pool.query(
+      'SELECT nombre, documento FROM pasajeros WHERE id = $1',
+      [req.params.id]
+    );
     const result = await pool.query(
       'DELETE FROM pasajeros WHERE id = $1 RETURNING id',
       [req.params.id]
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
+    if (info.rows[0]) {
+      await auditoria(
+        '[PASAJERO] Pasajero eliminado',
+        `Se eliminó al pasajero "${info.rows[0].nombre}" (doc: ${info.rows[0].documento}).`
+      );
+    }
     return res.json({ message: 'Eliminado' });
-  } catch {
+  } catch (err) {
+    console.error('DELETE pasajero:', (err as Error).message);
     return res.status(500).json({ error: 'Error del servidor' });
   }
 });

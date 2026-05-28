@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
+import { auditoria } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -57,11 +58,7 @@ router.get('/:id/detalles', async (req: Request, res: Response) => {
       [id]
     );
 
-    return res.json({
-      embarcacion: emb.rows[0],
-      viajes,
-      tripulacion,
-    });
+    return res.json({ embarcacion: emb.rows[0], viajes, tripulacion });
   } catch (err) {
     console.error('Detalles embarcación:', (err as Error).message);
     return res.status(500).json({ error: 'Error al cargar detalles' });
@@ -83,43 +80,28 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 router.post('/', async (req: Request, res: Response) => {
-  const {
-    nombre,
-    tipo,
-    capacidad_pasajeros,
-    motor,
-    potencia,
-    dimensiones,
-    estado,
-    propietario_id,
-  } = req.body;
+  const { nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id } = req.body;
 
   if (!nombre || !capacidad_pasajeros) {
     return res.status(400).json({ error: 'Nombre y capacidad son requeridos' });
   }
 
   try {
-    // Generar NIC único automáticamente para evitar conflictos
-    const nicBase = `EMB-${Date.now()}`;
-    const nicFinal = `${nicBase}-${Math.floor(Math.random() * 1000)}`;
+    const nicFinal = `EMB-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const result = await pool.query(
       `INSERT INTO embarcaciones
         (nic, nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [
-        nicFinal,
-        nombre,
-        tipo ?? 'lancha',
-        capacidad_pasajeros,
-        motor ?? null,
-        potencia ?? null,
-        dimensiones ?? null,
-        estado ?? 'operativa',
-        propietario_id ?? null,
-      ]
+      [nicFinal, nombre, tipo ?? 'lancha', capacidad_pasajeros, motor ?? null, potencia ?? null, dimensiones ?? null, estado ?? 'operativa', propietario_id ?? null]
     );
+
+    await auditoria(
+      '[EMBARCACIÓN] Nueva embarcación registrada',
+      `Se registró la embarcación "${nombre}" (tipo: ${tipo ?? 'lancha'}, capacidad: ${capacidad_pasajeros} pasajeros, estado: ${estado ?? 'operativa'}).`
+    );
+
     return res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('POST embarcacion:', (err as Error).message);
@@ -135,18 +117,14 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 router.put('/:id', async (req: Request, res: Response) => {
-  const {
-    nic,
-    nombre,
-    tipo,
-    capacidad_pasajeros,
-    motor,
-    potencia,
-    dimensiones,
-    estado,
-    propietario_id,
-  } = req.body;
+  const { nic, nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id } = req.body;
   try {
+    // Obtener estado anterior para detectar cambios relevantes
+    const anterior = await pool.query(
+      'SELECT nombre, estado FROM embarcaciones WHERE id = $1',
+      [req.params.id]
+    );
+
     const result = await pool.query(
       `UPDATE embarcaciones SET
         nic = COALESCE($1, nic),
@@ -160,21 +138,22 @@ router.put('/:id', async (req: Request, res: Response) => {
         propietario_id = $9
        WHERE id = $10
        RETURNING *`,
-      [
-        nic ?? null,
-        nombre ?? null,
-        tipo ?? null,
-        capacidad_pasajeros ?? null,
-        motor ?? null,
-        potencia ?? null,
-        dimensiones ?? null,
-        estado ?? null,
-        propietario_id ?? null,
-        req.params.id,
-      ]
+      [nic ?? null, nombre ?? null, tipo ?? null, capacidad_pasajeros ?? null, motor ?? null, potencia ?? null, dimensiones ?? null, estado ?? null, propietario_id ?? null, req.params.id]
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
+
+    const nombreFinal = nombre || anterior.rows[0]?.nombre || `ID ${req.params.id}`;
+    const estadoAnterior = anterior.rows[0]?.estado;
+    const estadoNuevo = estado || estadoAnterior;
+
+    let detalle = `Se actualizó la embarcación "${nombreFinal}".`;
+    if (estadoAnterior && estado && estadoAnterior !== estado) {
+      detalle = `La embarcación "${nombreFinal}" cambió de estado: ${estadoAnterior} → ${estado}.`;
+    }
+
+    await auditoria('[EMBARCACIÓN] Embarcación modificada', detalle);
+
     return res.json(result.rows[0]);
   } catch (err) {
     console.error('PUT embarcacion:', (err as Error).message);
@@ -184,14 +163,25 @@ router.put('/:id', async (req: Request, res: Response) => {
 
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
+    const info = await pool.query(
+      'SELECT nombre, tipo, estado FROM embarcaciones WHERE id = $1',
+      [req.params.id]
+    );
     const result = await pool.query(
       'DELETE FROM embarcaciones WHERE id = $1 RETURNING id',
       [req.params.id]
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
+    if (info.rows[0]) {
+      await auditoria(
+        '[EMBARCACIÓN] Embarcación eliminada',
+        `Se eliminó la embarcación "${info.rows[0].nombre}" (tipo: ${info.rows[0].tipo}, estado: ${info.rows[0].estado}).`
+      );
+    }
     return res.json({ message: 'Eliminado' });
-  } catch {
+  } catch (err) {
+    console.error('DELETE embarcacion:', (err as Error).message);
     return res.status(500).json({ error: 'Error del servidor' });
   }
 });

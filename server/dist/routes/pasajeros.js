@@ -7,6 +7,7 @@ const express_1 = require("express");
 const pool_1 = __importDefault(require("../db/pool"));
 const safeQuery_1 = require("../db/safeQuery");
 const auth_1 = require("../middleware/auth");
+const notificaciones_1 = require("../utils/notificaciones");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
@@ -44,9 +45,11 @@ router.post('/', async (req, res) => {
         const result = await pool_1.default.query(`INSERT INTO pasajeros (nombre, documento, telefono, email)
        VALUES ($1, $2, $3, $4)
        RETURNING *`, [nombre, documento, telefono, email]);
+        await (0, notificaciones_1.auditoria)('[PASAJERO] Nuevo pasajero registrado', `Se registró al pasajero "${nombre}" con documento ${documento}.`);
         return res.status(201).json(result.rows[0]);
     }
-    catch {
+    catch (err) {
+        console.error('POST pasajero:', err.message);
         return res.status(500).json({ error: 'Error del servidor' });
     }
 });
@@ -59,20 +62,27 @@ router.put('/:id', async (req, res) => {
        RETURNING *`, [nombre, documento, telefono, email, req.params.id]);
         if (!result.rows[0])
             return res.status(404).json({ error: 'No encontrado' });
+        await (0, notificaciones_1.auditoria)('[PASAJERO] Pasajero modificado', `Se actualizaron los datos del pasajero "${nombre}" (doc: ${documento}).`);
         return res.json(result.rows[0]);
     }
-    catch {
+    catch (err) {
+        console.error('PUT pasajero:', err.message);
         return res.status(500).json({ error: 'Error del servidor' });
     }
 });
 router.delete('/:id', async (req, res) => {
     try {
+        const info = await pool_1.default.query('SELECT nombre, documento FROM pasajeros WHERE id = $1', [req.params.id]);
         const result = await pool_1.default.query('DELETE FROM pasajeros WHERE id = $1 RETURNING id', [req.params.id]);
         if (!result.rows[0])
             return res.status(404).json({ error: 'No encontrado' });
+        if (info.rows[0]) {
+            await (0, notificaciones_1.auditoria)('[PASAJERO] Pasajero eliminado', `Se eliminó al pasajero "${info.rows[0].nombre}" (doc: ${info.rows[0].documento}).`);
+        }
         return res.json({ message: 'Eliminado' });
     }
-    catch {
+    catch (err) {
+        console.error('DELETE pasajero:', err.message);
         return res.status(500).json({ error: 'Error del servidor' });
     }
 });

@@ -9,6 +9,7 @@ exports.enviarNotificacionPorRol = enviarNotificacionPorRol;
 exports.notificarAdministradores = notificarAdministradores;
 exports.notificarClientes = notificarClientes;
 exports.notificarPasajerosViaje = notificarPasajerosViaje;
+exports.auditoria = auditoria;
 const pool_1 = __importDefault(require("../db/pool"));
 /**
  * Formatea una fecha para mostrar en notificaciones
@@ -77,4 +78,12 @@ async function notificarPasajerosViaje(viajeId, titulo, mensaje) {
     catch (err) {
         console.error('Error notificando pasajeros del viaje:', err);
     }
+}
+/**
+ * Registra un evento de auditoría enviándolo a todos los administradores.
+ * Prefijos de categoría en el título:
+ *   [USUARIO] [TRIPULACIÓN] [PROPIETARIO] [EMBARCACIÓN] [VIAJE] [PASAJERO] [INCIDENTE]
+ */
+async function auditoria(titulo, mensaje) {
+    await notificarAdministradores(titulo, mensaje);
 }
