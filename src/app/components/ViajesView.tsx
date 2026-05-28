@@ -17,6 +17,7 @@ export function ViajesView() {
       capacidad?: number;
       propietarioNombre?: string;
       propietarioId?: number;
+      estado?: string;
     }[]
   >([]);
   const [propietariosList, setPropietariosList] = useState<
@@ -70,6 +71,7 @@ export function ViajesView() {
           capacidad: Number(e.capacidad_pasajeros || 0),
           propietarioNombre: (e.propietario_nombre as string) || '',
           propietarioId: e.propietario_id ? Number(e.propietario_id) : undefined,
+          estado: (e.estado as string) || 'operativa',
         }))
       );
       setPropietariosList(
@@ -592,12 +594,19 @@ export function ViajesView() {
                 required
               >
                 <option value="">Seleccionar</option>
-                {embarcacionesList.map((e) => (
-                  <option key={e.id} value={String(e.id)}>
-                    {e.nombre}
-                  </option>
-                ))}
+                {embarcacionesList
+                  .filter((e) => e.estado !== 'fuera_servicio')
+                  .map((e) => (
+                    <option key={e.id} value={String(e.id)}>
+                      {e.nombre} {e.estado === 'mantenimiento' ? '(En Mantenimiento)' : ''}
+                    </option>
+                  ))}
               </select>
+              {embarcacionesList.filter((e) => e.estado !== 'fuera_servicio').length === 0 && (
+                <p className="text-xs text-red-600 mt-1">
+                  ⚠️ No hay embarcaciones disponibles. Todas están fuera de servicio.
+                </p>
+              )}
             </div>
 
             <div>

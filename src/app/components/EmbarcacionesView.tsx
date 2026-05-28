@@ -454,6 +454,20 @@ export function EmbarcacionesView() {
                           <p className="text-sm text-muted-foreground">Cargando detalles...</p>
                         ) : (
                         <>
+                        {/* Alerta Fuera de Servicio */}
+                        {emb.estado === 'fuera_servicio' && (
+                          <div className="p-4 bg-red-50 border-2 border-red-300 rounded-lg flex items-start gap-3">
+                            <span className="text-red-600 text-xl flex-shrink-0">🚫</span>
+                            <div>
+                              <p className="font-semibold text-red-900">Embarcación fuera de servicio</p>
+                              <p className="text-sm text-red-700 mt-1">
+                                No se pueden asignar viajes ni tripulación a esta embarcación mientras esté fuera de servicio.
+                                Cambia su estado a <strong>Operativa</strong> para habilitarla.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Alerta de Mantenimiento */}
                         {emb.estado === 'mantenimiento' && emb.ubicacionMantenimiento && (
                           <div className="mb-4 p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
@@ -518,6 +532,7 @@ export function EmbarcacionesView() {
                                 Sin tripulación asignada
                               </p>
                             )}
+                            {emb.estado !== 'fuera_servicio' && (
                             <div className="p-3 bg-white rounded-lg border border-border space-y-2">
                               <p className="text-xs font-medium text-primary">
                                 Asignar operador a un viaje
@@ -560,6 +575,7 @@ export function EmbarcacionesView() {
                                 Asignar tripulación
                               </button>
                             </div>
+                            )}
                           </div>
                           <div>
                             <h4 className="font-semibold text-sm mb-2">Viajes:</h4>
@@ -577,7 +593,7 @@ export function EmbarcacionesView() {
                                 Sin viajes asignados. Programa uno en Viajes (Zarpe).
                               </p>
                             )}
-                            {(emb.propietario === '—' || !detalles?.embarcacion?.propietario_id) && (
+                            {emb.estado !== 'fuera_servicio' && (emb.propietario === '—' || !detalles?.embarcacion?.propietario_id) && (
                               <div className="p-3 bg-white rounded-lg border border-border space-y-2">
                                 <p className="text-xs font-medium text-primary">
                                   Asignar propietario
