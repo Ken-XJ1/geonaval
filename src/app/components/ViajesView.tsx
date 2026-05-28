@@ -500,10 +500,10 @@ export function ViajesView() {
 
       {/* Modal Resumen de Viaje */}
       {(resumen || loadingResumen) && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
             {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl p-5 text-white sticky top-0 z-10">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl p-5 text-white sticky top-0 z-[10001]">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-7 h-7" />
@@ -536,11 +536,11 @@ export function ViajesView() {
                     Recorrido GPS registrado
                   </h4>
                   {resumen.puntosGps.length >= 2 ? (
-                    <div className="rounded-xl overflow-hidden border border-border h-52">
+                    <div className="rounded-xl overflow-hidden border border-border h-52 relative z-0">
                       <MapContainer
                         center={[Number(resumen.puntosGps[0].latitud), Number(resumen.puntosGps[0].longitud)]}
                         zoom={15}
-                        style={{ height: '100%', width: '100%' }}
+                        style={{ height: '100%', width: '100%', zIndex: 0 }}
                         zoomControl={false}
                         scrollWheelZoom={false}
                       >
