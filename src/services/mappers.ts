@@ -1,31 +1,27 @@
 export type WithDbId<T> = T & { dbId: number };
 
+// Recibe un string ISO "YYYY-MM-DDTHH:mm:ss" o "YYYY-MM-DD HH:mm:ss" (de PostgreSQL)
+// y devuelve "DD/MM/YYYY" sin ninguna conversión de zona horaria
 function formatDate(d: string | Date): string {
   if (!d) return '—';
-  const dateStr = String(d);
-  // Si ya es una fecha en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss)
-  if (dateStr.includes('T') || dateStr.includes('-')) {
-    const parts = dateStr.split('T')[0].split('-');
-    if (parts.length === 3) {
-      const [year, month, day] = parts;
-      return `${day}/${month}/${year}`;
-    }
-  }
-  return dateStr;
+  const s = String(d).trim();
+  // Soporta "2026-05-26T08:00:00" y "2026-05-26 08:00:00"
+  const datePart = s.split('T')[0].split(' ')[0];
+  const parts = datePart.split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return s;
 }
 
+// Devuelve "HH:mm" directamente del string sin conversión
 function formatTime(d: string | Date): string {
   if (!d) return '—';
-  const dateStr = String(d);
-  // Si es una fecha ISO con hora (YYYY-MM-DDTHH:mm:ss)
-  if (dateStr.includes('T')) {
-    const timePart = dateStr.split('T')[1];
-    if (timePart) {
-      const [hours, minutes] = timePart.split(':');
-      return `${hours}:${minutes}`;
-    }
-  }
-  return '—';
+  const s = String(d).trim();
+  // Soporta "2026-05-26T08:00:00" y "2026-05-26 08:00:00"
+  const timePart = s.includes('T') ? s.split('T')[1] : s.split(' ')[1];
+  if (!timePart) return '—';
+  const [h, m] = timePart.split(':');
+  if (h === undefined || m === undefined) return '—';
+  return `${h}:${m}`;
 }
 
 const rolLabels: Record<string, string> = {

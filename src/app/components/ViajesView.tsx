@@ -238,12 +238,12 @@ export function ViajesView() {
       return;
     }
     try {
-      const fecha_salida = `${formData.fechaSalida}T${formData.horaSalida}:00`;
+      // Construir fecha sin conversión de zona horaria
+      // Formato: "YYYY-MM-DD HH:mm:ss" — PostgreSQL lo guarda tal cual en TIMESTAMP WITHOUT TIME ZONE
+      const fecha_salida = `${formData.fechaSalida} ${formData.horaSalida}:00`;
       const cierre_inscripcion = formData.cierreInscripcionFecha
-        ? `${formData.cierreInscripcionFecha}T${formData.cierreInscripcionHora || '23:59'}:00`
-        : new Date(
-            new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000
-          ).toISOString();
+        ? `${formData.cierreInscripcionFecha} ${formData.cierreInscripcionHora || '23:59'}:00`
+        : `${formData.fechaSalida} ${formData.horaSalida}:00`; // mismo momento si no se especifica
       if (!formData.operador) {
         throw new Error('Debes asignar un operador al viaje');
       }

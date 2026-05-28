@@ -7,6 +7,10 @@ const pg_1 = require("pg");
 const dotenv_1 = __importDefault(require("dotenv"));
 const path_1 = __importDefault(require("path"));
 dotenv_1.default.config({ path: path_1.default.resolve(__dirname, '../../.env') });
+// Evitar que el driver pg convierta TIMESTAMP a objeto Date con UTC
+// Devuelve el string tal como está en la BD
+pg_1.types.setTypeParser(1114, (val) => val); // TIMESTAMP WITHOUT TIME ZONE
+pg_1.types.setTypeParser(1184, (val) => val); // TIMESTAMP WITH TIME ZONE
 const connectionString = process.env.DATABASE_URL;
 const pool = new pg_1.Pool({
     connectionString,

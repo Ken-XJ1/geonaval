@@ -148,30 +148,20 @@ export function PasajerosView() {
 
   const formatFecha = (fecha: string) => {
     if (!fecha) return '—';
-    const dateStr = String(fecha);
-    // Si ya es una fecha en formato ISO (YYYY-MM-DD o YYYY-MM-DDTHH:mm:ss)
-    if (dateStr.includes('T') || dateStr.includes('-')) {
-      const parts = dateStr.split('T')[0].split('-');
-      if (parts.length === 3) {
-        const [year, month, day] = parts;
-        return `${day}/${month}/${year}`;
-      }
-    }
-    return dateStr;
+    const s = String(fecha).trim();
+    const datePart = s.split('T')[0].split(' ')[0];
+    const parts = datePart.split('-');
+    if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return s;
   };
 
   const formatHora = (fecha: string) => {
     if (!fecha) return '—';
-    const dateStr = String(fecha);
-    // Si es una fecha ISO con hora (YYYY-MM-DDTHH:mm:ss)
-    if (dateStr.includes('T')) {
-      const timePart = dateStr.split('T')[1];
-      if (timePart) {
-        const [hours, minutes] = timePart.split(':');
-        return `${hours}:${minutes}`;
-      }
-    }
-    return '—';
+    const s = String(fecha).trim();
+    const timePart = s.includes('T') ? s.split('T')[1] : s.split(' ')[1];
+    if (!timePart) return '—';
+    const [h, m] = timePart.split(':');
+    return h && m ? `${h}:${m}` : '—';
   };
 
   const handleDelete = async (row: ReturnType<typeof mapPasajeroToUI>) => {
