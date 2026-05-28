@@ -5,6 +5,7 @@ import { Plus, Ticket, Calendar, Search, Download, CreditCard, Banknote,
 import { DataTable } from './DataTable';
 import { ViewFeedback } from './ViewFeedback';
 import { api } from '../../services/api';
+import jsPDF from 'jspdf';
 
 type CompraRow = {
   dbId: number; id: string; ticket: string; fecha: string; fechaISO: string;
@@ -907,80 +908,194 @@ export function ComprasView() {
   };
 
   const descargarTicket = (compra: CompraRow) => {
-    console.log('🎫 Descargando ticket:', compra);
+    console.log('🎫 Descargando ticket PDF:', compra);
     
     try {
-      const contenido = `
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║              GEONAVAL - TICKET DE PASAJE                  ║
-║          Sistema de Control Fluvial - Quibdó             ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  INFORMACIÓN DEL TICKET
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Ticket:           ${compra.ticket}
-  Fecha de compra:  ${compra.fecha}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  DATOS DEL PASAJERO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Nombre:           ${compra.pasajero}
-  Documento:        ${compra.documento}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  INFORMACIÓN DEL VIAJE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Código viaje:     ${compra.viaje}
-  Ruta:             ${compra.ruta}
-  Asiento:          ${compra.asiento}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  INFORMACIÓN DE PAGO
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  Precio:           ${compra.precio}
-  Método de pago:   ${compra.metodoPago}
-  Vendedor:         ${compra.vendedor}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  INSTRUCCIONES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-  • Presente este ticket al abordar la embarcación
-  • Llegue 15 minutos antes de la hora de salida
-  • Traiga un documento de identidad válido
-  • No se permiten cambios ni devoluciones
-
-╔═══════════════════════════════════════════════════════════╗
-║                                                           ║
-║         Gracias por viajar con GeoNaval                   ║
-║         Calle Principal #10-20, Quibdó, Chocó            ║
-║         Tel: +57 (4) 123-4567                            ║
-║         info@geonaval.com                                ║
-║                                                           ║
-╚═══════════════════════════════════════════════════════════╝
-    `.trim();
-
-      const blob = new Blob([contenido], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${compra.ticket}_${compra.pasajero.replace(/\s+/g, '_')}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
       
-      console.log('✅ Ticket descargado exitosamente');
+      // Colores
+      const primaryColor = '#2563eb'; // Azul
+      const grayColor = '#6b7280';
+      const darkColor = '#1f2937';
+      
+      // Header con fondo azul
+      doc.setFillColor(37, 99, 235); // Azul primary
+      doc.rect(0, 0, pageWidth, 45, 'F');
+      
+      // Logo/Título
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text('GEONAVAL', pageWidth / 2, 20, { align: 'center' });
+      
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Sistema de Control Fluvial', pageWidth / 2, 28, { align: 'center' });
+      doc.text('Quibdó, Chocó - Colombia', pageWidth / 2, 36, { align: 'center' });
+      
+      // Título del documento
+      doc.setTextColor(37, 99, 235);
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text('TICKET DE PASAJE', pageWidth / 2, 60, { align: 'center' });
+      
+      // Línea separadora
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.5);
+      doc.line(20, 65, pageWidth - 20, 65);
+      
+      let yPos = 80;
+      
+      // Información del ticket
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text('INFORMACIÓN DEL TICKET', 20, yPos);
+      
+      yPos += 8;
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Ticket:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.ticket, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Fecha:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.fecha, 60, yPos);
+      
+      yPos += 15;
+      
+      // Datos del pasajero
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text('DATOS DEL PASAJERO', 20, yPos);
+      
+      yPos += 8;
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Nombre:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.pasajero, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Documento:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.documento, 60, yPos);
+      
+      yPos += 15;
+      
+      // Información del viaje
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text('INFORMACIÓN DEL VIAJE', 20, yPos);
+      
+      yPos += 8;
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Código viaje:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.viaje, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Ruta:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.ruta, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Asiento:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.asiento, 60, yPos);
+      
+      yPos += 15;
+      
+      // Información de pago
+      doc.setFillColor(243, 244, 246); // Gris claro
+      doc.rect(15, yPos - 5, pageWidth - 30, 30, 'F');
+      
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'normal');
+      doc.text('INFORMACIÓN DE PAGO', 20, yPos);
+      
+      yPos += 8;
+      doc.setTextColor(31, 41, 55);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Precio:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.precio, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Método de pago:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.metodoPago, 60, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Vendedor:', 20, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(compra.vendedor, 60, yPos);
+      
+      yPos += 20;
+      
+      // Instrucciones
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'bold');
+      doc.text('INSTRUCCIONES IMPORTANTES', 20, yPos);
+      
+      yPos += 6;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      const instrucciones = [
+        '• Presente este ticket al abordar la embarcación',
+        '• Llegue 15 minutos antes de la hora de salida',
+        '• Traiga un documento de identidad válido',
+        '• No se permiten cambios ni devoluciones'
+      ];
+      
+      instrucciones.forEach(inst => {
+        doc.text(inst, 20, yPos);
+        yPos += 5;
+      });
+      
+      // Footer
+      yPos = pageHeight - 30;
+      doc.setDrawColor(37, 99, 235);
+      doc.setLineWidth(0.5);
+      doc.line(20, yPos, pageWidth - 20, yPos);
+      
+      yPos += 8;
+      doc.setFontSize(9);
+      doc.setTextColor(107, 114, 128);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Gracias por viajar con GeoNaval', pageWidth / 2, yPos, { align: 'center' });
+      
+      yPos += 5;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text('Calle Principal #10-20, Quibdó, Chocó', pageWidth / 2, yPos, { align: 'center' });
+      
+      yPos += 4;
+      doc.text('Tel: +57 (4) 123-4567 | info@geonaval.com', pageWidth / 2, yPos, { align: 'center' });
+      
+      // Guardar PDF
+      const nombreArchivo = `${compra.ticket}_${compra.pasajero.replace(/\s+/g, '_')}.pdf`;
+      doc.save(nombreArchivo);
+      
+      console.log('✅ Ticket PDF descargado exitosamente');
     } catch (error) {
-      console.error('❌ Error al descargar ticket:', error);
-      alert('Error al descargar el ticket. Por favor intenta de nuevo.');
+      console.error('❌ Error al descargar ticket PDF:', error);
+      alert('Error al generar el PDF. Por favor intenta de nuevo.');
     }
   };
 
