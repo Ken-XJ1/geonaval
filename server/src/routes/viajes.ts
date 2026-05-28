@@ -11,6 +11,7 @@ const VIAJES_LIST_SQL = `
   SELECT v.*,
     COUNT(vp.pasajero_id)::int AS pasajeros_count,
     e.nombre AS embarcacion_nombre,
+    e.capacidad_pasajeros,
     pr.nombre AS propietario_nombre,
     (
       SELECT t.nombre
@@ -28,7 +29,7 @@ const VIAJES_LIST_SQL = `
   LEFT JOIN viaje_pasajeros vp ON vp.viaje_id = v.id
   LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
   LEFT JOIN propietarios pr ON pr.id = e.propietario_id
-  GROUP BY v.id, e.nombre, pr.nombre
+  GROUP BY v.id, e.nombre, e.capacidad_pasajeros, pr.nombre
   ORDER BY v.fecha_salida DESC
 `;
 

@@ -663,6 +663,9 @@ export function ComprasView() {
       setError(null);
       const [pasajerosRes, viajesRes] = await Promise.all([api.get('/pasajeros'), api.get('/viajes')]);
       
+      console.log('🔍 DEBUG - Viajes recibidos del backend:', viajesRes.data);
+      console.log('🔍 DEBUG - Total de viajes:', viajesRes.data?.length || 0);
+      
       // Mapear pasajeros a compras
       const pasajeros = pasajerosRes.data || [];
       const viajes = viajesRes.data || [];
@@ -704,7 +707,8 @@ export function ComprasView() {
         .filter((v: any) => v.estado === 'programado' || v.estado === 'en_curso')
         .map((v: any) => {
           const totalPasajeros = pasajeros.filter((p: any) => p.viaje_id === v.id).length;
-          const capacidad = v.capacidad || 20;
+          // La capacidad viene de la embarcación
+          const capacidad = v.capacidad_pasajeros || 20;
           const asientosDisponibles = capacidad - totalPasajeros;
           const fechaSalida = v.fecha_salida ? new Date(v.fecha_salida) : new Date();
           
@@ -745,6 +749,9 @@ export function ComprasView() {
             mensajeCierre,
           };
         });
+
+      console.log('🔍 DEBUG - Viajes después de filtrar por estado:', viajesDisp);
+      console.log('🔍 DEBUG - Total viajes disponibles:', viajesDisp.length);
 
       setViajesDisponibles(viajesDisp);
     } catch (err: any) {
