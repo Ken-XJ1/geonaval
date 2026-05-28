@@ -80,44 +80,64 @@ export function ComprasView() {
     try {
       const [pasajeros, viajes, statsData] = await Promise.all([
         api.getPasajeros() as Promise<Record<string, unknown>[]>,
-        api.getViajesDisponibles() as Promise<Record<string, unknown>[]>,
+        api.getViajes() as Promise<Record<string, unknown>[]>,
         api.getComprasStats() as Promise<ComprasStats>,
       ]);
-      setViajesDisponibles(
-        viajes.map((v) => ({
-          id: String(v.id),
-          label: `V-${v.id}: ${v.origen} - ${v.destino}`,
-          asientos: Number(v.cupos_disponibles ?? 0),
-          precio: Number(v.precio ?? 0),
-        }))
+
+      // Todos los viajes programados disponibles para inscribir
+      const viajesProgramados = (viajes as Record<string, unknown>[]).filter(
+        (v) => v.estado === 'programado'
       );
+
+      setViajesDisponibles(
+        viajesProgramados.map((v) => {
+          // Parsear fecha directamente del string sin conversión
+          const fechaStr = String(v.fecha_salida ?? '');
+          const datePart = fechaStr.split('T')[0].split(' ')[0];
+          const timePart = fechaStr.includes('T')
+            ? fechaStr.split('T')[1]
+            : fechaStr.split(' ')[1] ?? '';
+          const [y, mo, d] = datePart.split('-');
+          const [h, mi] = (timePart ?? '').split(':');
+          const fechaLabel = d && mo && y ? `${d}/${mo}/${y}` : datePart;
+          const horaLabel = h && mi ? ` ${h}:${mi}` : '';
+          return {
+            id: String(v.id),
+            label: `V-${v.id}: ${v.origen} → ${v.destino} — ${fechaLabel}${horaLabel}`,
+            asientos: Number(v.cupos_disponibles ?? (v as any).capacidad_pasajeros ?? 0),
+            precio: Number(v.precio ?? 0),
+          };
+        })
+      );
+
       setStats(statsData);
+
+      // Parsear fecha de created_at sin conversión UTC
       setCompras(
-        pasajeros.map((p) => ({
-          dbId: Number(p.id),
-          id: `C-${String(p.id).padStart(3, '0')}`,
-          ticket: `TKT-${String(p.id).padStart(3, '0')}`,
-          fecha: p.created_at
-            ? new Date(p.created_at as string).toLocaleDateString('es-CO')
-            : '—',
-          fechaISO: p.created_at
-            ? new Date(p.created_at as string).toISOString().split('T')[0]
-            : '',
-          pasajero: p.nombre as string,
-          documento: p.documento as string,
-          viaje: p.viaje_id ? `V-${p.viaje_id}` : '—',
-          ruta:
-            p.origen && p.destino
-              ? `${p.origen} - ${p.destino}`
-              : '—',
-          asiento: p.asiento ? String(p.asiento) : '—',
-          precio: p.precio_pagado != null
-            ? formatCOP(Number(p.precio_pagado))
-            : '—',
-          metodoPago: formatMetodoPago(p.metodo_pago as string | null),
-          estado: 'confirmado' as const,
-          vendedor: 'Sistema',
-        }))
+        pasajeros.map((p) => {
+          const rawFecha = String(p.created_at ?? '');
+          const datePart = rawFecha.split('T')[0].split(' ')[0];
+          const [y, mo, d] = datePart.split('-');
+          const fechaDisplay = d && mo && y ? `${d}/${mo}/${y}` : '—';
+          const fechaISO = datePart || '';
+
+          return {
+            dbId: Number(p.id),
+            id: `C-${String(p.id).padStart(3, '0')}`,
+            ticket: `TKT-${String(p.id).padStart(3, '0')}`,
+            fecha: fechaDisplay,
+            fechaISO,
+            pasajero: p.nombre as string,
+            documento: p.documento as string,
+            viaje: p.viaje_id ? `V-${p.viaje_id}` : '—',
+            ruta: p.origen && p.destino ? `${p.origen} - ${p.destino}` : '—',
+            asiento: p.asiento ? String(p.asiento) : '—',
+            precio: p.precio_pagado != null ? formatCOP(Number(p.precio_pagado)) : '—',
+            metodoPago: formatMetodoPago(p.metodo_pago as string | null),
+            estado: 'confirmado' as const,
+            vendedor: 'Sistema',
+          };
+        })
       );
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al cargar');
@@ -150,25 +170,30 @@ export function ComprasView() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!formData.viaje) {
+        throw new Error('Debes seleccionar un viaje para generar el ticket');
+      }
+      const viajeSel = viajesDisponibles.find((v) => v.id === formData.viaje);
+
+      // Crear pasajero sin usuario_id (registro presencial en oficina)
       const created = (await api.createPasajero({
         nombre: formData.pasajeroNombre,
         documento: formData.pasajeroDocumento,
         telefono: formData.pasajeroTelefono,
         email: null,
       })) as { id: number };
-      if (!formData.viaje) {
-        throw new Error('Debes seleccionar un viaje para generar el ticket');
-      }
-      const viajeSel = viajesDisponibles.find((v) => v.id === formData.viaje);
+
+      // Asignar al viaje
       await api.assignPasajeroViaje(
         parseInt(formData.viaje, 10),
         created.id,
         {
-          asiento: formData.asiento,
+          asiento: formData.asiento || undefined,
           precio_pagado: parseFloat(formData.precio) || viajeSel?.precio || 0,
           metodo_pago: formData.metodoPago,
         }
       );
+
       setFormData({
         pasajeroNombre: '',
         pasajeroDocumento: '',
@@ -274,7 +299,7 @@ export function ComprasView() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Documento</label>
+              <label className="block text-sm font-medium mb-2">Documento de Identidad</label>
               <input
                 type="text"
                 value={formData.pasajeroDocumento}
@@ -293,17 +318,16 @@ export function ComprasView() {
                 onChange={(e) => setFormData({ ...formData, pasajeroTelefono: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 placeholder="+57 300 1234567"
-                required
               />
             </div>
 
             {/* Información del Viaje */}
             <div className="md:col-span-2">
-              <h4 className="font-medium text-sm mb-3 text-primary mt-4">Información del Viaje</h4>
+              <h4 className="font-medium text-sm mb-3 text-primary mt-2">Asignar al Viaje</h4>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-2">Viaje</label>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-2">Viaje Disponible</label>
               <select
                 value={formData.viaje}
                 onChange={(e) => {
@@ -312,47 +336,46 @@ export function ComprasView() {
                   setFormData({
                     ...formData,
                     viaje: id,
-                    precio: sel ? String(sel.precio) : formData.precio,
+                    precio: sel ? String(sel.precio) : '',
                   });
                 }}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 required
               >
-                <option value="">Seleccionar viaje</option>
+                <option value="">— Seleccionar viaje —</option>
+                {viajesDisponibles.length === 0 && (
+                  <option disabled>No hay viajes programados disponibles</option>
+                )}
                 {viajesDisponibles.map((viaje) => (
                   <option key={viaje.id} value={viaje.id}>
-                    {viaje.label} —{' '}
-                    {new Intl.NumberFormat('es-CO', {
-                      style: 'currency',
-                      currency: 'COP',
-                      maximumFractionDigits: 0,
-                    }).format(viaje.precio)}{' '}
-                    ({viaje.asientos} cupos)
+                    {viaje.label} ({viaje.asientos} cupos) —{' '}
+                    {formatCOP(viaje.precio)}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Asiento</label>
+              <label className="block text-sm font-medium mb-2">
+                Asiento <span className="text-muted-foreground font-normal">(opcional, se asigna automático)</span>
+              </label>
               <input
                 type="text"
                 value={formData.asiento}
                 onChange={(e) => setFormData({ ...formData, asiento: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 placeholder="Ej: A-15"
-                required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Precio</label>
+              <label className="block text-sm font-medium mb-2">Precio (COP)</label>
               <input
                 type="number"
                 value={formData.precio}
                 onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-                placeholder="45000"
+                placeholder="Se autocompleta al seleccionar viaje"
                 required
               />
             </div>
@@ -383,7 +406,7 @@ export function ComprasView() {
                 className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2"
               >
                 <Ticket className="w-4 h-4" />
-                Generar Ticket
+                Registrar y Generar Ticket
               </button>
             </div>
           </form>
