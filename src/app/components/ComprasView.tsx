@@ -701,10 +701,9 @@ export function ComprasView() {
       setCompras(comprasData);
       setStats({ ventasHoy, totalRecaudado, ticketsConfirmados, ticketsPendientes });
 
-      // Preparar viajes disponibles (programados o en curso, con o sin cupos)
+      // Preparar viajes disponibles (TODOS los viajes)
       const ahora = new Date();
       const viajesDisp = viajes
-        .filter((v: any) => v.estado === 'programado' || v.estado === 'en_curso')
         .map((v: any) => {
           const totalPasajeros = pasajeros.filter((p: any) => p.viaje_id === v.id).length;
           // La capacidad viene de la embarcación
@@ -716,23 +715,26 @@ export function ComprasView() {
           let inscripcionCerrada = false;
           let mensajeCierre = '';
           
-          if (v.fecha_limite_inscripcion) {
+          // Si el viaje está finalizado o cancelado, no se puede inscribir
+          if (v.estado === 'finalizado') {
+            inscripcionCerrada = true;
+            mensajeCierre = 'Viaje finalizado';
+          } else if (v.estado === 'cancelado') {
+            inscripcionCerrada = true;
+            mensajeCierre = 'Viaje cancelado';
+          } else if (v.fecha_limite_inscripcion) {
             const fechaLimite = new Date(v.fecha_limite_inscripcion);
             if (ahora > fechaLimite) {
               inscripcionCerrada = true;
               mensajeCierre = 'Inscripción cerrada';
             }
-          }
-          
-          if (v.cierre_inscripcion) {
+          } else if (v.cierre_inscripcion) {
             const fechaCierre = new Date(v.cierre_inscripcion);
             if (ahora > fechaCierre) {
               inscripcionCerrada = true;
               mensajeCierre = 'Inscripción cerrada';
             }
-          }
-          
-          if (asientosDisponibles <= 0) {
+          } else if (asientosDisponibles <= 0) {
             inscripcionCerrada = true;
             mensajeCierre = 'Sin cupos disponibles';
           }
