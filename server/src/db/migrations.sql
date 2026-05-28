@@ -104,6 +104,28 @@ BEGIN
   END IF;
 END $$;
 
+-- Limpieza de embarcaciones, tripulación y propietarios
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM _migraciones_control WHERE nombre = 'limpieza_flota_v1'
+  ) THEN
+    DELETE FROM viaje_tripulacion;
+    DELETE FROM viaje_pasajeros;
+    DELETE FROM viajes;
+    DELETE FROM tripulacion;
+    DELETE FROM embarcaciones;
+    DELETE FROM propietarios;
+
+    ALTER SEQUENCE IF EXISTS tripulacion_id_seq RESTART WITH 1;
+    ALTER SEQUENCE IF EXISTS embarcaciones_id_seq RESTART WITH 1;
+    ALTER SEQUENCE IF EXISTS propietarios_id_seq RESTART WITH 1;
+
+    INSERT INTO _migraciones_control (nombre) VALUES ('limpieza_flota_v1');
+    RAISE NOTICE 'Limpieza de flota completada';
+  END IF;
+END $$;
+
 -- Cambiar columna fecha_salida a TIMESTAMP WITHOUT TIME ZONE para evitar conversiones UTC
 ALTER TABLE viajes ALTER COLUMN fecha_salida TYPE TIMESTAMP WITHOUT TIME ZONE;
 ALTER TABLE viajes ALTER COLUMN cierre_inscripcion TYPE TIMESTAMP WITHOUT TIME ZONE;
