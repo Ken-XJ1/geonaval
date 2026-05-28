@@ -702,58 +702,78 @@ export function ComprasView() {
       setStats({ ventasHoy, totalRecaudado, ticketsConfirmados, ticketsPendientes });
 
       // Preparar viajes disponibles (TODOS los viajes)
+      console.log('🔍 DEBUG - Procesando viajes para wizard...');
       const ahora = new Date();
-      const viajesDisp = viajes
-        .map((v: any) => {
-          const totalPasajeros = pasajeros.filter((p: any) => p.viaje_id === v.id).length;
-          // La capacidad viene de la embarcación
-          const capacidad = v.capacidad_pasajeros || 20;
-          const asientosDisponibles = capacidad - totalPasajeros;
-          const fechaSalida = v.fecha_salida ? new Date(v.fecha_salida) : new Date();
-          
-          // Verificar si la inscripción está cerrada
-          let inscripcionCerrada = false;
-          let mensajeCierre = '';
-          
-          // Si el viaje está finalizado o cancelado, no se puede inscribir
-          if (v.estado === 'finalizado') {
-            inscripcionCerrada = true;
-            mensajeCierre = 'Viaje finalizado';
-          } else if (v.estado === 'cancelado') {
-            inscripcionCerrada = true;
-            mensajeCierre = 'Viaje cancelado';
-          } else if (v.fecha_limite_inscripcion) {
+      const viajesDisp = viajes.map((v: any) => {
+        console.log('🔍 DEBUG - Procesando viaje:', v.id, v.origen, v.destino, 'Estado:', v.estado);
+        
+        const totalPasajeros = pasajeros.filter((p: any) => p.viaje_id === v.id).length;
+        // La capacidad viene de la embarcación, si no existe usar 20
+        const capacidad = v.capacidad_pasajeros || v.capacidad || 20;
+        const asientosDisponibles = Math.max(0, capacidad - totalPasajeros);
+        
+        let fechaSalida;
+        try {
+          fechaSalida = v.fecha_salida ? new Date(v.fecha_salida) : new Date();
+        } catch (e) {
+          console.error('Error parseando fecha_salida:', v.fecha_salida);
+          fechaSalida = new Date();
+        }
+        
+        // Verificar si la inscripción está cerrada
+        let inscripcionCerrada = false;
+        let mensajeCierre = '';
+        
+        // Si el viaje está finalizado o cancelado, no se puede inscribir
+        if (v.estado === 'finalizado') {
+          inscripcionCerrada = true;
+          mensajeCierre = 'Viaje finalizado';
+        } else if (v.estado === 'cancelado') {
+          inscripcionCerrada = true;
+          mensajeCierre = 'Viaje cancelado';
+        } else if (asientosDisponibles <= 0) {
+          inscripcionCerrada = true;
+          mensajeCierre = 'Sin cupos disponibles';
+        } else if (v.fecha_limite_inscripcion) {
+          try {
             const fechaLimite = new Date(v.fecha_limite_inscripcion);
             if (ahora > fechaLimite) {
               inscripcionCerrada = true;
               mensajeCierre = 'Inscripción cerrada';
             }
-          } else if (v.cierre_inscripcion) {
+          } catch (e) {
+            console.error('Error parseando fecha_limite_inscripcion:', v.fecha_limite_inscripcion);
+          }
+        } else if (v.cierre_inscripcion) {
+          try {
             const fechaCierre = new Date(v.cierre_inscripcion);
             if (ahora > fechaCierre) {
               inscripcionCerrada = true;
               mensajeCierre = 'Inscripción cerrada';
             }
-          } else if (asientosDisponibles <= 0) {
-            inscripcionCerrada = true;
-            mensajeCierre = 'Sin cupos disponibles';
+          } catch (e) {
+            console.error('Error parseando cierre_inscripcion:', v.cierre_inscripcion);
           }
-          
-          return {
-            id: String(v.id),
-            label: `${v.origen} → ${v.destino}`,
-            asientos: asientosDisponibles,
-            precio: v.precio || 0,
-            origen: v.origen || 'Origen',
-            destino: v.destino || 'Destino',
-            fecha: fechaSalida.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-            inscripcionCerrada,
-            mensajeCierre,
-          };
-        });
+        }
+        
+        const viajeFormateado = {
+          id: String(v.id),
+          label: `${v.origen || 'Origen'} → ${v.destino || 'Destino'}`,
+          asientos: asientosDisponibles,
+          precio: v.precio || 0,
+          origen: v.origen || 'Origen',
+          destino: v.destino || 'Destino',
+          fecha: fechaSalida.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+          inscripcionCerrada,
+          mensajeCierre,
+        };
+        
+        console.log('🔍 DEBUG - Viaje formateado:', viajeFormateado);
+        return viajeFormateado;
+      });
 
-      console.log('🔍 DEBUG - Viajes después de filtrar por estado:', viajesDisp);
-      console.log('🔍 DEBUG - Total viajes disponibles:', viajesDisp.length);
+      console.log('🔍 DEBUG - Total viajes para wizard:', viajesDisp.length);
+      console.log('🔍 DEBUG - Viajes completos:', JSON.stringify(viajesDisp, null, 2));
 
       setViajesDisponibles(viajesDisp);
     } catch (err: any) {
