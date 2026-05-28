@@ -57,15 +57,15 @@ const miPosicionIcon = L.divIcon({
   iconAnchor: [11, 11],
 });
 
-// Quibdó centro
-const QUIBDO: [number, number] = [5.6919, -76.6583];
+// Quibdó — centrado en el río Atrato (coordenadas exactas del río frente a la ciudad)
+const QUIBDO: [number, number] = [5.6950, -76.6620];
 
 // Componente para centrar el mapa en una posición
-function CentrarMapa({ pos }: { pos: [number, number] | null }) {
+function CentrarMapa({ pos, zoom }: { pos: [number, number] | null; zoom?: number }) {
   const map = useMap();
   useEffect(() => {
-    if (pos) map.setView(pos, map.getZoom());
-  }, [pos, map]);
+    if (pos) map.flyTo(pos, zoom ?? map.getZoom(), { duration: 1.5 });
+  }, [pos, map, zoom]);
   return null;
 }
 
@@ -204,6 +204,8 @@ export function MonitoreoView() {
     }, 5000);
 
     setTracking(true);
+    // Centrar en posición actual al iniciar (se actualizará con la primera lectura GPS)
+    setCentrarEn(QUIBDO);
   };
 
   // Detener tracking
@@ -339,16 +341,19 @@ export function MonitoreoView() {
         <div className="relative w-full h-[520px]">
           <MapContainer
             center={QUIBDO}
-            zoom={13}
+            zoom={15}
             style={{ height: '100%', width: '100%' }}
             zoomControl={true}
           >
+            {/* Capa base: CartoDB Voyager — resalta ríos y agua en azul */}
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              maxZoom={20}
             />
 
-            {centrarEn && <CentrarMapa pos={centrarEn} />}
+            {centrarEn && <CentrarMapa pos={centrarEn} zoom={tracking ? 17 : undefined} />}
 
             {/* Mi posición (operador) */}
             {miPos && (
