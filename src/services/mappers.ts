@@ -119,7 +119,7 @@ export function mapTripulacionToUI(row: Record<string, unknown>) {
     estado: (row.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo',
     embarcacion: (row.embarcacion_nombre as string) || '—',
     viajes: row.viajes_count != null ? String(row.viajes_count) : '0',
-    horario: '—',
+    horario: (row.telefono as string) || '—',
   };
 }
 

@@ -234,7 +234,7 @@ export function TripulacionView() {
                 <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Rol</th>
                 <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Embarcación</th>
                 <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Viajes</th>
-                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Horario</th>
+                <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Teléfono</th>
                 <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Estado</th>
                 <th className="px-4 py-3 text-right text-xs font-black text-black uppercase tracking-wider">Acciones</th>
               </tr>
