@@ -383,7 +383,7 @@ function ModalPago({ precio, pasajero, onConfirmar, onCancelar }: {
 
 // ─── Wizard de Compra ────────────────────────────────────────────────────────
 function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
-  viajesDisponibles: { id: string; label: string; asientos: number; precio: number; origen: string; destino: string; fecha: string }[];
+  viajesDisponibles: { id: string; label: string; asientos: number; precio: number; origen: string; destino: string; fecha: string; inscripcionCerrada?: boolean; mensajeCierre?: string }[];
   onFinalizar: (datos: { nombre: string; documento: string; telefono: string; viajeId: string; asiento: string; precio: number; metodo: string }) => void;
   onCancelar: () => void;
 }) {
@@ -530,31 +530,48 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                   <Navigation className="w-8 h-8 mx-auto mb-2 opacity-40"/>
                   <p className="text-sm">No hay viajes disponibles con ese filtro</p>
                 </div>
-              ) : viajesFiltrados.map(v => (
-                <button key={v.id} type="button" onClick={()=>{ setViajeId(v.id); setErrores({}); }}
-                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    viajeId===v.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'
-                  }`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-primary text-sm">V-{v.id}</span>
-                        <span className="font-semibold">{v.origen} → {v.destino}</span>
+              ) : viajesFiltrados.map(v => {
+                const puedeInscribirse = !v.inscripcionCerrada;
+                return (
+                  <button key={v.id} type="button" 
+                    onClick={()=>{ if(puedeInscribirse) { setViajeId(v.id); setErrores({}); } }}
+                    disabled={!puedeInscribirse}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      !puedeInscribirse ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed' :
+                      viajeId===v.id ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/40 hover:bg-muted/50'
+                    }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-primary text-sm">V-{v.id}</span>
+                          <span className="font-semibold">{v.origen} → {v.destino}</span>
+                          {!puedeInscribirse && (
+                            <span className="text-xs px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">
+                              {v.mensajeCierre}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> {v.fecha}</span>
+                          {puedeInscribirse ? (
+                            <span className={`font-medium ${v.asientos > 5 ? 'text-green-600' : v.asientos > 0 ? 'text-amber-600' : 'text-red-600'}`}>
+                              {v.asientos} cupos disponibles
+                            </span>
+                          ) : (
+                            <span className="font-medium text-red-600">
+                              No disponible
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Calendar className="w-3 h-3"/> {v.fecha}</span>
-                        <span className={`font-medium ${v.asientos > 5 ? 'text-green-600' : v.asientos > 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                          {v.asientos} cupos disponibles
-                        </span>
+                      <div className="text-right ml-3">
+                        <p className={`font-bold ${puedeInscribirse ? 'text-green-700' : 'text-gray-400'}`}>{formatCOP(v.precio)}</p>
+                        {viajeId===v.id && puedeInscribirse && <CheckCircle className="w-5 h-5 text-primary ml-auto mt-1"/>}
                       </div>
                     </div>
-                    <div className="text-right ml-3">
-                      <p className="font-bold text-green-700">{formatCOP(v.precio)}</p>
-                      {viajeId===v.id && <CheckCircle className="w-5 h-5 text-primary ml-auto mt-1"/>}
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
             {errores.viaje && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errores.viaje}</p>}
@@ -638,7 +655,7 @@ export function ComprasView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
-  const [viajesDisponibles, setViajesDisponibles] = useState<{ id: string; label: string; asientos: number; precio: number; origen: string; destino: string; fecha: string }[]>([]);
+  const [viajesDisponibles, setViajesDisponibles] = useState<{ id: string; label: string; asientos: number; precio: number; origen: string; destino: string; fecha: string; inscripcionCerrada?: boolean; mensajeCierre?: string }[]>([]);
 
   const cargarDatos = useCallback(async () => {
     try {
@@ -681,13 +698,41 @@ export function ComprasView() {
       setCompras(comprasData);
       setStats({ ventasHoy, totalRecaudado, ticketsConfirmados, ticketsPendientes });
 
-      // Preparar viajes disponibles (solo programados o en curso)
+      // Preparar viajes disponibles (programados o en curso, con o sin cupos)
+      const ahora = new Date();
       const viajesDisp = viajes
         .filter((v: any) => v.estado === 'programado' || v.estado === 'en_curso')
         .map((v: any) => {
           const totalPasajeros = pasajeros.filter((p: any) => p.viaje_id === v.id).length;
-          const asientosDisponibles = (v.capacidad || 20) - totalPasajeros;
+          const capacidad = v.capacidad || 20;
+          const asientosDisponibles = capacidad - totalPasajeros;
           const fechaSalida = v.fecha_salida ? new Date(v.fecha_salida) : new Date();
+          
+          // Verificar si la inscripción está cerrada
+          let inscripcionCerrada = false;
+          let mensajeCierre = '';
+          
+          if (v.fecha_limite_inscripcion) {
+            const fechaLimite = new Date(v.fecha_limite_inscripcion);
+            if (ahora > fechaLimite) {
+              inscripcionCerrada = true;
+              mensajeCierre = 'Inscripción cerrada';
+            }
+          }
+          
+          if (v.cierre_inscripcion) {
+            const fechaCierre = new Date(v.cierre_inscripcion);
+            if (ahora > fechaCierre) {
+              inscripcionCerrada = true;
+              mensajeCierre = 'Inscripción cerrada';
+            }
+          }
+          
+          if (asientosDisponibles <= 0) {
+            inscripcionCerrada = true;
+            mensajeCierre = 'Sin cupos disponibles';
+          }
+          
           return {
             id: String(v.id),
             label: `${v.origen} → ${v.destino}`,
@@ -696,9 +741,10 @@ export function ComprasView() {
             origen: v.origen || 'Origen',
             destino: v.destino || 'Destino',
             fecha: fechaSalida.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            inscripcionCerrada,
+            mensajeCierre,
           };
-        })
-        .filter((v: any) => v.asientos > 0);
+        });
 
       setViajesDisponibles(viajesDisp);
     } catch (err: any) {
