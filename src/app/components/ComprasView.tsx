@@ -661,14 +661,17 @@ export function ComprasView() {
     try {
       setLoading(true);
       setError(null);
-      const [pasajerosRes, viajesRes] = await Promise.all([api.get('/pasajeros'), api.get('/viajes')]);
+      const [pasajerosRes, viajesRes] = await Promise.all([
+        api.getPasajeros(),
+        api.getViajes()
+      ]);
       
-      console.log('🔍 DEBUG - Viajes recibidos del backend:', viajesRes.data);
-      console.log('🔍 DEBUG - Total de viajes:', viajesRes.data?.length || 0);
+      console.log('🔍 DEBUG - Viajes recibidos del backend:', viajesRes);
+      console.log('🔍 DEBUG - Total de viajes:', viajesRes?.length || 0);
       
       // Mapear pasajeros a compras
-      const pasajeros = pasajerosRes.data || [];
-      const viajes = viajesRes.data || [];
+      const pasajeros = pasajerosRes || [];
+      const viajes = viajesRes || [];
       
       const comprasData: CompraRow[] = pasajeros.map((p: any) => {
         const viaje = viajes.find((v: any) => v.id === p.viaje_id);
@@ -789,7 +792,7 @@ export function ComprasView() {
   const finalizarCompra = async (datos: { nombre: string; documento: string; telefono: string; viajeId: string; asiento: string; precio: number; metodo: string }) => {
     try {
       setLoading(true);
-      await api.post('/pasajeros', {
+      await api.createPasajero({
         nombre: datos.nombre,
         documento: datos.documento,
         telefono: datos.telefono || null,
@@ -804,7 +807,7 @@ export function ComprasView() {
       await cargarDatos();
     } catch (err: any) {
       console.error('Error al crear pasajero:', err);
-      setError(err.response?.data?.error || 'Error al procesar la compra');
+      setError(err.message || 'Error al procesar la compra');
     } finally {
       setLoading(false);
     }
