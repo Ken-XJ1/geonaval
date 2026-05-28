@@ -130,3 +130,11 @@ END $$;
 ALTER TABLE viajes ALTER COLUMN fecha_salida TYPE TIMESTAMP WITHOUT TIME ZONE;
 ALTER TABLE viajes ALTER COLUMN cierre_inscripcion TYPE TIMESTAMP WITHOUT TIME ZONE;
 ALTER TABLE viajes ALTER COLUMN fecha_limite_inscripcion TYPE TIMESTAMP WITHOUT TIME ZONE;
+
+-- Renombrar cuenta de operador de prueba a "Operador 1"
+UPDATE usuarios SET nombre = 'Operador 1' WHERE email = 'operador@geonaval.com';
+
+-- Crear tripulante "Operador 1" para pruebas si no existe
+INSERT INTO tripulacion (nombre, documento, rol, telefono, activo)
+VALUES ('Operador 1', 'OP-001-TEST', 'capitan', '3000000001', true)
+ON CONFLICT (documento) DO UPDATE SET nombre = 'Operador 1', activo = true;

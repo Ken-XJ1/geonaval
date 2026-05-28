@@ -157,7 +157,7 @@ INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES
    '$2b$10$04JZ3.WA0w8pJ.ZwbRVGi.nWiZm1pEWkd4o2QCXVlCfpfJOtZBpra', 'administrador'),
   ('Administrador GeoNaval', 'admin@geonaval.com',
    '$2b$10$LcHDh/AxSGvH3nYqr8nFsOvQ0tXFBURe.dFWGnp78eW7nOiU8/jMO', 'administrador'),
-  ('Operador Demo', 'operador@geonaval.com',
+  ('Operador 1', 'operador@geonaval.com',
    '$2b$10$r4FKqCWDwc3yKRIkfPCEIuQoz2XW33rFXBQWutAVotKj545k8BKhK', 'operador'),
   ('Cliente Demo', 'cliente@geonaval.com',
    '$2b$10$SuXfLqiSzxUHMKNHzvno.OsEmT.2LWxlM4kBweFM/e7LQaChva8/i', 'cliente'),
