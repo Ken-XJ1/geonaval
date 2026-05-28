@@ -986,11 +986,12 @@ export function ComprasView() {
     {
       key: 'acciones',
       label: 'ACCIONES',
-      render: (row: CompraRow) => (
+      render: (_value: any, row: CompraRow) => (
         <button
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            console.log('🔍 Row recibido:', row);
             descargarTicket(row);
           }}
           className="flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"

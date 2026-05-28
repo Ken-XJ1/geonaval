@@ -222,7 +222,7 @@ export function ViajesView() {
     },
     {
       key: 'pasajeros',
-      label: 'Ocupación',
+      label: 'PASAJEROS',
       render: (value: number, row: any) => {
         const capacidad =
           embarcacionesList.find((e) => e.nombre === row.embarcacion)?.capacidad ||
