@@ -115,7 +115,6 @@ export function EmbarcacionesView() {
     e.preventDefault();
     try {
       const body = {
-        nic: `NIC-${editingId || Date.now()}`,
         nombre: formData.nombre,
         tipo: formData.tipo,
         capacidad_pasajeros: parseInt(formData.capacidad, 10),

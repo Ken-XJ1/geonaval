@@ -84,7 +84,6 @@ router.get('/:id', async (req: Request, res: Response) => {
 
 router.post('/', async (req: Request, res: Response) => {
   const {
-    nic,
     nombre,
     tipo,
     capacidad_pasajeros,
@@ -94,27 +93,44 @@ router.post('/', async (req: Request, res: Response) => {
     estado,
     propietario_id,
   } = req.body;
+
+  if (!nombre || !capacidad_pasajeros) {
+    return res.status(400).json({ error: 'Nombre y capacidad son requeridos' });
+  }
+
   try {
+    // Generar NIC único automáticamente para evitar conflictos
+    const nicBase = `EMB-${Date.now()}`;
+    const nicFinal = `${nicBase}-${Math.floor(Math.random() * 1000)}`;
+
     const result = await pool.query(
       `INSERT INTO embarcaciones
         (nic, nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
       [
-        nic,
+        nicFinal,
         nombre,
-        tipo,
+        tipo ?? 'lancha',
         capacidad_pasajeros,
-        motor,
-        potencia,
-        dimensiones,
+        motor ?? null,
+        potencia ?? null,
+        dimensiones ?? null,
         estado ?? 'operativa',
-        propietario_id,
+        propietario_id ?? null,
       ]
     );
     return res.status(201).json(result.rows[0]);
-  } catch {
-    return res.status(500).json({ error: 'Error del servidor' });
+  } catch (err) {
+    console.error('POST embarcacion:', (err as Error).message);
+    const msg = (err as Error).message || '';
+    if (msg.includes('unique') || msg.includes('duplicate')) {
+      return res.status(400).json({ error: 'Ya existe una embarcación con ese identificador. Intenta de nuevo.' });
+    }
+    if (msg.includes('propietarios')) {
+      return res.status(400).json({ error: 'El propietario seleccionado no existe' });
+    }
+    return res.status(500).json({ error: `Error al crear embarcación: ${msg}` });
   }
 });
 
@@ -133,28 +149,36 @@ router.put('/:id', async (req: Request, res: Response) => {
   try {
     const result = await pool.query(
       `UPDATE embarcaciones SET
-        nic = $1, nombre = $2, tipo = $3, capacidad_pasajeros = $4,
-        motor = $5, potencia = $6, dimensiones = $7, estado = $8, propietario_id = $9
+        nic = COALESCE($1, nic),
+        nombre = COALESCE($2, nombre),
+        tipo = COALESCE($3, tipo),
+        capacidad_pasajeros = COALESCE($4, capacidad_pasajeros),
+        motor = $5,
+        potencia = $6,
+        dimensiones = $7,
+        estado = COALESCE($8, estado),
+        propietario_id = $9
        WHERE id = $10
        RETURNING *`,
       [
-        nic,
-        nombre,
-        tipo,
-        capacidad_pasajeros,
-        motor,
-        potencia,
-        dimensiones,
-        estado,
-        propietario_id,
+        nic ?? null,
+        nombre ?? null,
+        tipo ?? null,
+        capacidad_pasajeros ?? null,
+        motor ?? null,
+        potencia ?? null,
+        dimensiones ?? null,
+        estado ?? null,
+        propietario_id ?? null,
         req.params.id,
       ]
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
     return res.json(result.rows[0]);
-  } catch {
-    return res.status(500).json({ error: 'Error del servidor' });
+  } catch (err) {
+    console.error('PUT embarcacion:', (err as Error).message);
+    return res.status(500).json({ error: `Error al actualizar: ${(err as Error).message}` });
   }
 });
 
