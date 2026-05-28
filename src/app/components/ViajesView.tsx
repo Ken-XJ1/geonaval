@@ -833,9 +833,11 @@ export function ViajesView() {
               key: 'acciones',
               label: 'Acciones',
               render: (_: unknown, row: ReturnType<typeof mapViajeToUI>) => (
-                <div className="flex flex-wrap gap-1 items-center">
-                  {row.operador === '—' && (
-                    <>
+                <div className="flex flex-col gap-2 min-w-[160px]">
+
+                  {/* Asignar operador si no tiene */}
+                  {row.operador === '—' && row.estado !== 'cancelado' && row.estado !== 'finalizado' && (
+                    <div className="flex gap-1">
                       <select
                         value={assignOperador[row.dbId] || ''}
                         onChange={(e) =>
@@ -844,7 +846,7 @@ export function ViajesView() {
                             [row.dbId]: e.target.value,
                           }))
                         }
-                        className="text-xs px-2 py-1 border border-border rounded"
+                        className="text-xs px-2 py-1 border border-border rounded flex-1"
                       >
                         <option value="">Operador...</option>
                         {tripulacionList.map((t) => (
@@ -858,36 +860,62 @@ export function ViajesView() {
                         onClick={() => handleAsignarOperador(row.dbId)}
                         className="text-xs px-2 py-1 bg-primary text-white rounded"
                       >
-                        Asignar
+                        +
                       </button>
-                    </>
+                    </div>
                   )}
+
+                  {/* PROGRAMADO → Iniciar */}
                   {row.estado === 'programado' && (
                     <button
                       type="button"
-                      onClick={() => handleCambiarEstado(row, 'en_curso')}
-                      className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded"
+                      onClick={() => {
+                        if (confirm(`¿Iniciar el viaje ${row.id} (${row.ruta})?`)) {
+                          handleCambiarEstado(row, 'en_curso');
+                        }
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
                     >
-                      Iniciar
+                      ▶ Iniciar Viaje
                     </button>
                   )}
+
+                  {/* EN CURSO → Finalizar */}
                   {row.estado === 'en_curso' && (
                     <button
                       type="button"
-                      onClick={() => handleCambiarEstado(row, 'finalizado')}
-                      className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded"
+                      onClick={() => {
+                        if (confirm(`¿Finalizar el viaje ${row.id} (${row.ruta})?`)) {
+                          handleCambiarEstado(row, 'finalizado');
+                        }
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
                     >
-                      Finalizar
+                      ⏹ Finalizar Viaje
                     </button>
                   )}
+
+                  {/* Cancelar — solo si no está finalizado ni cancelado */}
                   {row.estado !== 'cancelado' && row.estado !== 'finalizado' && (
                     <button
                       type="button"
-                      onClick={() => handleCambiarEstado(row, 'cancelado')}
-                      className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded"
+                      onClick={() => {
+                        const razon = prompt(`Razón de cancelación del viaje ${row.id}:`);
+                        if (razon !== null) {
+                          handleCambiarEstado(row, 'cancelado');
+                        }
+                      }}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-medium transition-colors"
                     >
-                      Cancelar
+                      ✕ Cancelar
                     </button>
+                  )}
+
+                  {/* Finalizado / Cancelado — solo eliminar */}
+                  {(row.estado === 'finalizado' || row.estado === 'cancelado') && (
+                    <span className="text-xs text-muted-foreground italic text-center py-1">
+                      {row.estado === 'finalizado' ? '✓ Completado' : '✗ Cancelado'}
+                    </span>
                   )}
                 </div>
               ),
