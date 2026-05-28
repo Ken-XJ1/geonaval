@@ -287,12 +287,14 @@ export function NotificacionesView() {
                           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             {new Date(n.created_at).toLocaleDateString('es-CO', {
-                              day: '2-digit', month: '2-digit', year: 'numeric'
+                              day: '2-digit', month: '2-digit', year: 'numeric',
+                              timeZone: 'America/Bogota'
                             })}
                           </div>
                           <span className="text-[11px] text-muted-foreground">
                             {new Date(n.created_at).toLocaleTimeString('es-CO', {
-                              hour: '2-digit', minute: '2-digit'
+                              hour: '2-digit', minute: '2-digit',
+                              timeZone: 'America/Bogota'
                             })}
                           </span>
                         </div>
