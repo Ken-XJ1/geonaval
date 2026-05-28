@@ -52,6 +52,24 @@ router.post('/', async (req: Request, res: Response) => {
       try {
         await client.query('BEGIN');
         
+        // Verificar si el asiento ya está ocupado
+        if (asiento && asiento.trim()) {
+          const asientoCheck = await client.query(
+            `SELECT p.nombre, p.documento 
+             FROM viaje_pasajeros vp
+             INNER JOIN pasajeros p ON p.id = vp.pasajero_id
+             WHERE vp.viaje_id = $1 AND vp.asiento = $2`,
+            [viaje_id, asiento]
+          );
+          
+          if (asientoCheck.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+              error: `El asiento ${asiento} ya está ocupado por ${asientoCheck.rows[0].nombre}` 
+            });
+          }
+        }
+        
         // Crear pasajero
         const pasajeroResult = await client.query(
           `INSERT INTO pasajeros (nombre, documento, telefono, email)

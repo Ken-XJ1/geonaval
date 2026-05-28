@@ -401,14 +401,19 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
   // Cargar asientos ocupados cuando se selecciona un viaje
   useEffect(() => {
     if (viajeId) {
+      console.log('🔍 Cargando asientos ocupados para viaje:', viajeId);
       api.getViajePasajeros(parseInt(viajeId))
         .then((pasajeros: any[]) => {
           const ocupados = pasajeros
             .map((p: any) => p.asiento)
             .filter((a: string) => a && a.trim());
+          console.log('🔍 Asientos ocupados:', ocupados);
           setAsientosOcupados(ocupados);
         })
-        .catch(err => console.error('Error cargando asientos:', err));
+        .catch(err => {
+          console.error('Error cargando asientos:', err);
+          setAsientosOcupados([]);
+        });
     } else {
       setAsientosOcupados([]);
     }
@@ -875,6 +880,7 @@ export function ComprasView() {
   const finalizarCompra = async (datos: { nombre: string; documento: string; telefono: string; viajeId: string; asiento: string; precio: number; metodo: string }) => {
     try {
       setLoading(true);
+      setError(null);
       await api.createPasajero({
         nombre: datos.nombre,
         documento: datos.documento,
@@ -889,7 +895,12 @@ export function ComprasView() {
       await cargarDatos();
     } catch (err: any) {
       console.error('Error al crear pasajero:', err);
-      setError(err.message || 'Error al procesar la compra');
+      const errorMsg = err.message || 'Error al procesar la compra';
+      setError(errorMsg);
+      // Si el error es de asiento ocupado, mostrar alert también
+      if (errorMsg.includes('asiento') && errorMsg.includes('ocupado')) {
+        alert(errorMsg);
+      }
     } finally {
       setLoading(false);
     }
