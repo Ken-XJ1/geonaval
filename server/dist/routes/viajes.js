@@ -204,9 +204,19 @@ router.post('/:id/pasajeros', async (req, res) => {
         return res.status(400).json({ error: 'pasajero_id requerido' });
     }
     try {
-        const viaje = await pool_1.default.query('SELECT precio FROM viajes WHERE id = $1', [
-            req.params.id,
-        ]);
+        const viaje = await pool_1.default.query(`SELECT v.precio, v.embarcacion_id, e.nombre AS embarcacion_nombre, e.estado AS embarcacion_estado
+       FROM viajes v
+       LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+       WHERE v.id = $1`, [req.params.id]);
+        if (!viaje.rows[0]) {
+            return res.status(404).json({ error: 'Viaje no encontrado' });
+        }
+        // Verificar que la embarcación no esté fuera de servicio
+        if (viaje.rows[0].embarcacion_estado === 'fuera_servicio') {
+            return res.status(400).json({
+                error: `No se puede asignar pasajeros. La embarcación "${viaje.rows[0].embarcacion_nombre}" está fuera de servicio`,
+            });
+        }
         await pool_1.default.query(`INSERT INTO viaje_pasajeros (viaje_id, pasajero_id, asiento, precio_pagado, usuario_id, metodo_pago)
        VALUES ($1, $2, $3, $4, $5, $6)
        ON CONFLICT (viaje_id, pasajero_id) DO UPDATE SET
@@ -233,11 +243,18 @@ router.post('/:id/tripulacion', async (req, res) => {
         return res.status(400).json({ error: 'tripulante_id requerido' });
     }
     try {
-        const viaje = await pool_1.default.query('SELECT id FROM viajes WHERE id = $1', [
-            req.params.id,
-        ]);
+        const viaje = await pool_1.default.query(`SELECT v.id, v.embarcacion_id, e.nombre AS embarcacion_nombre, e.estado AS embarcacion_estado
+       FROM viajes v
+       LEFT JOIN embarcaciones e ON e.id = v.embarcacion_id
+       WHERE v.id = $1`, [req.params.id]);
         if (!viaje.rows[0]) {
             return res.status(404).json({ error: 'Viaje no encontrado' });
+        }
+        // Verificar que la embarcación no esté fuera de servicio
+        if (viaje.rows[0].embarcacion_estado === 'fuera_servicio') {
+            return res.status(400).json({
+                error: `No se puede asignar tripulación. La embarcación "${viaje.rows[0].embarcacion_nombre}" está fuera de servicio`,
+            });
         }
         await pool_1.default.query(`INSERT INTO viaje_tripulacion (viaje_id, tripulante_id)
        VALUES ($1, $2)
@@ -292,6 +309,16 @@ router.post('/', async (req, res) => {
         cierre_inscripcion ||
         new Date(new Date(fecha_salida).getTime() - 2 * 60 * 60 * 1000).toISOString();
     try {
+        // Verificar que la embarcación no esté fuera de servicio
+        const embRes = await pool_1.default.query('SELECT estado, nombre FROM embarcaciones WHERE id = $1', [embarcacion_id]);
+        if (!embRes.rows[0]) {
+            return res.status(404).json({ error: 'Embarcación no encontrada' });
+        }
+        if (embRes.rows[0].estado === 'fuera_servicio') {
+            return res.status(400).json({
+                error: `La embarcación "${embRes.rows[0].nombre}" está fuera de servicio y no puede ser asignada a un viaje`,
+            });
+        }
         const result = await pool_1.default.query(`INSERT INTO viajes
         (fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -331,6 +358,18 @@ router.put('/:id', async (req, res) => {
         const viajeAnterior = await pool_1.default.query('SELECT * FROM viajes WHERE id = $1', [req.params.id]);
         if (!viajeAnterior.rows[0]) {
             return res.status(404).json({ error: 'No encontrado' });
+        }
+        // Si se está cambiando la embarcación, verificar que no esté fuera de servicio
+        if (embarcacion_id && embarcacion_id !== viajeAnterior.rows[0].embarcacion_id) {
+            const embRes = await pool_1.default.query('SELECT estado, nombre FROM embarcaciones WHERE id = $1', [embarcacion_id]);
+            if (!embRes.rows[0]) {
+                return res.status(404).json({ error: 'Embarcación no encontrada' });
+            }
+            if (embRes.rows[0].estado === 'fuera_servicio') {
+                return res.status(400).json({
+                    error: `La embarcación "${embRes.rows[0].nombre}" está fuera de servicio y no puede ser asignada a un viaje`,
+                });
+            }
         }
         const result = await pool_1.default.query(`UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
