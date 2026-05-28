@@ -1,15 +1,59 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Plus, Navigation, Calendar, AlertTriangle, Filter, Download } from 'lucide-react';
+import { Plus, Navigation, Calendar, AlertTriangle, Filter, Download, Clock, Users, MapPin, Anchor, X, CheckCircle } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
 import { ViewFeedback } from './ViewFeedback';
 import { api } from '../../services/api';
 import { mapViajeToUI } from '../../services/mappers';
 
+type ResumenViaje = {
+  row: ReturnType<typeof mapViajeToUI>;
+  puntosGps: number;
+  distanciaKm: number;
+};
+
+function calcularDuracion(salida: string, llegada: string): string {
+  // Parsear fechas en formato DD/MM/YYYY
+  const parseFecha = (fecha: string, hora: string) => {
+    const [d, m, y] = fecha.split('/');
+    return new Date(`${y}-${m}-${d}T${hora}:00`);
+  };
+  try {
+    const inicio = parseFecha(salida, '00:00');
+    const fin = parseFecha(llegada, '23:59');
+    const diffMs = fin.getTime() - inicio.getTime();
+    if (diffMs <= 0) return '—';
+    const horas = Math.floor(diffMs / 3600000);
+    const minutos = Math.floor((diffMs % 3600000) / 60000);
+    return horas > 0 ? `${horas}h ${minutos}m` : `${minutos}m`;
+  } catch {
+    return '—';
+  }
+}
+
+function calcularDistancia(puntos: { latitud: number; longitud: number }[]): number {
+  if (puntos.length < 2) return 0;
+  let total = 0;
+  for (let i = 1; i < puntos.length; i++) {
+    const R = 6371;
+    const dLat = ((puntos[i].latitud - puntos[i - 1].latitud) * Math.PI) / 180;
+    const dLon = ((puntos[i].longitud - puntos[i - 1].longitud) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((puntos[i - 1].latitud * Math.PI) / 180) *
+        Math.cos((puntos[i].latitud * Math.PI) / 180) *
+        Math.sin(dLon / 2) ** 2;
+    total += R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+  return Math.round(total * 10) / 10;
+}
+
 export function ViajesView() {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resumen, setResumen] = useState<ResumenViaje | null>(null);
+  const [loadingResumen, setLoadingResumen] = useState(false);
   const [embarcacionesList, setEmbarcacionesList] = useState<
     {
       id: number;
@@ -308,6 +352,23 @@ export function ViajesView() {
     }
   };
 
+  const handleVerResumen = async (row: ReturnType<typeof mapViajeToUI>) => {
+    setLoadingResumen(true);
+    setResumen(null);
+    try {
+      const puntos = (await api.getGpsViaje(row.dbId)) as { latitud: number; longitud: number }[];
+      setResumen({
+        row,
+        puntosGps: puntos.length,
+        distanciaKm: calcularDistancia(puntos),
+      });
+    } catch {
+      setResumen({ row, puntosGps: 0, distanciaKm: 0 });
+    } finally {
+      setLoadingResumen(false);
+    }
+  };
+
   const fechasUnicas = [...new Set(viajesLista.map((v) => v.fechaSalida))];
 
   const handleExportarPDF = () => {
@@ -415,6 +476,149 @@ export function ViajesView() {
   return (
     <div className="space-y-6">
       {error ? <ViewFeedback error={error} /> : null}
+
+      {/* Modal Resumen de Viaje */}
+      {(resumen || loadingResumen) && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+            {/* Header modal */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl p-5 text-white">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-7 h-7" />
+                  <div>
+                    <h3 className="text-lg font-bold">Resumen del Viaje</h3>
+                    <p className="text-white/80 text-sm">
+                      {resumen ? `${resumen.row.id} — ${resumen.row.ruta}` : 'Cargando...'}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setResumen(null)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {loadingResumen ? (
+              <div className="p-8 text-center text-muted-foreground">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-3" />
+                Cargando resumen...
+              </div>
+            ) : resumen ? (
+              <div className="p-6 space-y-4">
+
+                {/* Ruta */}
+                <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                  <Navigation className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Ruta</p>
+                    <p className="font-bold text-blue-900">{resumen.row.ruta}</p>
+                  </div>
+                </div>
+
+                {/* Grid de datos */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="w-4 h-4 text-primary" />
+                      <p className="text-xs text-muted-foreground">Hora de Salida</p>
+                    </div>
+                    <p className="font-bold text-lg">{resumen.row.horaSalida}</p>
+                    <p className="text-xs text-muted-foreground">{resumen.row.fechaSalida}</p>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Clock className="w-4 h-4 text-green-600" />
+                      <p className="text-xs text-muted-foreground">Hora de Llegada</p>
+                    </div>
+                    <p className="font-bold text-lg">{resumen.row.horaLlegadaReal || resumen.row.horaLlegada || '—'}</p>
+                    <p className="text-xs text-muted-foreground">{resumen.row.fechaLlegada || resumen.row.fechaSalida}</p>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Users className="w-4 h-4 text-orange-600" />
+                      <p className="text-xs text-muted-foreground">Pasajeros</p>
+                    </div>
+                    <p className="font-bold text-lg">{resumen.row.pasajeros}</p>
+                    <p className="text-xs text-muted-foreground">transportados</p>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="w-4 h-4 text-purple-600" />
+                      <p className="text-xs text-muted-foreground">Recorrido GPS</p>
+                    </div>
+                    <p className="font-bold text-lg">
+                      {resumen.distanciaKm > 0 ? `${resumen.distanciaKm} km` : '—'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">{resumen.puntosGps} puntos registrados</p>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Anchor className="w-4 h-4 text-cyan-600" />
+                      <p className="text-xs text-muted-foreground">Embarcación</p>
+                    </div>
+                    <p className="font-bold text-sm">{resumen.row.embarcacion}</p>
+                    <p className="text-xs text-muted-foreground">{resumen.row.propietario}</p>
+                  </div>
+
+                  <div className="p-4 bg-muted rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Navigation className="w-4 h-4 text-teal-600" />
+                      <p className="text-xs text-muted-foreground">Operador</p>
+                    </div>
+                    <p className="font-bold text-sm">{resumen.row.operador || '—'}</p>
+                    <p className="text-xs text-muted-foreground">a cargo del viaje</p>
+                  </div>
+                </div>
+
+                {/* Recaudado */}
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Total Recaudado</p>
+                    <p className="font-bold text-xl text-green-700">
+                      {new Intl.NumberFormat('es-CO', {
+                        style: 'currency',
+                        currency: 'COP',
+                        maximumFractionDigits: 0,
+                      }).format((resumen.row.precio ?? 0) * resumen.row.pasajeros)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Precio por pasajero</p>
+                    <p className="font-medium text-green-600">
+                      {new Intl.NumberFormat('es-CO', {
+                        style: 'currency',
+                        currency: 'COP',
+                        maximumFractionDigits: 0,
+                      }).format(resumen.row.precio ?? 0)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Badge estado */}
+                <div className="flex items-center justify-between pt-2 border-t border-border">
+                  <StatusBadge status="finalizado" />
+                  <button
+                    type="button"
+                    onClick={() => setResumen(null)}
+                    className="px-5 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
       {saveOk ? (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-green-800 text-sm">
           {saveOk}
@@ -916,6 +1120,17 @@ export function ViajesView() {
                     <span className="text-xs text-muted-foreground italic text-center py-1">
                       {row.estado === 'finalizado' ? '✓ Completado' : '✗ Cancelado'}
                     </span>
+                  )}
+
+                  {/* Resumen — solo viajes finalizados */}
+                  {row.estado === 'finalizado' && (
+                    <button
+                      type="button"
+                      onClick={() => handleVerResumen(row)}
+                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-medium transition-colors"
+                    >
+                      📋 Ver Resumen
+                    </button>
                   )}
                 </div>
               ),
