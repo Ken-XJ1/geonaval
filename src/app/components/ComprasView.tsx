@@ -10,6 +10,7 @@ type CompraRow = {
   id: string;
   ticket: string;
   fecha: string;
+  fechaISO: string; // YYYY-MM-DD para filtrado
   pasajero: string;
   documento: string;
   viaje: string;
@@ -99,6 +100,9 @@ export function ComprasView() {
           fecha: p.created_at
             ? new Date(p.created_at as string).toLocaleDateString('es-CO')
             : '—',
+          fechaISO: p.created_at
+            ? new Date(p.created_at as string).toISOString().split('T')[0]
+            : '',
           pasajero: p.nombre as string,
           documento: p.documento as string,
           viaje: p.viaje_id ? `V-${p.viaje_id}` : '—',
@@ -199,15 +203,9 @@ export function ComprasView() {
       c.documento.toLowerCase().includes(q)
     )) return false;
 
-    if (filtroFecha.desde || filtroFecha.hasta) {
-      // fecha en formato DD/MM/YYYY → convertir a YYYY-MM-DD para comparar
-      const partes = c.fecha.split('/');
-      if (partes.length === 3) {
-        const fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
-        if (filtroFecha.desde && fechaISO < filtroFecha.desde) return false;
-        if (filtroFecha.hasta && fechaISO > filtroFecha.hasta) return false;
-      }
-    }
+    if (filtroFecha.desde && c.fechaISO < filtroFecha.desde) return false;
+    if (filtroFecha.hasta && c.fechaISO > filtroFecha.hasta) return false;
+
     return true;
   });
 
