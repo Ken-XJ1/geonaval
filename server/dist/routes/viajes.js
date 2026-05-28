@@ -230,6 +230,12 @@ router.post('/:id/pasajeros', async (req, res) => {
             usuario_id || null,
             metodo_pago || 'efectivo',
         ]);
+        // Auditoría de inscripción
+        const pasInfo = await pool_1.default.query('SELECT nombre, documento FROM pasajeros WHERE id = $1', [pasajero_id]);
+        const vInfo = await pool_1.default.query('SELECT origen, destino FROM viajes WHERE id = $1', [req.params.id]);
+        if (pasInfo.rows[0] && vInfo.rows[0]) {
+            await (0, notificaciones_1.auditoria)('[PASAJERO] Pasajero inscrito en viaje', `${pasInfo.rows[0].nombre} (doc: ${pasInfo.rows[0].documento}) fue inscrito en el viaje V-${req.params.id} (${vInfo.rows[0].origen} → ${vInfo.rows[0].destino}). Asiento: ${asiento || 'auto'}, Pago: ${metodo_pago || 'efectivo'}.`);
+        }
         return res.status(201).json({ message: 'Pasajero asignado al viaje' });
     }
     catch (err) {
@@ -342,6 +348,8 @@ router.post('/', async (req, res) => {
         }
         // Notificar a todos los clientes sobre el nuevo viaje
         await (0, notificaciones_1.notificarClientes)('Nuevo Viaje Disponible', `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${(0, notificaciones_1.formatearFechaColombia)(fecha_salida)}. ¡Inscríbete ahora!`);
+        // Auditoría
+        await (0, notificaciones_1.auditoria)('[VIAJE] Nuevo viaje programado', `Se programó el viaje V-${nuevoViaje.id}: ${origen} → ${destino} para el ${(0, notificaciones_1.formatearFechaColombia)(fecha_salida)}. Precio: $${precio ?? 0}.`);
         return res.status(201).json(nuevoViaje);
     }
     catch (err) {
@@ -402,11 +410,18 @@ router.put('/:id', async (req, res) => {
             if (estado === 'cancelado') {
                 const razon = justificacion_cancelacion || 'No especificada';
                 await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Cancelado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${(0, notificaciones_1.formatearFechaColombia)(viajeActualizado.fecha_salida)}) ha sido cancelado. Razón: ${razon}`);
+                await (0, notificaciones_1.auditoria)('[VIAJE] Viaje cancelado', `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}, ${(0, notificaciones_1.formatearFechaColombia)(viajeActualizado.fecha_salida)}) fue CANCELADO. Razón: ${razon}`);
                 cambios.push('cancelado');
             }
             else if (estado === 'en_curso') {
                 await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Iniciado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha iniciado. ¡Buen viaje!`);
+                await (0, notificaciones_1.auditoria)('[VIAJE] Viaje iniciado — EN CURSO', `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}) fue INICIADO. El GPS comenzará a registrar el recorrido.`);
                 cambios.push('iniciado');
+            }
+            else if (estado === 'finalizado') {
+                await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Finalizado', `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha finalizado exitosamente.`);
+                await (0, notificaciones_1.auditoria)('[VIAJE] Viaje finalizado', `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}) fue FINALIZADO exitosamente.`);
+                cambios.push('finalizado');
             }
         }
         if (fecha_salida && fecha_salida !== viajeAnteriorData.fecha_salida) {
@@ -443,6 +458,7 @@ router.delete('/:id', async (req, res) => {
         const viaje = viajeInfo.rows[0];
         // Notificar a los pasajeros inscritos antes de eliminar
         await (0, notificaciones_1.notificarPasajerosViaje)(Number(req.params.id), 'Viaje Eliminado', `El viaje ${viaje.origen} → ${viaje.destino} (${(0, notificaciones_1.formatearFechaColombia)(viaje.fecha_salida)}) ha sido eliminado del sistema`);
+        await (0, notificaciones_1.auditoria)('[VIAJE] Viaje eliminado', `Se eliminó el viaje V-${req.params.id} (${viaje.origen} → ${viaje.destino}, ${(0, notificaciones_1.formatearFechaColombia)(viaje.fecha_salida)}) del sistema.`);
         // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
         // ahora tienen ON DELETE CASCADE (o se están actualizando vía migraciones)
         const result = await pool_1.default.query('DELETE FROM viajes WHERE id = $1 RETURNING id', [req.params.id]);

@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
-import { notificarClientes, notificarPasajerosViaje, notificarAdministradores, formatearFechaColombia } from '../utils/notificaciones';
+import { notificarClientes, notificarPasajerosViaje, notificarAdministradores, formatearFechaColombia, auditoria } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -303,6 +303,17 @@ router.post('/:id/pasajeros', async (req: Request, res: Response) => {
         metodo_pago || 'efectivo',
       ]
     );
+
+    // Auditoría de inscripción
+    const pasInfo = await pool.query('SELECT nombre, documento FROM pasajeros WHERE id = $1', [pasajero_id]);
+    const vInfo = await pool.query('SELECT origen, destino FROM viajes WHERE id = $1', [req.params.id]);
+    if (pasInfo.rows[0] && vInfo.rows[0]) {
+      await auditoria(
+        '[PASAJERO] Pasajero inscrito en viaje',
+        `${pasInfo.rows[0].nombre} (doc: ${pasInfo.rows[0].documento}) fue inscrito en el viaje V-${req.params.id} (${vInfo.rows[0].origen} → ${vInfo.rows[0].destino}). Asiento: ${asiento || 'auto'}, Pago: ${metodo_pago || 'efectivo'}.`
+      );
+    }
+
     return res.status(201).json({ message: 'Pasajero asignado al viaje' });
   } catch (err) {
     console.error('Asignar pasajero:', (err as Error).message);
@@ -458,6 +469,12 @@ router.post('/', async (req: Request, res: Response) => {
       `Se ha programado un nuevo viaje: ${origen} → ${destino} para el ${formatearFechaColombia(fecha_salida)}. ¡Inscríbete ahora!`
     );
 
+    // Auditoría
+    await auditoria(
+      '[VIAJE] Nuevo viaje programado',
+      `Se programó el viaje V-${nuevoViaje.id}: ${origen} → ${destino} para el ${formatearFechaColombia(fecha_salida)}. Precio: $${precio ?? 0}.`
+    );
+
     return res.status(201).json(nuevoViaje);
   } catch (err) {
     console.error('POST viaje:', (err as Error).message);
@@ -547,6 +564,10 @@ router.put('/:id', async (req: Request, res: Response) => {
           'Viaje Cancelado',
           `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} (${formatearFechaColombia(viajeActualizado.fecha_salida)}) ha sido cancelado. Razón: ${razon}`
         );
+        await auditoria(
+          '[VIAJE] Viaje cancelado',
+          `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}, ${formatearFechaColombia(viajeActualizado.fecha_salida)}) fue CANCELADO. Razón: ${razon}`
+        );
         cambios.push('cancelado');
       } else if (estado === 'en_curso') {
         await notificarPasajerosViaje(
@@ -554,7 +575,22 @@ router.put('/:id', async (req: Request, res: Response) => {
           'Viaje Iniciado',
           `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha iniciado. ¡Buen viaje!`
         );
+        await auditoria(
+          '[VIAJE] Viaje iniciado — EN CURSO',
+          `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}) fue INICIADO. El GPS comenzará a registrar el recorrido.`
+        );
         cambios.push('iniciado');
+      } else if (estado === 'finalizado') {
+        await notificarPasajerosViaje(
+          Number(req.params.id),
+          'Viaje Finalizado',
+          `El viaje ${viajeActualizado.origen} → ${viajeActualizado.destino} ha finalizado exitosamente.`
+        );
+        await auditoria(
+          '[VIAJE] Viaje finalizado',
+          `El viaje V-${req.params.id} (${viajeActualizado.origen} → ${viajeActualizado.destino}) fue FINALIZADO exitosamente.`
+        );
+        cambios.push('finalizado');
       }
     }
 
@@ -614,6 +650,11 @@ router.delete('/:id', async (req: Request, res: Response) => {
       Number(req.params.id),
       'Viaje Eliminado',
       `El viaje ${viaje.origen} → ${viaje.destino} (${formatearFechaColombia(viaje.fecha_salida)}) ha sido eliminado del sistema`
+    );
+
+    await auditoria(
+      '[VIAJE] Viaje eliminado',
+      `Se eliminó el viaje V-${req.params.id} (${viaje.origen} → ${viaje.destino}, ${formatearFechaColombia(viaje.fecha_salida)}) del sistema.`
     );
 
     // Los registros en viaje_pasajeros, viaje_tripulacion, ubicaciones_gps e incidentes
