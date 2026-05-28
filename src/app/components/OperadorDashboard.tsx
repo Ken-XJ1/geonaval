@@ -98,16 +98,16 @@ export function OperadorDashboard({
             <table className="w-full">
               <thead className="bg-muted sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase">
                     Nombre
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase">
                     Documento
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase">
                     Destino / Ruta
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase">
                     Estado
                   </th>
                 </tr>
@@ -240,16 +240,16 @@ export function OperadorDashboard({
           <table className="w-full">
             <thead className="bg-muted sticky top-0 z-10">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
                   Nombre
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
                   Documento
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
                   Destino
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">
                   Estado
                 </th>
               </tr>

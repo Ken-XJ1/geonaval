@@ -229,14 +229,14 @@ export function TripulacionView() {
           <table className="w-full">
             <thead className="bg-muted sticky top-0 z-10">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Nombre</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Documento</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Rol</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Embarcación</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Viajes</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Horario</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">Acciones</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Nombre</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Documento</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Rol</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Embarcación</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Viajes</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Horario</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Estado</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">

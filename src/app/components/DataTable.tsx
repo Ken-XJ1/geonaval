@@ -24,13 +24,13 @@ export function DataTable({ columns, data, onEdit, onDelete, onView }: DataTable
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider"
+                  className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider"
                 >
                   {column.label}
                 </th>
               ))}
               {(onEdit || onDelete || onView) && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                <th className="px-6 py-3 text-right text-xs font-bold text-foreground uppercase tracking-wider">
                   Acciones
                 </th>
               )}

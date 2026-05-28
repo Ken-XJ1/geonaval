@@ -221,12 +221,12 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
             <table className="w-full">
               <thead className="bg-muted sticky top-0 z-10">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Embarcación</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Ruta</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Salida</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Pasajeros</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Estado</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">ID</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Embarcación</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Ruta</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Salida</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Pasajeros</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Estado</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -404,11 +404,11 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
             <table className="w-full">
               <thead className="bg-muted sticky top-0 z-10">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Fecha/Hora</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Usuario</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Criterio</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">Resultados</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Fecha/Hora</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Usuario</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Tipo</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Criterio</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-foreground uppercase tracking-wider">Resultados</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
