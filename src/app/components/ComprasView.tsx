@@ -64,6 +64,8 @@ export function ComprasView() {
 
   const [compras, setCompras] = useState<CompraRow[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filtroFecha, setFiltroFecha] = useState({ desde: '', hasta: '' });
+  const [mostrarFiltroFecha, setMostrarFiltroFecha] = useState(false);
   const [stats, setStats] = useState<ComprasStats>({
     ventasHoy: 0,
     totalRecaudado: 0,
@@ -191,13 +193,41 @@ export function ComprasView() {
 
   const filteredCompras = compras.filter((c) => {
     const q = searchTerm.trim().toLowerCase();
-    if (!q) return true;
-    return (
+    if (q && !(
       c.ticket.toLowerCase().includes(q) ||
       c.pasajero.toLowerCase().includes(q) ||
       c.documento.toLowerCase().includes(q)
-    );
+    )) return false;
+
+    if (filtroFecha.desde || filtroFecha.hasta) {
+      // fecha en formato DD/MM/YYYY → convertir a YYYY-MM-DD para comparar
+      const partes = c.fecha.split('/');
+      if (partes.length === 3) {
+        const fechaISO = `${partes[2]}-${partes[1]}-${partes[0]}`;
+        if (filtroFecha.desde && fechaISO < filtroFecha.desde) return false;
+        if (filtroFecha.hasta && fechaISO > filtroFecha.hasta) return false;
+      }
+    }
+    return true;
   });
+
+  const handleExportar = () => {
+    const encabezados = ['Ticket', 'Fecha', 'Pasajero', 'Documento', 'Ruta', 'Asiento', 'Precio', 'Método Pago', 'Estado'];
+    const filas = filteredCompras.map((c) => [
+      c.ticket, c.fecha, c.pasajero, c.documento,
+      c.ruta, c.asiento, c.precio, c.metodoPago, c.estado,
+    ]);
+    const csv = [encabezados, ...filas]
+      .map((fila) => fila.map((celda) => `"${String(celda).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `compras_geonaval_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (loading) return <ViewFeedback loading />;
   if (error && compras.length === 0) return <ViewFeedback error={error} />;
@@ -399,15 +429,64 @@ export function ComprasView() {
               className="w-full pl-10 pr-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
             />
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors">
+          <button
+            type="button"
+            onClick={() => setMostrarFiltroFecha(!mostrarFiltroFecha)}
+            className={`flex items-center gap-2 px-4 py-2 border rounded-lg transition-colors ${
+              filtroFecha.desde || filtroFecha.hasta
+                ? 'border-primary bg-primary/5 text-primary'
+                : 'border-border hover:bg-muted'
+            }`}
+          >
             <Calendar className="w-4 h-4" />
             Filtrar por Fecha
+            {(filtroFecha.desde || filtroFecha.hasta) && (
+              <span className="ml-1 text-xs bg-primary text-white rounded-full px-1.5 py-0.5">✓</span>
+            )}
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+          <button
+            type="button"
+            onClick={handleExportar}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
             <Download className="w-4 h-4" />
-            Exportar
+            Exportar ({filteredCompras.length})
           </button>
         </div>
+
+        {/* Panel de filtro de fecha */}
+        {mostrarFiltroFecha && (
+          <div className="mt-4 pt-4 border-t border-border flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-sm font-medium mb-1">Desde</label>
+              <input
+                type="date"
+                value={filtroFecha.desde}
+                onChange={(e) => setFiltroFecha({ ...filtroFecha, desde: e.target.value })}
+                className="px-3 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Hasta</label>
+              <input
+                type="date"
+                value={filtroFecha.hasta}
+                onChange={(e) => setFiltroFecha({ ...filtroFecha, hasta: e.target.value })}
+                className="px-3 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none text-sm"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => { setFiltroFecha({ desde: '', hasta: '' }); setMostrarFiltroFecha(false); }}
+              className="px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+            >
+              Limpiar
+            </button>
+            <p className="text-sm text-muted-foreground self-center">
+              {filteredCompras.length} resultado{filteredCompras.length !== 1 ? 's' : ''}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Table */}
