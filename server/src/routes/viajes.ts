@@ -398,6 +398,7 @@ router.get('/:id', async (req: Request, res: Response) => {
 router.post('/', async (req: Request, res: Response) => {
   const {
     fecha_salida,
+    fecha_llegada,
     cierre_inscripcion,
     fecha_limite_inscripcion,
     origen,
@@ -435,11 +436,12 @@ router.post('/', async (req: Request, res: Response) => {
 
     const result = await pool.query(
       `INSERT INTO viajes
-        (fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (fecha_salida, fecha_llegada, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
       [
         fecha_salida,
+        fecha_llegada || null,
         cierre,
         cierre,
         origen,
@@ -487,6 +489,7 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   const {
     fecha_salida,
+    fecha_llegada,
     cierre_inscripcion,
     fecha_limite_inscripcion,
     origen,
@@ -526,18 +529,20 @@ router.put('/:id', async (req: Request, res: Response) => {
     const result = await pool.query(
       `UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
-        cierre_inscripcion = COALESCE($2, cierre_inscripcion),
-        fecha_limite_inscripcion = COALESCE($3, fecha_limite_inscripcion),
-        origen = COALESCE($4, origen),
-        destino = COALESCE($5, destino),
-        embarcacion_id = COALESCE($6, embarcacion_id),
-        precio = COALESCE($7, precio),
-        estado = COALESCE($8, estado),
-        justificacion_cancelacion = COALESCE($9, justificacion_cancelacion)
-       WHERE id = $10
+        fecha_llegada = COALESCE($2, fecha_llegada),
+        cierre_inscripcion = COALESCE($3, cierre_inscripcion),
+        fecha_limite_inscripcion = COALESCE($4, fecha_limite_inscripcion),
+        origen = COALESCE($5, origen),
+        destino = COALESCE($6, destino),
+        embarcacion_id = COALESCE($7, embarcacion_id),
+        precio = COALESCE($8, precio),
+        estado = COALESCE($9, estado),
+        justificacion_cancelacion = COALESCE($10, justificacion_cancelacion)
+       WHERE id = $11
        RETURNING *`,
       [
         fecha_salida,
+        fecha_llegada ?? null,
         cierre_inscripcion,
         fecha_limite_inscripcion,
         origen,

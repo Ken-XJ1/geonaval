@@ -158,20 +158,20 @@ export function mapViajeToUI(
   row: Record<string, unknown>,
   embarcacionNombre?: string
 ) {
-  const fecha = row.fecha_salida as string;
+  const fechaSalida = row.fecha_salida as string;
+  const fechaLlegada = row.fecha_llegada as string | undefined;
   const origen = row.origen as string;
   const destino = row.destino as string;
-  const emb =
-    embarcacionNombre || (row.embarcacion_nombre as string) || '—';
+  const emb = embarcacionNombre || (row.embarcacion_nombre as string) || '—';
   const count = Number(row.pasajeros_count ?? 0);
   return {
     dbId: Number(row.id),
     id: `V-${String(row.id).padStart(3, '0')}`,
-    fechaSalida: formatDate(fecha),
-    horaSalida: formatTime(fecha),
-    fechaLlegada: formatDate(fecha),
-    horaLlegada: formatTime(fecha),
-    horaLlegadaReal: formatTime(fecha),
+    fechaSalida: formatDate(fechaSalida),
+    horaSalida: formatTime(fechaSalida),
+    fechaLlegada: fechaLlegada ? formatDate(fechaLlegada) : formatDate(fechaSalida),
+    horaLlegada: fechaLlegada ? formatTime(fechaLlegada) : '—',
+    horaLlegadaReal: fechaLlegada ? formatTime(fechaLlegada) : '—',
     ruta: `${origen} - ${destino}`,
     embarcacion: emb,
     propietario: (row.propietario_nombre as string) || '—',

@@ -304,7 +304,7 @@ router.get('/:id', async (req, res) => {
     return res.json(rows[0]);
 });
 router.post('/', async (req, res) => {
-    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, tripulante_id, } = req.body;
+    const { fecha_salida, fecha_llegada, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, tripulante_id, } = req.body;
     if (!fecha_salida || !origen || !destino || !embarcacion_id) {
         return res.status(400).json({
             error: 'Fecha, origen, destino y embarcación son requeridos',
@@ -326,10 +326,11 @@ router.post('/', async (req, res) => {
             });
         }
         const result = await pool_1.default.query(`INSERT INTO viajes
-        (fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        (fecha_salida, fecha_llegada, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`, [
             fecha_salida,
+            fecha_llegada || null,
             cierre,
             cierre,
             origen,
@@ -360,7 +361,7 @@ router.post('/', async (req, res) => {
     }
 });
 router.put('/:id', async (req, res) => {
-    const { fecha_salida, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
+    const { fecha_salida, fecha_llegada, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, } = req.body;
     try {
         // Obtener el viaje anterior para comparar cambios
         const viajeAnterior = await pool_1.default.query('SELECT * FROM viajes WHERE id = $1', [req.params.id]);
@@ -381,17 +382,19 @@ router.put('/:id', async (req, res) => {
         }
         const result = await pool_1.default.query(`UPDATE viajes SET
         fecha_salida = COALESCE($1, fecha_salida),
-        cierre_inscripcion = COALESCE($2, cierre_inscripcion),
-        fecha_limite_inscripcion = COALESCE($3, fecha_limite_inscripcion),
-        origen = COALESCE($4, origen),
-        destino = COALESCE($5, destino),
-        embarcacion_id = COALESCE($6, embarcacion_id),
-        precio = COALESCE($7, precio),
-        estado = COALESCE($8, estado),
-        justificacion_cancelacion = COALESCE($9, justificacion_cancelacion)
-       WHERE id = $10
+        fecha_llegada = COALESCE($2, fecha_llegada),
+        cierre_inscripcion = COALESCE($3, cierre_inscripcion),
+        fecha_limite_inscripcion = COALESCE($4, fecha_limite_inscripcion),
+        origen = COALESCE($5, origen),
+        destino = COALESCE($6, destino),
+        embarcacion_id = COALESCE($7, embarcacion_id),
+        precio = COALESCE($8, precio),
+        estado = COALESCE($9, estado),
+        justificacion_cancelacion = COALESCE($10, justificacion_cancelacion)
+       WHERE id = $11
        RETURNING *`, [
             fecha_salida,
+            fecha_llegada ?? null,
             cierre_inscripcion,
             fecha_limite_inscripcion,
             origen,

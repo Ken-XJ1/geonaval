@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS pasajeros (
 CREATE TABLE IF NOT EXISTS viajes (
   id SERIAL PRIMARY KEY,
   fecha_salida TIMESTAMP NOT NULL,
+  fecha_llegada TIMESTAMP WITHOUT TIME ZONE,
   cierre_inscripcion TIMESTAMP,
   fecha_limite_inscripcion TIMESTAMP,
   origen VARCHAR(100) NOT NULL,

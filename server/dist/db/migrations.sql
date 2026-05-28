@@ -138,3 +138,6 @@ UPDATE usuarios SET nombre = 'Operador 1' WHERE email = 'operador@geonaval.com';
 INSERT INTO tripulacion (nombre, documento, rol, telefono, activo)
 VALUES ('Operador 1', 'OP-001-TEST', 'capitan', '3000000001', true)
 ON CONFLICT (documento) DO UPDATE SET nombre = 'Operador 1', activo = true;
+
+-- Agregar campo fecha_llegada a viajes
+ALTER TABLE viajes ADD COLUMN IF NOT EXISTS fecha_llegada TIMESTAMP WITHOUT TIME ZONE;

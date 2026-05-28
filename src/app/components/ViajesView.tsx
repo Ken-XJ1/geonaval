@@ -5,10 +5,27 @@ import { StatusBadge } from './StatusBadge';
 import { ViewFeedback } from './ViewFeedback';
 import { api } from '../../services/api';
 import { mapViajeToUI } from '../../services/mappers';
+import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({ iconRetinaUrl: markerIcon2x, iconUrl: markerIcon, shadowUrl: markerShadow });
+
+const inicioIcon = L.divIcon({
+  html: `<div style="background:#16a34a;border:3px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+  className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+});
+const finIcon = L.divIcon({
+  html: `<div style="background:#dc2626;border:3px solid white;border-radius:50%;width:16px;height:16px;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+  className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+});
 
 type ResumenViaje = {
   row: ReturnType<typeof mapViajeToUI>;
-  puntosGps: number;
+  puntosGps: { latitud: number; longitud: number }[];
   distanciaKm: number;
 };
 
@@ -287,14 +304,18 @@ export function ViajesView() {
       // Construir fecha sin conversión de zona horaria
       // Formato: "YYYY-MM-DD HH:mm:ss" — PostgreSQL lo guarda tal cual en TIMESTAMP WITHOUT TIME ZONE
       const fecha_salida = `${formData.fechaSalida} ${formData.horaSalida}:00`;
+      const fecha_llegada = formData.fechaLlegada && formData.horaLlegada
+        ? `${formData.fechaLlegada} ${formData.horaLlegada}:00`
+        : null;
       const cierre_inscripcion = formData.cierreInscripcionFecha
         ? `${formData.cierreInscripcionFecha} ${formData.cierreInscripcionHora || '23:59'}:00`
-        : `${formData.fechaSalida} ${formData.horaSalida}:00`; // mismo momento si no se especifica
+        : `${formData.fechaSalida} ${formData.horaSalida}:00`;
       if (!formData.operador) {
         throw new Error('Debes asignar un operador al viaje');
       }
       await api.createViaje({
         fecha_salida,
+        fecha_llegada,
         cierre_inscripcion,
         fecha_limite_inscripcion: cierre_inscripcion,
         origen: formData.origen,
@@ -359,11 +380,11 @@ export function ViajesView() {
       const puntos = (await api.getGpsViaje(row.dbId)) as { latitud: number; longitud: number }[];
       setResumen({
         row,
-        puntosGps: puntos.length,
+        puntosGps: puntos,
         distanciaKm: calcularDistancia(puntos),
       });
     } catch {
-      setResumen({ row, puntosGps: 0, distanciaKm: 0 });
+      setResumen({ row, puntosGps: [], distanciaKm: 0 });
     } finally {
       setLoadingResumen(false);
     }
@@ -480,9 +501,9 @@ export function ViajesView() {
       {/* Modal Resumen de Viaje */}
       {(resumen || loadingResumen) && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-            {/* Header modal */}
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl p-5 text-white">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-t-2xl p-5 text-white sticky top-0 z-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-7 h-7" />
@@ -493,11 +514,8 @@ export function ViajesView() {
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setResumen(null)}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
+                <button type="button" onClick={() => setResumen(null)}
+                  className="p-2 hover:bg-white/20 rounded-lg transition-colors">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -509,7 +527,61 @@ export function ViajesView() {
                 Cargando resumen...
               </div>
             ) : resumen ? (
-              <div className="p-6 space-y-4">
+              <div className="p-6 space-y-5">
+
+                {/* Mapa del recorrido */}
+                <div>
+                  <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary" />
+                    Recorrido GPS registrado
+                  </h4>
+                  {resumen.puntosGps.length >= 2 ? (
+                    <div className="rounded-xl overflow-hidden border border-border h-52">
+                      <MapContainer
+                        center={[Number(resumen.puntosGps[0].latitud), Number(resumen.puntosGps[0].longitud)]}
+                        zoom={15}
+                        style={{ height: '100%', width: '100%' }}
+                        zoomControl={false}
+                        scrollWheelZoom={false}
+                      >
+                        <TileLayer
+                          attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                          subdomains="abcd"
+                        />
+                        <Polyline
+                          positions={resumen.puntosGps.map(p => [Number(p.latitud), Number(p.longitud)] as [number, number])}
+                          color="#7c3aed"
+                          weight={4}
+                          opacity={0.9}
+                        />
+                        <Marker position={[Number(resumen.puntosGps[0].latitud), Number(resumen.puntosGps[0].longitud)]} icon={inicioIcon}>
+                          <Popup><span className="text-xs font-bold text-green-700">Inicio</span></Popup>
+                        </Marker>
+                        <Marker position={[Number(resumen.puntosGps[resumen.puntosGps.length - 1].latitud), Number(resumen.puntosGps[resumen.puntosGps.length - 1].longitud)]} icon={finIcon}>
+                          <Popup><span className="text-xs font-bold text-red-700">Fin</span></Popup>
+                        </Marker>
+                      </MapContainer>
+                    </div>
+                  ) : (
+                    <div className="h-32 bg-muted rounded-xl flex items-center justify-center border border-border">
+                      <p className="text-sm text-muted-foreground">Sin recorrido GPS registrado para este viaje</p>
+                    </div>
+                  )}
+                  {resumen.puntosGps.length >= 2 && (
+                    <div className="flex gap-4 mt-2 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-green-600 rounded-full border border-white shadow" /> Inicio
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-3 h-3 bg-red-600 rounded-full border border-white shadow" /> Fin
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <div className="w-6 h-1 bg-purple-600 rounded" /> Recorrido
+                      </span>
+                    </div>
+                  )}
+                </div>
 
                 {/* Ruta */}
                 <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
@@ -536,8 +608,8 @@ export function ViajesView() {
                       <Clock className="w-4 h-4 text-green-600" />
                       <p className="text-xs text-muted-foreground">Hora de Llegada</p>
                     </div>
-                    <p className="font-bold text-lg">{resumen.row.horaLlegadaReal || resumen.row.horaLlegada || '—'}</p>
-                    <p className="text-xs text-muted-foreground">{resumen.row.fechaLlegada || resumen.row.fechaSalida}</p>
+                    <p className="font-bold text-lg">{resumen.row.horaLlegadaReal !== '—' ? resumen.row.horaLlegadaReal : resumen.row.horaLlegada}</p>
+                    <p className="text-xs text-muted-foreground">{resumen.row.fechaLlegada}</p>
                   </div>
 
                   <div className="p-4 bg-muted rounded-xl">
@@ -557,7 +629,7 @@ export function ViajesView() {
                     <p className="font-bold text-lg">
                       {resumen.distanciaKm > 0 ? `${resumen.distanciaKm} km` : '—'}
                     </p>
-                    <p className="text-xs text-muted-foreground">{resumen.puntosGps} puntos registrados</p>
+                    <p className="text-xs text-muted-foreground">{resumen.puntosGps.length} puntos registrados</p>
                   </div>
 
                   <div className="p-4 bg-muted rounded-xl">
@@ -579,38 +651,26 @@ export function ViajesView() {
                   </div>
                 </div>
 
-                {/* Recaudado */}
+                {/* Total recaudado */}
                 <div className="p-4 bg-green-50 rounded-xl border border-green-200 flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground">Total Recaudado</p>
                     <p className="font-bold text-xl text-green-700">
-                      {new Intl.NumberFormat('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        maximumFractionDigits: 0,
-                      }).format((resumen.row.precio ?? 0) * resumen.row.pasajeros)}
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format((resumen.row.precio ?? 0) * resumen.row.pasajeros)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground">Precio por pasajero</p>
                     <p className="font-medium text-green-600">
-                      {new Intl.NumberFormat('es-CO', {
-                        style: 'currency',
-                        currency: 'COP',
-                        maximumFractionDigits: 0,
-                      }).format(resumen.row.precio ?? 0)}
+                      {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(resumen.row.precio ?? 0)}
                     </p>
                   </div>
                 </div>
 
-                {/* Badge estado */}
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <StatusBadge status="finalizado" />
-                  <button
-                    type="button"
-                    onClick={() => setResumen(null)}
-                    className="px-5 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                  >
+                  <button type="button" onClick={() => setResumen(null)}
+                    className="px-5 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium">
                     Cerrar
                   </button>
                 </div>
