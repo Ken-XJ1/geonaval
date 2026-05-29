@@ -287,46 +287,22 @@ export function NotificacionesView() {
                           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             {(() => {
-                              // Parsear la fecha y ajustar a hora de Colombia
-                              const fechaStr = n.created_at;
-                              
-                              // Si viene en formato ISO o SQL, parsearlo
-                              let fecha: Date;
-                              if (fechaStr.includes('T') || fechaStr.includes(' ')) {
-                                // Crear fecha interpretando como UTC y luego ajustar a Colombia
-                                fecha = new Date(fechaStr + (fechaStr.includes('Z') ? '' : 'Z'));
-                                // Ajustar a hora de Colombia (UTC-5)
-                                fecha.setHours(fecha.getHours() - 5);
-                              } else {
-                                fecha = new Date(fechaStr);
-                              }
-                              
-                              const day = String(fecha.getDate()).padStart(2, '0');
-                              const month = String(fecha.getMonth() + 1).padStart(2, '0');
-                              const year = fecha.getFullYear();
-                              
-                              return `${day}/${month}/${year}`;
+                              // La fecha viene del backend ya en hora de Colombia (WorldTimeAPI)
+                              // Formato: "YYYY-MM-DD HH:mm:ss"
+                              const s = String(n.created_at).replace('T', ' ');
+                              const datePart = s.split(' ')[0];
+                              const [y, m, d] = datePart.split('-');
+                              return `${d}/${m}/${y}`;
                             })()}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] font-medium text-muted-foreground">
                             {(() => {
-                              // Parsear la hora y ajustar a hora de Colombia
-                              const fechaStr = n.created_at;
-                              
-                              let fecha: Date;
-                              if (fechaStr.includes('T') || fechaStr.includes(' ')) {
-                                // Crear fecha interpretando como UTC y luego ajustar a Colombia
-                                fecha = new Date(fechaStr + (fechaStr.includes('Z') ? '' : 'Z'));
-                                // Ajustar a hora de Colombia (UTC-5)
-                                fecha.setHours(fecha.getHours() - 5);
-                              } else {
-                                fecha = new Date(fechaStr);
-                              }
-                              
-                              const hours = String(fecha.getHours()).padStart(2, '0');
-                              const minutes = String(fecha.getMinutes()).padStart(2, '0');
-                              
-                              return `${hours}:${minutes}`;
+                              // La hora viene del backend ya en hora de Colombia (WorldTimeAPI)
+                              const s = String(n.created_at).replace('T', ' ');
+                              const timePart = s.split(' ')[1];
+                              if (!timePart) return '—';
+                              const [h, m] = timePart.split(':');
+                              return `${h}:${m}`;
                             })()}
                           </span>
                         </div>

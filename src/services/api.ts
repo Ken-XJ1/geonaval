@@ -322,4 +322,8 @@ export const api = {
       headers: headers(),
       body: JSON.stringify({ viaje_id, latitud, longitud }),
     }).then((r) => parseJson(r)),
+
+  // Tiempo de Colombia
+  getColombiaTime: () =>
+    fetch(`${BASE}/time`, { headers: headers() }).then((r) => parseJson(r)),
 };

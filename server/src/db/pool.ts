@@ -18,13 +18,17 @@ const pool = new Pool({
     : undefined,
 });
 
+// Configurar zona horaria en CADA nueva conexión del pool
+pool.on('connect', (client) => {
+  client.query("SET timezone = 'America/Bogota'")
+    .then(() => console.log('🕐 Zona horaria configurada: America/Bogota'))
+    .catch((err) => console.error('Error configurando zona horaria:', err.message));
+});
+
 pool
   .connect()
   .then(async (client) => {
-    console.log('Conectado a PostgreSQL correctamente');
-    // Configurar zona horaria de Colombia para esta sesión
-    await client.query("SET timezone = 'America/Bogota'");
-    console.log('Zona horaria configurada: America/Bogota');
+    console.log('✅ Conectado a PostgreSQL correctamente');
     client.release();
   })
   .catch((err) => {

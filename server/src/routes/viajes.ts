@@ -3,6 +3,7 @@ import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
 import { notificarClientes, notificarPasajerosViaje, notificarAdministradores, formatearFechaColombia, auditoria } from '../utils/notificaciones';
+import { getColombiaTime } from '../utils/timeService';
 
 const router = Router();
 router.use(verifyToken);
@@ -416,11 +417,9 @@ router.post('/', async (req: Request, res: Response) => {
     });
   }
   
-  // Validar que la fecha de salida no sea en el pasado (hora de Colombia)
+  // Validar que la fecha de salida no sea en el pasado (hora de Colombia desde WorldTimeAPI)
   try {
-    // Obtener la hora actual de la base de datos (que está en America/Bogota)
-    const ahoraResult = await pool.query("SELECT NOW() AT TIME ZONE 'America/Bogota' as ahora");
-    const ahoraColombia = new Date(ahoraResult.rows[0].ahora);
+    const ahoraColombia = await getColombiaTime();
     const fechaSalidaDate = new Date(fecha_salida);
     
     if (fechaSalidaDate < ahoraColombia) {

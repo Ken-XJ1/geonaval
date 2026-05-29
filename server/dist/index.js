@@ -19,6 +19,7 @@ const usuarios_1 = __importDefault(require("./routes/usuarios"));
 const incidentes_1 = __importDefault(require("./routes/incidentes"));
 const cliente_1 = __importDefault(require("./routes/cliente"));
 const notificaciones_1 = __importDefault(require("./routes/notificaciones"));
+const time_1 = __importDefault(require("./routes/time"));
 const initSchema_1 = require("./db/initSchema");
 const ensureConfigTables_1 = require("./db/ensureConfigTables");
 const pool_1 = __importDefault(require("./db/pool"));
@@ -39,6 +40,7 @@ app.use('/api/usuarios', usuarios_1.default);
 app.use('/api/incidentes', incidentes_1.default);
 app.use('/api/cliente', cliente_1.default);
 app.use('/api/notificaciones', notificaciones_1.default);
+app.use('/api/time', time_1.default);
 app.get('/api/health', async (_req, res) => {
     try {
         await pool_1.default.query('SELECT 1');

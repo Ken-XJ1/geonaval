@@ -1,4 +1,5 @@
 import pool from '../db/pool';
+import { getColombiaTimeSql } from './timeService';
 
 /**
  * Formatea una fecha para mostrar en notificaciones
@@ -21,10 +22,13 @@ export async function enviarNotificacion(
   mensaje: string
 ): Promise<void> {
   try {
+    // Obtener la hora actual de Colombia desde la API
+    const colombiaTime = await getColombiaTimeSql();
+    
     await pool.query(
-      `INSERT INTO notificaciones (usuario_id, titulo, mensaje)
-       VALUES ($1, $2, $3)`,
-      [usuarioId, titulo, mensaje]
+      `INSERT INTO notificaciones (usuario_id, titulo, mensaje, created_at)
+       VALUES ($1, $2, $3, $4)`,
+      [usuarioId, titulo, mensaje, colombiaTime]
     );
   } catch (err) {
     console.error('Error enviando notificación:', err);

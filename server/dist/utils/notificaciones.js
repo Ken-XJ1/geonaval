@@ -11,6 +11,7 @@ exports.notificarClientes = notificarClientes;
 exports.notificarPasajerosViaje = notificarPasajerosViaje;
 exports.auditoria = auditoria;
 const pool_1 = __importDefault(require("../db/pool"));
+const timeService_1 = require("./timeService");
 /**
  * Formatea una fecha para mostrar en notificaciones
  */
@@ -29,8 +30,10 @@ function formatearFechaColombia(fecha) {
  */
 async function enviarNotificacion(usuarioId, titulo, mensaje) {
     try {
-        await pool_1.default.query(`INSERT INTO notificaciones (usuario_id, titulo, mensaje)
-       VALUES ($1, $2, $3)`, [usuarioId, titulo, mensaje]);
+        // Obtener la hora actual de Colombia desde la API
+        const colombiaTime = await (0, timeService_1.getColombiaTimeSql)();
+        await pool_1.default.query(`INSERT INTO notificaciones (usuario_id, titulo, mensaje, created_at)
+       VALUES ($1, $2, $3, $4)`, [usuarioId, titulo, mensaje, colombiaTime]);
     }
     catch (err) {
         console.error('Error enviando notificación:', err);

@@ -8,6 +8,7 @@ const pool_1 = __importDefault(require("../db/pool"));
 const safeQuery_1 = require("../db/safeQuery");
 const auth_1 = require("../middleware/auth");
 const notificaciones_1 = require("../utils/notificaciones");
+const timeService_1 = require("../utils/timeService");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 const VIAJES_LIST_SQL = `
@@ -311,11 +312,9 @@ router.post('/', async (req, res) => {
             error: 'Fecha, origen, destino y embarcación son requeridos',
         });
     }
-    // Validar que la fecha de salida no sea en el pasado (hora de Colombia)
+    // Validar que la fecha de salida no sea en el pasado (hora de Colombia desde WorldTimeAPI)
     try {
-        // Obtener la hora actual de la base de datos (que está en America/Bogota)
-        const ahoraResult = await pool_1.default.query("SELECT NOW() AT TIME ZONE 'America/Bogota' as ahora");
-        const ahoraColombia = new Date(ahoraResult.rows[0].ahora);
+        const ahoraColombia = await (0, timeService_1.getColombiaTime)();
         const fechaSalidaDate = new Date(fecha_salida);
         if (fechaSalidaDate < ahoraColombia) {
             return res.status(400).json({

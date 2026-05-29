@@ -14,6 +14,7 @@ import usuariosRoutes from './routes/usuarios';
 import incidentesRoutes from './routes/incidentes';
 import clienteRoutes from './routes/cliente';
 import notificacionesRoutes from './routes/notificaciones';
+import timeRoutes from './routes/time';
 import { ensureSchema } from './db/initSchema';
 import { ensureConfigTables } from './db/ensureConfigTables';
 import pool from './db/pool';
@@ -38,6 +39,7 @@ app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/incidentes', incidentesRoutes);
 app.use('/api/cliente', clienteRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/time', timeRoutes);
 
 app.get('/api/health', async (_req, res) => {
   try {
