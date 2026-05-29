@@ -53,12 +53,6 @@ export function PasajerosView() {
     loadViajes();
   }, [load, loadViajes]);
 
-  const estadoConfig = {
-    confirmado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmado' },
-    pendiente: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pendiente' },
-    embarcado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Embarcado' },
-  };
-
   const columns = [
     { key: 'nombre', label: 'Nombre Completo' },
     { key: 'documento', label: 'Documento' },
@@ -67,18 +61,6 @@ export function PasajerosView() {
     { key: 'ruta', label: 'Ruta' },
     { key: 'horaSalida', label: 'Salida' },
     { key: 'horaLlegada', label: 'Llegada Est.' },
-    {
-      key: 'estado',
-      label: 'Estado',
-      render: (value: 'confirmado' | 'pendiente' | 'embarcado') => {
-        const config = estadoConfig[value] || estadoConfig.pendiente;
-        return (
-          <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-            {config.label}
-          </span>
-        );
-      },
-    },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
