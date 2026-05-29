@@ -16,8 +16,6 @@ ON CONFLICT (email) DO UPDATE SET
 INSERT INTO usuarios (nombre, email, password_hash, rol) VALUES
   ('Operador Demo', 'operador@geonaval.com',
    '$2b$10$r4FKqCWDwc3yKRIkfPCEIuQoz2XW33rFXBQWutAVotKj545k8BKhK', 'operador'),
-  ('Cliente Demo', 'cliente@geonaval.com',
-   '$2b$10$SuXfLqiSzxUHMKNHzvno.OsEmT.2LWxlM4kBweFM/e7LQaChva8/i', 'cliente'),
   ('Autoridad Demo', 'autoridad@geonaval.com',
    '$2b$10$mvkC3z6af14i6bC4lVgExu4g2jKSW6uClQofX2MlfrDsd1GnqqRpa', 'autoridad')
 ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash, activo = true;

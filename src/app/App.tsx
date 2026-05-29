@@ -16,7 +16,6 @@ import { UsuariosView } from './components/UsuariosView';
 import { ConfiguracionView } from './components/ConfiguracionView';
 import { OperadorDashboard } from './components/OperadorDashboard';
 import { ReportarIncidenteView } from './components/ReportarIncidenteView';
-import { ClienteDashboard } from './components/ClienteDashboard';
 import { Footer } from './components/Footer';
 import { ComprasView } from './components/ComprasView';
 import { NotificacionesView } from './components/NotificacionesView';
@@ -149,19 +148,6 @@ export default function App() {
               onNavigateReportar={() => setActiveView('reportar')}
             />
           );
-      }
-    }
-
-    if (userRole === 'cliente') {
-      switch (activeView) {
-        case 'dashboard':
-          return <ClienteDashboard />;
-        case 'notificaciones':
-          return <NotificacionesView />;
-        case 'configuracion':
-          return renderConfiguracion();
-        default:
-          return <ClienteDashboard />;
       }
     }
 

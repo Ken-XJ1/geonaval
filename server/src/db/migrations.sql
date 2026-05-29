@@ -141,3 +141,6 @@ ON CONFLICT (documento) DO UPDATE SET nombre = 'Operador 1', activo = true;
 
 -- Agregar campo fecha_llegada a viajes
 ALTER TABLE viajes ADD COLUMN IF NOT EXISTS fecha_llegada TIMESTAMP WITHOUT TIME ZONE;
+
+-- Eliminar cuenta de cliente (ya no se usa)
+DELETE FROM usuarios WHERE email = 'cliente@geonaval.com';
