@@ -304,151 +304,142 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
         )}
       </div>
 
-      {/* Panel de Consultas Oficiales */}
+      {/* Panel de Consultas Oficiales con Alertas Recientes */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <h3 className="font-semibold mb-4 flex items-center gap-2">
-          <Search className="w-5 h-5 text-primary" />
-          Panel de Consultas Oficiales
-        </h3>
-        <form onSubmit={handleConsultar} className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {TIPOS.map(t => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => { setTipo(t.value); setResultados([]); setBuscado(false); setCriterio(''); }}
-                className={`py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                  tipo === t.value ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40 text-foreground'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={criterio}
-              onChange={(e) => setCriterio(e.target.value)}
-              className="flex-1 px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-              placeholder={tipoActual.placeholder}
-              required
-            />
-            <button
-              type="submit"
-              disabled={buscando || !criterio.trim()}
-              className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              <Search className="w-4 h-4" />
-              {buscando ? 'Buscando…' : 'Consultar'}
-            </button>
-          </div>
-        </form>
-        <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3">
-          <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-purple-700">
-            Todas las consultas son registradas y auditadas. Solo personal autorizado puede acceder a esta información.
-          </p>
-        </div>
-        {errorBusqueda && <div className="mt-4"><ViewFeedback error={errorBusqueda} /></div>}
-        {buscado && !errorBusqueda && (
-          <div className="mt-5">
-            <p className="text-sm font-medium mb-3 text-muted-foreground">
-              {resultados.length === 0
-                ? `Sin resultados para "${criterio}" en ${tipoActual.label}`
-                : `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${criterio}"`}
-            </p>
-            <div className="space-y-3">
-              {resultados.map((r, i) => (
-                <div key={i}>
-                  {tipo === 'pasajero'    && <ResultadoPasajero r={r} />}
-                  {tipo === 'tripulacion' && <ResultadoTripulacion r={r} />}
-                  {tipo === 'embarcacion' && <ResultadoEmbarcacion r={r} />}
-                  {tipo === 'viaje'       && <ResultadoViaje r={r} />}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Alertas de Emergencia - Incidentes Activos */}
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-semibold flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-orange-600" />
-            Alertas y Emergencias
-          </h3>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-muted-foreground">
-              {loadingIncidentes ? '…' : `${incidentes.length} activa${incidentes.length !== 1 ? 's' : ''}`}
-            </span>
-            <button
-              onClick={() => onNavigate?.('notificaciones')}
-              className="px-3 py-1.5 text-sm bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
-            >
-              Ver Todas
-            </button>
-          </div>
-        </div>
-        {loadingIncidentes ? (
-          <div className="p-8 text-center text-muted-foreground text-sm">Cargando incidentes…</div>
-        ) : incidentes.length === 0 ? (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Shield className="w-8 h-8 text-green-600" />
-            </div>
-            <p className="text-sm text-muted-foreground">No hay incidentes activos en este momento</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {incidentes.map((incidente) => {
-              const severidad = incidente.severidad as string;
-              const esAlta = severidad === 'alta' || severidad === 'critica';
-              return (
-                <div 
-                  key={incidente.id as number} 
-                  className={`p-4 rounded-lg border ${
-                    esAlta 
-                      ? 'bg-red-50 border-red-200' 
-                      : 'bg-orange-50 border-orange-200'
-                  }`}
+        <div className="space-y-6">
+          {/* Alertas Recientes */}
+          {incidentes.length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="font-semibold flex items-center gap-2 text-orange-600">
+                  <AlertTriangle className="w-5 h-5" />
+                  Alertas Recientes
+                </h4>
+                <button
+                  onClick={() => onNavigate?.('notificaciones')}
+                  className="px-3 py-1.5 text-xs bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors font-medium"
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold capitalize">{incidente.tipo as string}</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full uppercase font-medium ${
-                          esAlta 
-                            ? 'bg-red-200 text-red-800' 
-                            : 'bg-orange-200 text-orange-800'
-                        }`}>
-                          {severidad}
-                        </span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          incidente.estado === 'abierto' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {incidente.estado as string}
+                  Ver Todas las Alertas
+                </button>
+              </div>
+              <div className="space-y-2 mb-6">
+                {incidentes.slice(0, 2).map((incidente) => {
+                  const severidad = incidente.severidad as string;
+                  const esAlta = severidad === 'alta' || severidad === 'critica';
+                  return (
+                    <div 
+                      key={incidente.id as number} 
+                      className={`p-3 rounded-lg border ${
+                        esAlta 
+                          ? 'bg-red-50 border-red-200' 
+                          : 'bg-orange-50 border-orange-200'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold capitalize text-sm">{incidente.tipo as string}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full uppercase font-medium ${
+                              esAlta 
+                                ? 'bg-red-200 text-red-800' 
+                                : 'bg-orange-200 text-orange-800'
+                            }`}>
+                              {severidad}
+                            </span>
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${
+                              incidente.estado === 'abierto' 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {incidente.estado as string}
+                            </span>
+                          </div>
+                          <p className="text-sm">{incidente.descripcion as string}</p>
+                          {incidente.reportado_por && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Reportado por: {incidente.reportado_por as string}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">
+                          {formatDateTime(incidente.created_at as string)}
                         </span>
                       </div>
-                      <p className="text-sm">{incidente.descripcion as string}</p>
-                      {incidente.reportado_por && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Reportado por: {incidente.reportado_por as string}
-                        </p>
-                      )}
                     </div>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">
-                      {formatDateTime(incidente.created_at as string)}
-                    </span>
-                  </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Consultas */}
+          <div>
+            <h3 className="font-semibold mb-4 flex items-center gap-2">
+              <Search className="w-5 h-5 text-primary" />
+              Panel de Consultas Oficiales
+            </h3>
+            <form onSubmit={handleConsultar} className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {TIPOS.map(t => (
+                  <button
+                    key={t.value}
+                    type="button"
+                    onClick={() => { setTipo(t.value); setResultados([]); setBuscado(false); setCriterio(''); }}
+                    className={`py-2.5 px-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                      tipo === t.value ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/40 text-foreground'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={criterio}
+                  onChange={(e) => setCriterio(e.target.value)}
+                  className="flex-1 px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                  placeholder={tipoActual.placeholder}
+                  required
+                />
+                <button
+                  type="submit"
+                  disabled={buscando || !criterio.trim()}
+                  className="px-6 py-2.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  <Search className="w-4 h-4" />
+                  {buscando ? 'Buscando…' : 'Consultar'}
+                </button>
+              </div>
+            </form>
+            <div className="mt-4 bg-purple-50 border border-purple-200 rounded-lg p-4 flex gap-3">
+              <Shield className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-purple-700">
+                Todas las consultas son registradas y auditadas. Solo personal autorizado puede acceder a esta información.
+              </p>
+            </div>
+            {errorBusqueda && <div className="mt-4"><ViewFeedback error={errorBusqueda} /></div>}
+            {buscado && !errorBusqueda && (
+              <div className="mt-5">
+                <p className="text-sm font-medium mb-3 text-muted-foreground">
+                  {resultados.length === 0
+                    ? `Sin resultados para "${criterio}" en ${tipoActual.label}`
+                    : `${resultados.length} resultado${resultados.length !== 1 ? 's' : ''} para "${criterio}"`}
+                </p>
+                <div className="space-y-3">
+                  {resultados.map((r, i) => (
+                    <div key={i}>
+                      {tipo === 'pasajero'    && <ResultadoPasajero r={r} />}
+                      {tipo === 'tripulacion' && <ResultadoTripulacion r={r} />}
+                      {tipo === 'embarcacion' && <ResultadoEmbarcacion r={r} />}
+                      {tipo === 'viaje'       && <ResultadoViaje r={r} />}
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Auditoría de Viajes */}
