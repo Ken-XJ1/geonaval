@@ -137,8 +137,10 @@ export function ViajesView() {
         api.getPropietarios() as Promise<Record<string, unknown>[]>,
       ]);
       const embMap = new Map(embs.map((e) => [e.id, e.nombre as string]));
+      // Filtrar solo embarcaciones operativas para asignar a viajes
+      const embarcacionesOperativas = embs.filter((e) => e.estado === 'operativa');
       setEmbarcacionesList(
-        embs.map((e) => ({
+        embarcacionesOperativas.map((e) => ({
           id: Number(e.id),
           nombre: e.nombre as string,
           capacidad: Number(e.capacidad_pasajeros || 0),
