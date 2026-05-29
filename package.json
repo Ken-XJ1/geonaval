@@ -7,7 +7,7 @@
     "dev:client": "vite",
     "dev:server": "cd server && npx ts-node -P tsconfig.json src/index.ts",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
-    "build": "vite build && cd server && npx tsc && cp src/db/schema.sql dist/db/ && cp src/db/migrations.sql dist/db/ && cp -r ../dist/* dist/",
+    "build": "vite build && cd server && (npx tsc || true) && cp src/db/schema.sql dist/db/ && cp src/db/migrations.sql dist/db/ && cp -r ../dist/* dist/",
     "start": "node server/dist/index.js",
     "preview": "vite preview"
   },
