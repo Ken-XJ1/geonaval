@@ -50,7 +50,10 @@ router.post('/login', async (req: Request, res: Response) => {
 
   try {
     const result = await pool.query(
-      'SELECT * FROM usuarios WHERE LOWER(email) = $1',
+      `SELECT *, 
+        cuenta_bloqueada::int::boolean as cuenta_bloqueada,
+        activo::int::boolean as activo
+       FROM usuarios WHERE LOWER(email) = $1`,
       [email]
     );
     const user = result.rows[0];
