@@ -73,28 +73,42 @@ export function UsuariosView() {
     { key: 'ultimoAcceso', label: 'Registrado' },
     {
       key: 'acciones_extra',
-      label: 'Seguridad',
+      label: 'Acciones',
       render: (_: unknown, row: ReturnType<typeof mapUsuarioToUI>) => {
         if (row.rolDb === 'administrador') {
           return <span className="text-xs text-muted-foreground">—</span>;
         }
-        if (row.bloqueada) {
-          return (
-            <button
-              type="button"
-              onClick={() => handleDesbloquear(row)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
-            >
-              <LockOpen className="w-3.5 h-3.5" />
-              Desbloquear
-            </button>
-          );
-        }
         return (
-          <span className="flex items-center gap-1 text-xs text-green-600">
-            <LockOpen className="w-3 h-3" />
-            Sin bloqueo
-          </span>
+          <div className="flex items-center gap-2">
+            {row.bloqueada ? (
+              <button
+                type="button"
+                onClick={() => handleDesbloquear(row)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
+              >
+                <LockOpen className="w-3.5 h-3.5" />
+                Desbloquear
+              </button>
+            ) : row.estado === 'activo' ? (
+              <button
+                type="button"
+                onClick={() => handleSuspender(row)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600 text-white rounded-lg text-xs font-medium hover:bg-orange-700 transition-colors"
+              >
+                <Lock className="w-3.5 h-3.5" />
+                Suspender
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => handleActivar(row)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
+              >
+                <LockOpen className="w-3.5 h-3.5" />
+                Activar
+              </button>
+            )}
+          </div>
         );
       },
     },
@@ -133,6 +147,82 @@ export function UsuariosView() {
         icon: 'error',
         title: 'Error',
         text: e instanceof Error ? e.message : 'No se pudo desbloquear la cuenta',
+        confirmButtonColor: '#dc2626',
+      });
+    }
+  };
+
+  const handleSuspender = async (row: ReturnType<typeof mapUsuarioToUI>) => {
+    const confirm = await Swal.fire({
+      icon: 'warning',
+      title: '¿Suspender cuenta?',
+      html: `
+        <p class="text-gray-600">¿Deseas suspender la cuenta de <strong>${row.nombre}</strong>?</p>
+        <p class="text-sm text-gray-500 mt-2">El usuario no podrá iniciar sesión hasta que reactives su cuenta.</p>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, suspender',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#ea580c',
+      cancelButtonColor: '#6b7280',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await api.updateUsuario(row.dbId, { activo: false });
+      await Swal.fire({
+        icon: 'success',
+        title: '⚠️ Cuenta Suspendida',
+        text: `La cuenta de ${row.nombre} ha sido suspendida.`,
+        timer: 2000,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      });
+      await load();
+    } catch (e) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: e instanceof Error ? e.message : 'No se pudo suspender la cuenta',
+        confirmButtonColor: '#dc2626',
+      });
+    }
+  };
+
+  const handleActivar = async (row: ReturnType<typeof mapUsuarioToUI>) => {
+    const confirm = await Swal.fire({
+      icon: 'question',
+      title: '¿Activar cuenta?',
+      html: `
+        <p class="text-gray-600">¿Deseas activar la cuenta de <strong>${row.nombre}</strong>?</p>
+        <p class="text-sm text-gray-500 mt-2">El usuario podrá iniciar sesión normalmente.</p>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, activar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#2563eb',
+      cancelButtonColor: '#6b7280',
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      await api.updateUsuario(row.dbId, { activo: true });
+      await Swal.fire({
+        icon: 'success',
+        title: '✅ Cuenta Activada',
+        text: `La cuenta de ${row.nombre} ha sido activada exitosamente.`,
+        timer: 2000,
+        showConfirmButton: false,
+        timerProgressBar: true,
+      });
+      await load();
+    } catch (e) {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: e instanceof Error ? e.message : 'No se pudo activar la cuenta',
         confirmButtonColor: '#dc2626',
       });
     }
