@@ -117,7 +117,10 @@ router.post('/', async (req: Request, res: Response) => {
 });
 
 router.put('/:id', async (req: Request, res: Response) => {
-  const { nic, nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id } = req.body;
+  const { 
+    nic, nombre, tipo, capacidad_pasajeros, motor, potencia, dimensiones, estado, propietario_id,
+    tiempo_mantenimiento_estimado, fecha_inicio_mantenimiento, fecha_fin_mantenimiento_estimada, motivo_mantenimiento
+  } = req.body;
   try {
     // Obtener estado anterior para detectar cambios relevantes
     const anterior = await pool.query(
@@ -135,10 +138,29 @@ router.put('/:id', async (req: Request, res: Response) => {
         potencia = $6,
         dimensiones = $7,
         estado = COALESCE($8, estado),
-        propietario_id = $9
-       WHERE id = $10
+        propietario_id = $9,
+        tiempo_mantenimiento_estimado = $10,
+        fecha_inicio_mantenimiento = $11,
+        fecha_fin_mantenimiento_estimada = $12,
+        motivo_mantenimiento = $13
+       WHERE id = $14
        RETURNING *`,
-      [nic ?? null, nombre ?? null, tipo ?? null, capacidad_pasajeros ?? null, motor ?? null, potencia ?? null, dimensiones ?? null, estado ?? null, propietario_id ?? null, req.params.id]
+      [
+        nic ?? null, 
+        nombre ?? null, 
+        tipo ?? null, 
+        capacidad_pasajeros ?? null, 
+        motor ?? null, 
+        potencia ?? null, 
+        dimensiones ?? null, 
+        estado ?? null, 
+        propietario_id ?? null,
+        tiempo_mantenimiento_estimado ?? null,
+        fecha_inicio_mantenimiento ?? null,
+        fecha_fin_mantenimiento_estimada ?? null,
+        motivo_mantenimiento ?? null,
+        req.params.id
+      ]
     );
     if (!result.rows[0])
       return res.status(404).json({ error: 'No encontrado' });
@@ -150,6 +172,9 @@ router.put('/:id', async (req: Request, res: Response) => {
     let detalle = `Se actualizó la embarcación "${nombreFinal}".`;
     if (estadoAnterior && estado && estadoAnterior !== estado) {
       detalle = `La embarcación "${nombreFinal}" cambió de estado: ${estadoAnterior} → ${estado}.`;
+      if (tiempo_mantenimiento_estimado) {
+        detalle += ` Tiempo estimado: ${tiempo_mantenimiento_estimado}.`;
+      }
     }
 
     await auditoria('[EMBARCACIÓN] Embarcación modificada', detalle);

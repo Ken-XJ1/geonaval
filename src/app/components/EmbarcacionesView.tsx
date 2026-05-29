@@ -11,6 +11,18 @@ export function EmbarcacionesView() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showEstadoModal, setShowEstadoModal] = useState(false);
+  const [embarcacionEstado, setEmbarcacionEstado] = useState<{
+    id: number;
+    nombre: string;
+    estadoActual: string;
+  } | null>(null);
+  const [nuevoEstado, setNuevoEstado] = useState('');
+  const [tiempoMantenimiento, setTiempoMantenimiento] = useState({
+    cantidad: '',
+    unidad: 'dias',
+  });
+  const [motivoMantenimiento, setMotivoMantenimiento] = useState('');
   const [propietariosList, setPropietariosList] = useState<
     { id: number; nombre: string }[]
   >([]);
@@ -224,6 +236,72 @@ export function EmbarcacionesView() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al eliminar');
+    }
+  };
+
+  const handleCambiarEstado = async () => {
+    if (!embarcacionEstado || !nuevoEstado) return;
+    
+    // Validar tiempo de mantenimiento si el nuevo estado lo requiere
+    if ((nuevoEstado === 'mantenimiento' || nuevoEstado === 'fuera_servicio') && !tiempoMantenimiento.cantidad) {
+      setError('Debes especificar el tiempo estimado de mantenimiento/fuera de servicio');
+      return;
+    }
+
+    try {
+      const raw = (await api.getEmbarcaciones()) as Record<string, unknown>[];
+      const current = raw.find((e) => Number(e.id) === embarcacionEstado.id);
+      if (!current) throw new Error('Embarcación no encontrada');
+
+      let fecha_inicio_mantenimiento = null;
+      let fecha_fin_mantenimiento_estimada = null;
+      let tiempo_mantenimiento_estimado = null;
+      let motivo_mantenimiento_value = null;
+
+      if (nuevoEstado === 'mantenimiento' || nuevoEstado === 'fuera_servicio') {
+        fecha_inicio_mantenimiento = new Date().toISOString();
+        const cantidad = parseInt(tiempoMantenimiento.cantidad, 10);
+        const fechaFin = new Date();
+        
+        if (tiempoMantenimiento.unidad === 'dias') {
+          fechaFin.setDate(fechaFin.getDate() + cantidad);
+          tiempo_mantenimiento_estimado = `${cantidad} día${cantidad !== 1 ? 's' : ''}`;
+        } else if (tiempoMantenimiento.unidad === 'meses') {
+          fechaFin.setMonth(fechaFin.getMonth() + cantidad);
+          tiempo_mantenimiento_estimado = `${cantidad} mes${cantidad !== 1 ? 'es' : ''}`;
+        } else if (tiempoMantenimiento.unidad === 'años') {
+          fechaFin.setFullYear(fechaFin.getFullYear() + cantidad);
+          tiempo_mantenimiento_estimado = `${cantidad} año${cantidad !== 1 ? 's' : ''}`;
+        }
+        
+        fecha_fin_mantenimiento_estimada = fechaFin.toISOString();
+        motivo_mantenimiento_value = motivoMantenimiento || null;
+      }
+
+      await api.updateEmbarcacion(embarcacionEstado.id, {
+        nic: current.nic,
+        nombre: current.nombre,
+        tipo: current.tipo,
+        capacidad_pasajeros: current.capacidad_pasajeros,
+        motor: current.motor,
+        potencia: current.potencia,
+        dimensiones: current.dimensiones,
+        estado: nuevoEstado,
+        propietario_id: current.propietario_id,
+        tiempo_mantenimiento_estimado,
+        fecha_inicio_mantenimiento,
+        fecha_fin_mantenimiento_estimada,
+        motivo_mantenimiento: motivo_mantenimiento_value,
+      });
+
+      setShowEstadoModal(false);
+      setEmbarcacionEstado(null);
+      setNuevoEstado('');
+      setTiempoMantenimiento({ cantidad: '', unidad: 'dias' });
+      setMotivoMantenimiento('');
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cambiar estado');
     }
   };
 
@@ -531,7 +609,7 @@ export function EmbarcacionesView() {
                                 Sin tripulación asignada
                               </p>
                             )}
-                            {emb.estado !== 'fuera_servicio' && (
+                            {emb.estado === 'operativa' && (
                             <div className="p-3 bg-white rounded-lg border border-border space-y-2">
                               <p className="text-xs font-medium text-primary">
                                 Asignar operador a un viaje
@@ -620,6 +698,26 @@ export function EmbarcacionesView() {
                             )}
                           </div>
                         </div>
+
+                        {/* Botón para cambiar estado */}
+                        <div className="mt-4 pt-4 border-t border-border">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEmbarcacionEstado({
+                                id: emb.dbId,
+                                nombre: emb.nombre,
+                                estadoActual: emb.estado,
+                              });
+                              setNuevoEstado(emb.estado);
+                              setShowEstadoModal(true);
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                          >
+                            <Wrench className="w-4 h-4" />
+                            Cambiar Estado de Embarcación
+                          </button>
+                        </div>
                         </>
                         )}
                       </td>
@@ -632,6 +730,104 @@ export function EmbarcacionesView() {
           </table>
         </div>
       </div>
+
+      {/* Modal para cambiar estado */}
+      {showEstadoModal && embarcacionEstado && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-lg font-semibold mb-4">Cambiar Estado de Embarcación</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              <strong>{embarcacionEstado.nombre}</strong>
+              <br />
+              Estado actual: <StatusBadge status={embarcacionEstado.estadoActual} />
+            </p>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Nuevo Estado</label>
+                <select
+                  value={nuevoEstado}
+                  onChange={(e) => setNuevoEstado(e.target.value)}
+                  className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                >
+                  <option value="operativa">Operativa</option>
+                  <option value="mantenimiento">En Mantenimiento</option>
+                  <option value="fuera_servicio">Fuera de Servicio</option>
+                  <option value="inspeccion">En Inspección</option>
+                </select>
+              </div>
+
+              {(nuevoEstado === 'mantenimiento' || nuevoEstado === 'fuera_servicio') && (
+                <>
+                  <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                    <p className="text-sm text-orange-800">
+                      ⚠️ Debes especificar el tiempo estimado de {nuevoEstado === 'mantenimiento' ? 'mantenimiento' : 'fuera de servicio'}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Tiempo Estimado *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        value={tiempoMantenimiento.cantidad}
+                        onChange={(e) => setTiempoMantenimiento({ ...tiempoMantenimiento, cantidad: e.target.value })}
+                        className="px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                        placeholder="Cantidad"
+                        required
+                      />
+                      <select
+                        value={tiempoMantenimiento.unidad}
+                        onChange={(e) => setTiempoMantenimiento({ ...tiempoMantenimiento, unidad: e.target.value })}
+                        className="px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                      >
+                        <option value="dias">Días</option>
+                        <option value="meses">Meses</option>
+                        <option value="años">Años</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Motivo (opcional)</label>
+                    <textarea
+                      value={motivoMantenimiento}
+                      onChange={(e) => setMotivoMantenimiento(e.target.value)}
+                      className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                      rows={3}
+                      placeholder="Describe el motivo del mantenimiento o fuera de servicio..."
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEstadoModal(false);
+                  setEmbarcacionEstado(null);
+                  setNuevoEstado('');
+                  setTiempoMantenimiento({ cantidad: '', unidad: 'dias' });
+                  setMotivoMantenimiento('');
+                }}
+                className="flex-1 px-4 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleCambiarEstado}
+                className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
+              >
+                Guardar Cambio
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

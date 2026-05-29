@@ -171,3 +171,9 @@ ALTER SEQUENCE pasajeros_id_seq RESTART WITH 1;
 ALTER SEQUENCE incidentes_id_seq RESTART WITH 1;
 ALTER SEQUENCE notificaciones_id_seq RESTART WITH 1;
 ALTER SEQUENCE ubicaciones_gps_id_seq RESTART WITH 1;
+
+-- Agregar campos para tiempo de mantenimiento en embarcaciones
+ALTER TABLE embarcaciones ADD COLUMN IF NOT EXISTS tiempo_mantenimiento_estimado VARCHAR(100);
+ALTER TABLE embarcaciones ADD COLUMN IF NOT EXISTS fecha_inicio_mantenimiento TIMESTAMP WITHOUT TIME ZONE;
+ALTER TABLE embarcaciones ADD COLUMN IF NOT EXISTS fecha_fin_mantenimiento_estimada TIMESTAMP WITHOUT TIME ZONE;
+ALTER TABLE embarcaciones ADD COLUMN IF NOT EXISTS motivo_mantenimiento TEXT;
