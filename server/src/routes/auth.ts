@@ -13,8 +13,6 @@ const MAX_INTENTOS = 3; // Intentos antes de bloquear
 const DEMO_ACCOUNTS = [
   { email: 'test@test.com',          password: '123456',       id: 0, nombre: 'Usuario Prueba',       rol: 'administrador' },
   { email: 'admin@geonaval.com',     password: 'admin123',     id: 1, nombre: 'Administrador GeoNaval', rol: 'administrador' },
-  { email: 'operador@geonaval.com',  password: 'operador123',  id: 2, nombre: 'Operador 1',            rol: 'operador' },
-  { email: 'autoridad@geonaval.com', password: 'autoridad123', id: 4, nombre: 'Autoridad Demo',        rol: 'autoridad' },
 ];
 
 function signToken(user: { id: number; rol: string; nombre: string; email?: string }) {
@@ -63,6 +61,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Verificar si la cuenta está bloqueada
+    console.log(`🔒 Verificando bloqueo para ${user.email}: cuenta_bloqueada=${user.cuenta_bloqueada} (tipo: ${typeof user.cuenta_bloqueada})`);
     if (user.cuenta_bloqueada) {
       await auditoria(
         '[USUARIO] Intento de acceso a cuenta bloqueada',
