@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Bell, Check, Calendar, Users, Anchor, UserCheck,
   Navigation, AlertTriangle, UserPlus, Filter, Trash2,
@@ -75,8 +74,7 @@ const CATEGORIAS: { key: Categoria; label: string }[] = [
   { key: 'incidente', label: 'Incidentes' },
 ];
 
-export function NotificacionesView() {
-  const navigate = useNavigate();
+export function NotificacionesView({ onNavigate }: { onNavigate?: (view: string) => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -285,10 +283,10 @@ export function NotificacionesView() {
                         </p>
 
                         {/* Botón para ir a Usuarios si es notificación de bloqueo */}
-                        {(tituloLimpio.toLowerCase().includes('bloqueada') || 
+                        {onNavigate && (tituloLimpio.toLowerCase().includes('bloqueada') || 
                           n.mensaje.toLowerCase().includes('bloqueada')) && (
                           <button
-                            onClick={() => navigate('/usuarios')}
+                            onClick={() => onNavigate('usuarios')}
                             className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
                           >
                             Ir a Usuarios para desbloquear

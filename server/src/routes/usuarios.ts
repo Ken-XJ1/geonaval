@@ -10,7 +10,9 @@ router.use(verifyToken);
 
 router.get('/', async (_req: Request, res: Response) => {
   const rows = await safeQuery(
-    'SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id'
+    `SELECT id, nombre, email, rol, activo, created_at, 
+            cuenta_bloqueada, intentos_fallidos 
+     FROM usuarios ORDER BY id`
   );
   return res.json(rows);
 });

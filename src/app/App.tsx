@@ -202,7 +202,7 @@ export default function App() {
       case 'usuarios':
         return <UsuariosView />;
       case 'notificaciones':
-        return <NotificacionesView />;
+        return <NotificacionesView onNavigate={setActiveView} />;
       case 'configuracion':
         return renderConfiguracion();
       default:
