@@ -127,26 +127,6 @@ export function Dashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
-        <h3 className="font-semibold mb-4">Monitoreo GPS en Tiempo Real</h3>
-        <div className="relative w-full h-96 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg flex items-center justify-center border border-border">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <img
-              src="https://images.unsplash.com/photo-1689045603970-c4e9f73cb934?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1200"
-              alt="Río Atrato"
-              className="w-full h-full object-cover rounded-lg opacity-30"
-            />
-          </div>
-          <div className="relative z-10 text-center">
-            <Navigation className="w-16 h-16 text-primary mx-auto mb-3" />
-            <p className="text-lg font-medium text-primary">Mapa GPS</p>
-            <p className="text-sm text-muted-foreground">
-              Vista de rutas fluviales y ubicación de embarcaciones
-            </p>
-          </div>
-        </div>
-      </div>
-
       <div>
         <div className="mb-4">
           <h3 className="font-semibold">Viajes Recientes</h3>
