@@ -415,6 +415,16 @@ router.post('/', async (req: Request, res: Response) => {
       error: 'Fecha, origen, destino y embarcación son requeridos',
     });
   }
+  
+  // Validar que la fecha de salida no sea en el pasado
+  const fechaSalidaDate = new Date(fecha_salida);
+  const ahora = new Date();
+  if (fechaSalidaDate < ahora) {
+    return res.status(400).json({
+      error: 'No se puede crear un viaje con fecha de salida en el pasado',
+    });
+  }
+  
   const user = (req as Request & { user?: { id: number } }).user;
   const cierre =
     fecha_limite_inscripcion ||

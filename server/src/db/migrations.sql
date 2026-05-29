@@ -144,3 +144,19 @@ ALTER TABLE viajes ADD COLUMN IF NOT EXISTS fecha_llegada TIMESTAMP WITHOUT TIME
 
 -- Eliminar cuenta de cliente (ya no se usa)
 DELETE FROM usuarios WHERE email = 'cliente@geonaval.com';
+
+-- Limpiar datos para empezar de cero con fechas correctas
+DELETE FROM ubicaciones_gps;
+DELETE FROM viaje_pasajeros;
+DELETE FROM viaje_tripulacion;
+DELETE FROM incidentes;
+DELETE FROM notificaciones;
+DELETE FROM pasajeros;
+DELETE FROM viajes;
+
+-- Resetear secuencias
+ALTER SEQUENCE viajes_id_seq RESTART WITH 1;
+ALTER SEQUENCE pasajeros_id_seq RESTART WITH 1;
+ALTER SEQUENCE incidentes_id_seq RESTART WITH 1;
+ALTER SEQUENCE notificaciones_id_seq RESTART WITH 1;
+ALTER SEQUENCE ubicaciones_gps_id_seq RESTART WITH 1;

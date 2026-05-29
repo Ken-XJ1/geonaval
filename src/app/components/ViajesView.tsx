@@ -765,6 +765,7 @@ export function ViajesView() {
                   handleFormChange('fechaSalida', e.target.value);
                   setTimeout(validarConflictoHorarios, 100);
                 }}
+                min={new Date().toISOString().split('T')[0]}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 required
               />
