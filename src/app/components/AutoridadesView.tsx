@@ -104,11 +104,28 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
   const [viajesEnCurso, setViajesEnCurso] = useState<Record<string, unknown>[]>([]);
   const [loadingViajes, setLoadingViajes] = useState(true);
   const [mostrarHistorial, setMostrarHistorial] = useState(false);
+  const [incidentes, setIncidentes] = useState<Record<string, unknown>[]>([]);
+  const [loadingIncidentes, setLoadingIncidentes] = useState(true);
+  const [auditoria, setAuditoria] = useState<Record<string, unknown>[]>([]);
+  const [loadingAuditoria, setLoadingAuditoria] = useState(true);
+  const [historialConsultas, setHistorialConsultas] = useState<Array<{
+    fecha: string;
+    tipo: string;
+    criterio: string;
+    resultados: number;
+  }>>([]);
   const loadStats = useCallback(async () => {
     setLoadingStats(true);
     setLoadingViajes(true);
+    setLoadingIncidentes(true);
+    setLoadingAuditoria(true);
     try {
-      const viajes = (await api.getViajes()) as Record<string, unknown>[];
+      const [viajes, incidentesData, notificaciones] = await Promise.all([
+        api.getViajes() as Promise<Record<string, unknown>[]>,
+        api.getIncidentes() as Promise<Record<string, unknown>[]>,
+        api.getNotificaciones() as Promise<Record<string, unknown>[]>,
+      ]);
+      
       const activos = viajes.filter(v => v.estado === 'en_curso' || v.estado === 'programado');
       setStatsViajes({
         enCurso: activos.filter(v => v.estado === 'en_curso').length,
@@ -116,8 +133,29 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
         pasajeros: activos.reduce((s, v) => s + Number(v.pasajeros_count ?? 0), 0),
       });
       setViajesEnCurso(viajes.filter(v => v.estado === 'en_curso'));
+      
+      // Incidentes activos (abiertos o en revisión)
+      setIncidentes(incidentesData.filter(i => i.estado === 'abierto' || i.estado === 'en_revision'));
+      
+      // Auditoría filtrada: solo eventos de viajes, embarcaciones, pasajeros, tripulación
+      const auditoriaFiltrada = notificaciones.filter(n => {
+        const titulo = (n.titulo as string).toUpperCase();
+        return titulo.includes('[VIAJE]') || 
+               titulo.includes('[EMBARCACIÓN]') || 
+               titulo.includes('[EMBARCACION]') ||
+               titulo.includes('[PASAJERO]') ||
+               titulo.includes('[TRIPULACIÓN]') ||
+               titulo.includes('[TRIPULACION]') ||
+               titulo.includes('[INCIDENTE]');
+      });
+      setAuditoria(auditoriaFiltrada.slice(0, 20)); // Últimas 20
     } catch { /* silencioso */ }
-    finally { setLoadingStats(false); setLoadingViajes(false); }
+    finally { 
+      setLoadingStats(false); 
+      setLoadingViajes(false); 
+      setLoadingIncidentes(false);
+      setLoadingAuditoria(false);
+    }
   }, []);
 
   useEffect(() => { loadStats(); }, [loadStats]);
@@ -152,6 +190,14 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
       }
       setResultados(data);
       setBuscado(true);
+      
+      // Guardar en historial local
+      setHistorialConsultas(prev => [{
+        fecha: new Date().toISOString(),
+        tipo: tipoActual.label,
+        criterio: criterio.trim(),
+        resultados: data.length,
+      }, ...prev.slice(0, 19)]); // Mantener últimas 20
     } catch (e) {
       setErrorBusqueda(e instanceof Error ? e.message : 'Error al consultar');
     } finally {
@@ -160,10 +206,6 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
   };
 
   const tipoActual = TIPOS.find(t => t.value === tipo)!;
-  const alertasEmergencia = [
-    { id: 'A-001', tipo: 'warning', embarcacion: 'Ferry San José', mensaje: 'Retraso de 15 minutos por condiciones climáticas', hora: '10:15 AM', prioridad: 'Media' },
-    { id: 'A-002', tipo: 'info', embarcacion: 'Bote Atrato', mensaje: 'Señal GPS intermitente en sector río medio', hora: '09:45 AM', prioridad: 'Baja' },
-  ];
 
   return (
     <div className="space-y-6">
@@ -316,33 +358,123 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
         )}
       </div>
 
-      {/* Alertas de Emergencia */}
+      {/* Alertas de Emergencia - Incidentes Activos */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-semibold flex items-center gap-2">
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             Alertas y Emergencias
           </h3>
-          <span className="text-sm text-muted-foreground">{alertasEmergencia.length} activas</span>
+          <span className="text-sm text-muted-foreground">
+            {loadingIncidentes ? '…' : `${incidentes.length} activa${incidentes.length !== 1 ? 's' : ''}`}
+          </span>
         </div>
-        <div className="space-y-3">
-          {alertasEmergencia.map((alerta) => (
-            <div key={alerta.id} className={`p-4 rounded-lg border ${alerta.tipo === 'warning' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold">{alerta.embarcacion}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${alerta.prioridad === 'Media' ? 'bg-orange-200 text-orange-800' : 'bg-blue-200 text-blue-800'}`}>
-                      {alerta.prioridad}
+        {loadingIncidentes ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">Cargando incidentes…</div>
+        ) : incidentes.length === 0 ? (
+          <div className="p-8 text-center">
+            <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-3">
+              <Shield className="w-8 h-8 text-green-600" />
+            </div>
+            <p className="text-sm text-muted-foreground">No hay incidentes activos en este momento</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {incidentes.map((incidente) => {
+              const severidad = incidente.severidad as string;
+              const esAlta = severidad === 'alta' || severidad === 'critica';
+              return (
+                <div 
+                  key={incidente.id as number} 
+                  className={`p-4 rounded-lg border ${
+                    esAlta 
+                      ? 'bg-red-50 border-red-200' 
+                      : 'bg-orange-50 border-orange-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold capitalize">{incidente.tipo as string}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full uppercase font-medium ${
+                          esAlta 
+                            ? 'bg-red-200 text-red-800' 
+                            : 'bg-orange-200 text-orange-800'
+                        }`}>
+                          {severidad}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          incidente.estado === 'abierto' 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {incidente.estado as string}
+                        </span>
+                      </div>
+                      <p className="text-sm">{incidente.descripcion as string}</p>
+                      {incidente.reportado_por && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Reportado por: {incidente.reportado_por as string}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">
+                      {formatDateTime(incidente.created_at as string)}
                     </span>
                   </div>
-                  <p className="text-sm">{alerta.mensaje}</p>
                 </div>
-                <span className="text-xs text-muted-foreground whitespace-nowrap ml-3">{alerta.hora}</span>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Auditoría de Viajes */}
+      <div className="bg-white rounded-xl border border-border shadow-sm p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Auditoría de Operaciones
+            </h3>
+            <p className="text-sm text-muted-foreground">Registro de eventos de viajes y operaciones</p>
+          </div>
         </div>
+        {loadingAuditoria ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">Cargando auditoría…</div>
+        ) : auditoria.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">
+            No hay eventos registrados
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {auditoria.map((evento) => {
+              const titulo = (evento.titulo as string).replace(/^\[.*?\]\s*/, '');
+              const categoria = (evento.titulo as string).match(/\[(.*?)\]/)?.[1] || 'SISTEMA';
+              return (
+                <div 
+                  key={evento.id as number}
+                  className="p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          {categoria}
+                        </span>
+                        <span className="text-sm font-medium">{titulo}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{evento.mensaje as string}</p>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                      {formatDateTime(evento.created_at as string)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Accesos rápidos */}
@@ -385,7 +517,7 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold flex items-center gap-2">
               <Clock className="w-5 h-5 text-orange-600" />
-              Historial de Consultas del Sistema
+              Historial de Consultas Realizadas
             </h3>
             <button
               onClick={() => setMostrarHistorial(false)}
@@ -397,45 +529,53 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
           <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-4 flex gap-3">
             <Shield className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <p className="text-sm text-orange-700">
-              Registro de auditoría de todas las consultas realizadas por autoridades. Información protegida y confidencial.
+              Registro de auditoría de las consultas realizadas en esta sesión. Información protegida y confidencial.
             </p>
           </div>
-          <div className="overflow-auto max-h-64">
-            <table className="w-full">
-              <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Fecha/Hora</th>
-                  <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Usuario</th>
-                  <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Tipo</th>
-                  <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Criterio</th>
-                  <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Resultados</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                <tr className="hover:bg-muted/40 transition-colors">
-                  <td className="px-4 py-3 text-sm">{formatDateTime(new Date().toISOString())}</td>
-                  <td className="px-4 py-3 text-sm font-medium">Autoridad Demo</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">Pasajero</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-mono">Consulta de ejemplo</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">0 registros</td>
-                </tr>
-                <tr className="hover:bg-muted/40 transition-colors">
-                  <td className="px-4 py-3 text-sm">{formatDateTime(new Date(Date.now() - 3600000).toISOString())}</td>
-                  <td className="px-4 py-3 text-sm font-medium">Autoridad Demo</td>
-                  <td className="px-4 py-3 text-sm">
-                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">Embarcación</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-mono">Consulta de ejemplo</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">0 registros</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {historialConsultas.length === 0 ? (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No has realizado consultas aún. Usa el panel de consultas para buscar información.
+            </div>
+          ) : (
+            <div className="overflow-auto max-h-64">
+              <table className="w-full">
+                <thead className="bg-white border-b-2 border-gray-200 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Fecha/Hora</th>
+                    <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Tipo</th>
+                    <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Criterio</th>
+                    <th className="px-4 py-3 text-left text-xs font-black text-black uppercase tracking-wider">Resultados</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {historialConsultas.map((consulta, idx) => (
+                    <tr key={idx} className="hover:bg-muted/40 transition-colors">
+                      <td className="px-4 py-3 text-sm">{formatDateTime(consulta.fecha)}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          consulta.tipo === 'Pasajero' ? 'bg-blue-100 text-blue-700' :
+                          consulta.tipo === 'Tripulación' ? 'bg-teal-100 text-teal-700' :
+                          consulta.tipo === 'Embarcación' ? 'bg-cyan-100 text-cyan-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {consulta.tipo}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-mono">{consulta.criterio}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={consulta.resultados > 0 ? 'text-green-600 font-medium' : 'text-muted-foreground'}>
+                          {consulta.resultados} registro{consulta.resultados !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
           <div className="mt-4 text-center">
             <p className="text-sm text-muted-foreground">
-              Mostrando las últimas consultas realizadas. El historial completo se almacena de forma segura.
+              Mostrando las últimas {historialConsultas.length} consultas de esta sesión.
             </p>
           </div>
         </div>
