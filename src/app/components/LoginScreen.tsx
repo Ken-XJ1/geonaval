@@ -36,9 +36,24 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al conectar con el servidor';
       const esBloqueada = msg.toLowerCase().includes('bloqueada') || msg.toLowerCase().includes('bloqueado');
+      const esSuspendida = msg.toLowerCase().includes('suspendida') || msg.toLowerCase().includes('suspendido');
       const tieneIntentos = msg.toLowerCase().includes('intento');
 
-      if (esBloqueada) {
+      if (esSuspendida) {
+        await Swal.fire({
+          icon: 'warning',
+          title: '⚠️ Cuenta Suspendida',
+          html: `
+            <p class="text-gray-600 mb-3">${msg}</p>
+            <div class="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm text-orange-700">
+              <strong>Tu cuenta ha sido suspendida temporalmente</strong><br/>
+              Contacta al administrador del sistema para obtener más información y solicitar la reactivación de tu cuenta.
+            </div>
+          `,
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#ea580c',
+        });
+      } else if (esBloqueada) {
         await Swal.fire({
           icon: 'error',
           title: '🔒 Cuenta Bloqueada',
@@ -46,7 +61,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <p class="text-gray-600 mb-3">${msg}</p>
             <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
               <strong>¿Qué hacer?</strong><br/>
-              Contacta al administrador del sistema para que desbloquee tu cuenta desde el panel de Auditoría.
+              Contacta al administrador del sistema para que desbloquee tu cuenta desde el panel de Usuarios.
             </div>
           `,
           confirmButtonText: 'Entendido',

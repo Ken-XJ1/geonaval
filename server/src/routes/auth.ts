@@ -73,9 +73,16 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Verificar si está inactivo
+    // Verificar si está inactivo/suspendido
     if (!user.activo) {
-      return res.status(403).json({ error: 'Cuenta desactivada. Contacta al administrador.' });
+      await auditoria(
+        '[USUARIO] Intento de acceso a cuenta suspendida',
+        `Se intentó acceder a la cuenta suspendida de "${user.nombre}" (${user.email}).`
+      );
+      return res.status(403).json({ 
+        error: 'Tu cuenta ha sido suspendida temporalmente. Contacta al administrador para más información.',
+        suspendida: true,
+      });
     }
 
     const valid = await bcrypt.compare(password, user.password_hash);
