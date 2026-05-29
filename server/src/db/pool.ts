@@ -4,10 +4,13 @@ import path from 'path';
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-// Evitar que el driver pg convierta TIMESTAMP a objeto Date con UTC
-// Devuelve el string tal como está en la BD
+// Configurar parsers de tipos de PostgreSQL
+// TIMESTAMP sin conversión a Date (devolver string)
 types.setTypeParser(1114, (val: string) => val); // TIMESTAMP WITHOUT TIME ZONE
 types.setTypeParser(1184, (val: string) => val); // TIMESTAMP WITH TIME ZONE
+
+// BOOLEAN: asegurar que devuelva true/false (no 't'/'f')
+types.setTypeParser(16, (val: string) => val === 't' || val === 'true' || val === '1');
 
 const connectionString = process.env.DATABASE_URL;
 

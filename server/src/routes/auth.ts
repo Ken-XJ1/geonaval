@@ -59,12 +59,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // DEBUG: Ver qué tipo de dato devuelve PostgreSQL
-    console.log('🔍 DEBUG cuenta_bloqueada:', user.cuenta_bloqueada, 'tipo:', typeof user.cuenta_bloqueada);
-    console.log('🔍 DEBUG activo:', user.activo, 'tipo:', typeof user.activo);
-
     // Verificar si la cuenta está bloqueada
-    // PostgreSQL puede devolver: true (boolean), 't' (string), 'true' (string), 1 (number)
     if (user.cuenta_bloqueada) {
       await auditoria(
         '[USUARIO] Intento de acceso a cuenta bloqueada',
