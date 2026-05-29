@@ -145,6 +145,9 @@ ALTER TABLE viajes ADD COLUMN IF NOT EXISTS fecha_llegada TIMESTAMP WITHOUT TIME
 -- Eliminar cuenta de cliente (ya no se usa)
 DELETE FROM usuarios WHERE email = 'cliente@geonaval.com';
 
+-- Cambiar columna created_at a TIMESTAMP WITHOUT TIME ZONE para evitar conversiones UTC
+ALTER TABLE notificaciones ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE;
+
 -- Configurar zona horaria de Colombia en la base de datos
 ALTER DATABASE postgres SET timezone TO 'America/Bogota';
 

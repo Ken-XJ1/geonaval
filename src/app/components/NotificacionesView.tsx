@@ -286,16 +286,37 @@ export function NotificacionesView() {
                         <div className="flex items-center gap-3 mt-2">
                           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <Calendar className="w-3 h-3" />
-                            {new Date(n.created_at).toLocaleDateString('es-CO', {
-                              day: '2-digit', month: '2-digit', year: 'numeric',
-                              timeZone: 'America/Bogota'
-                            })}
+                            {(() => {
+                              // Parsear la fecha como si fuera hora de Colombia (sin conversión UTC)
+                              const fechaStr = n.created_at;
+                              // Si viene en formato "YYYY-MM-DD HH:mm:ss" o "YYYY-MM-DDTHH:mm:ss"
+                              const partes = fechaStr.replace('T', ' ').split(' ');
+                              if (partes.length >= 2) {
+                                const [fecha, hora] = partes;
+                                const [year, month, day] = fecha.split('-');
+                                return `${day}/${month}/${year}`;
+                              }
+                              // Fallback
+                              return new Date(fechaStr).toLocaleDateString('es-CO', {
+                                day: '2-digit', month: '2-digit', year: 'numeric'
+                              });
+                            })()}
                           </div>
                           <span className="text-[11px] text-muted-foreground">
-                            {new Date(n.created_at).toLocaleTimeString('es-CO', {
-                              hour: '2-digit', minute: '2-digit',
-                              timeZone: 'America/Bogota'
-                            })}
+                            {(() => {
+                              // Parsear la hora como si fuera hora de Colombia (sin conversión UTC)
+                              const fechaStr = n.created_at;
+                              const partes = fechaStr.replace('T', ' ').split(' ');
+                              if (partes.length >= 2) {
+                                const hora = partes[1].split('.')[0]; // Remover milisegundos si existen
+                                const [h, m] = hora.split(':');
+                                return `${h}:${m}`;
+                              }
+                              // Fallback
+                              return new Date(fechaStr).toLocaleTimeString('es-CO', {
+                                hour: '2-digit', minute: '2-digit'
+                              });
+                            })()}
                           </span>
                         </div>
                       </div>
