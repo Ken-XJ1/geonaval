@@ -382,13 +382,14 @@ function ModalPago({ precio, pasajero, onConfirmar, onCancelar }: {
 // ─── Wizard de Compra ────────────────────────────────────────────────────────
 function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
   viajesDisponibles: { id: string; label: string; asientos: number; precio: number; origen: string; destino: string; fecha: string; inscripcionCerrada?: boolean; mensajeCierre?: string }[];
-  onFinalizar: (datos: { nombre: string; documento: string; telefono: string; viajeId: string; asiento: string; precio: number; metodo: string }) => void;
+  onFinalizar: (datos: { nombre: string; documento: string; telefono: string; email: string; viajeId: string; asiento: string; precio: number; metodo: string }) => void;
   onCancelar: () => void;
 }) {
   const [paso, setPaso] = useState<PasoWizard>(1);
   const [nombre, setNombre] = useState('');
   const [documento, setDocumento] = useState('');
   const [telefono, setTelefono] = useState('');
+  const [email, setEmail] = useState('');
   const [viajeId, setViajeId] = useState('');
   const [asiento, setAsiento] = useState('');
   const [asientosOcupados, setAsientosOcupados] = useState<string[]>([]);
@@ -518,6 +519,13 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                   className="w-full px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                   placeholder="+57 300 1234567"/>
                 <p className="text-xs text-muted-foreground mt-1">Opcional — para notificaciones del viaje</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Correo electrónico</label>
+                <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
+                  placeholder="ejemplo@correo.com"/>
+                <p className="text-xs text-muted-foreground mt-1">Opcional — para enviar confirmación y recibo</p>
               </div>
             </div>
             <div className="flex justify-end pt-2">
@@ -742,7 +750,7 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
           pasajero={nombre}
           onConfirmar={(metodo) => {
             setShowPago(false);
-            onFinalizar({ nombre, documento, telefono, viajeId, asiento, precio: viajeSeleccionado?.precio ?? 0, metodo });
+            onFinalizar({ nombre, documento, telefono, email, viajeId, asiento, precio: viajeSeleccionado?.precio ?? 0, metodo });
           }}
           onCancelar={() => setShowPago(false)}
         />
@@ -913,7 +921,7 @@ export function ComprasView() {
 
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
-  const finalizarCompra = async (datos: { nombre: string; documento: string; telefono: string; viajeId: string; asiento: string; precio: number; metodo: string }) => {
+  const finalizarCompra = async (datos: { nombre: string; documento: string; telefono: string; email: string; viajeId: string; asiento: string; precio: number; metodo: string }) => {
     try {
       setLoading(true);
       setError(null);
@@ -921,7 +929,7 @@ export function ComprasView() {
         nombre: datos.nombre,
         documento: datos.documento,
         telefono: datos.telefono || null,
-        email: null,
+        email: datos.email || null,
         viaje_id: parseInt(datos.viajeId),
         asiento: datos.asiento || null,
         precio: datos.precio,
