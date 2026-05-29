@@ -117,6 +117,8 @@ export function PropietariosView() {
         razonSocial: row.nombre,
         nit: row.documento.replace('NIT ', ''),
         telefonoEmpresa: row.telefono,
+        direccionEmpresa: row.direccion === '—' ? '' : row.direccion,
+        matriculaMercantil: row.matriculaMercantil === '—' ? '' : row.matriculaMercantil,
       });
     } else {
       setTipoPersona('natural');
@@ -125,6 +127,7 @@ export function PropietariosView() {
         nombreCompleto: row.nombre,
         documento: row.documento,
         telefono: row.telefono,
+        direccion: row.direccion === '—' ? '' : row.direccion,
       });
     }
     setShowForm(true);

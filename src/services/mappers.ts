@@ -101,6 +101,8 @@ export function mapPropietarioToUI(row: Record<string, unknown>) {
       ? `NIT ${(row.nit as string) || row.identificacion}`
       : (row.identificacion as string),
     telefono: (row.telefono as string) || '—',
+    direccion: (row.direccion as string) || '—',
+    matriculaMercantil: (row.matricula_mercantil as string) || '—',
     embarcaciones: Number(row.embarcaciones_count ?? 0),
   };
 }
