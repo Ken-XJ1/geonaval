@@ -59,9 +59,13 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar si la cuenta está bloqueada (comparar como booleano o string)
-    const estaBloqueada = user.cuenta_bloqueada === true || user.cuenta_bloqueada === 'true' || user.cuenta_bloqueada === 't';
-    if (estaBloqueada) {
+    // DEBUG: Ver qué tipo de dato devuelve PostgreSQL
+    console.log('🔍 DEBUG cuenta_bloqueada:', user.cuenta_bloqueada, 'tipo:', typeof user.cuenta_bloqueada);
+    console.log('🔍 DEBUG activo:', user.activo, 'tipo:', typeof user.activo);
+
+    // Verificar si la cuenta está bloqueada
+    // PostgreSQL puede devolver: true (boolean), 't' (string), 'true' (string), 1 (number)
+    if (user.cuenta_bloqueada) {
       await auditoria(
         '[USUARIO] Intento de acceso a cuenta bloqueada',
         `Se intentó acceder a la cuenta bloqueada de "${user.nombre}" (${user.email}).`
@@ -73,8 +77,7 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Verificar si está inactivo
-    const estaActivo = user.activo === true || user.activo === 'true' || user.activo === 't';
-    if (!estaActivo) {
+    if (!user.activo) {
       return res.status(403).json({ error: 'Cuenta desactivada. Contacta al administrador.' });
     }
 
