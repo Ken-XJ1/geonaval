@@ -95,16 +95,8 @@ export function Footer() {
           </div>
         </div>
 
-        {/* Disclaimer */}
-        <div className="pt-6 border-t border-border">
-          <p className="text-xs text-center text-muted-foreground italic">
-            Este es un sistema oficial de registro y control del transporte fluvial en el departamento del Chocó, Colombia.
-            La información aquí contenida es de carácter oficial y está sujeta a las normativas vigentes.
-          </p>
-        </div>
-
         {/* Bottom Bar */}
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="pt-4 border-t border-border">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-xs text-muted-foreground text-center md:text-left">
               © {currentYear} GEONAVAL - Sistema de Control del Transporte Fluvial. Todos los derechos reservados.
