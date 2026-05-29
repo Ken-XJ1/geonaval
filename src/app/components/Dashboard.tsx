@@ -66,7 +66,6 @@ export function Dashboard() {
     { key: 'embarcacion', label: 'Embarcación' },
     { key: 'propietario', label: 'Propietario' },
     { key: 'horaSalida', label: 'Hora Salida' },
-    { key: 'horaLlegada', label: 'Hora Llegada' },
     { key: 'operador', label: 'Operador Asignado' },
     {
       key: 'estado',
@@ -109,15 +108,15 @@ export function Dashboard() {
         <div className="bg-gradient-to-br from-primary to-blue-600 rounded-xl p-6 shadow-sm text-white">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <p className="text-sm text-white/80 mb-1">Próxima Llegada</p>
+              <p className="text-sm text-white/80 mb-1">Próximo Viaje</p>
               <p className="text-3xl font-bold mb-2">
-                {recentTrips[0]?.horaLlegada || '—'}
+                {recentTrips[0]?.ruta || 'Sin viajes'}
               </p>
               <p className="text-sm font-medium">
-                {recentTrips[0]?.embarcacion || 'Sin viajes'}
+                {recentTrips[0]?.embarcacion || '—'}
               </p>
               <p className="text-xs text-white/70 mt-1">
-                {recentTrips[0]?.ruta ? `Ruta: ${recentTrips[0].ruta}` : '—'}
+                {recentTrips[0]?.horaSalida ? `Salida: ${recentTrips[0].horaSalida}` : '—'}
               </p>
             </div>
             <div className="p-3 bg-white/20 rounded-lg">

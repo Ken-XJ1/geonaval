@@ -198,13 +198,6 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             </button>
           </form>
 
-          {/* Acceso de prueba */}
-          <div className="mt-4 p-3 bg-muted rounded-lg text-xs text-muted-foreground">
-            <p className="font-medium text-foreground mb-1">Acceso de prueba</p>
-            <p>test@test.com / 123456 (administrador)</p>
-            <p>admin@geonaval.com / admin123</p>
-          </div>
-
           {/* Footer */}
           <div className="mt-6 pt-6 border-t border-border text-center">
             <p className="text-xs text-muted-foreground">

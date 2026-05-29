@@ -1,5 +1,5 @@
 import { useState, useEffect, Fragment } from 'react';
-import { Plus, Ship, ChevronDown, ChevronUp, MapPin, Wrench } from 'lucide-react';
+import { Plus, Ship, ChevronDown, ChevronUp, Wrench } from 'lucide-react';
 import { DataTable } from './DataTable';
 import { StatusBadge } from './StatusBadge';
 import { ViewFeedback } from './ViewFeedback';
@@ -546,47 +546,68 @@ export function EmbarcacionesView() {
                         )}
 
                         {/* Alerta de Mantenimiento */}
-                        {emb.estado === 'mantenimiento' && emb.ubicacionMantenimiento && (
+                        {(emb.estado === 'mantenimiento' || emb.estado === 'fuera_servicio') && detalles?.embarcacion && (
                           <div className="mb-4 p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
                             <div className="flex items-start gap-3">
                               <Wrench className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" />
                               <div className="flex-1">
-                                <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
-                                  <span>EMBARCACIÓN EN MANTENIMIENTO</span>
-                                  <span className="text-xs px-2 py-0.5 bg-orange-200 rounded-full">
-                                    {emb.detallesMantenimiento?.tipo}
+                                <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
+                                  <span>
+                                    {emb.estado === 'mantenimiento' ? 'EMBARCACIÓN EN MANTENIMIENTO' : 'EMBARCACIÓN FUERA DE SERVICIO'}
                                   </span>
                                 </h4>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                                  <div>
-                                    <div className="flex items-start gap-2 mb-2">
-                                      <MapPin className="w-4 h-4 text-orange-600 mt-0.5" />
+                                <div className="space-y-3">
+                                  {detalles.embarcacion.tiempo_mantenimiento_estimado && (
+                                    <div className="bg-white rounded-lg p-3 border border-orange-200">
+                                      <p className="text-sm font-semibold text-orange-900 mb-1">⏱️ Tiempo Estimado:</p>
+                                      <p className="text-lg font-bold text-orange-800">
+                                        {detalles.embarcacion.tiempo_mantenimiento_estimado}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {detalles.embarcacion.fecha_inicio_mantenimiento && (
+                                    <div className="grid grid-cols-2 gap-3">
                                       <div>
-                                        <p className="text-sm font-semibold text-orange-900">Ubicación Actual:</p>
-                                        <p className="text-sm text-orange-800">{emb.ubicacionMantenimiento.lugar}</p>
-                                        <p className="text-xs text-orange-700">{emb.ubicacionMantenimiento.direccion}</p>
-                                        <p className="text-xs text-orange-600 font-mono mt-1">
-                                          📍 {emb.ubicacionMantenimiento.coordenadas}
+                                        <p className="text-xs font-semibold text-orange-900 mb-1">Fecha de Inicio:</p>
+                                        <p className="text-sm text-orange-800">
+                                          {new Date(detalles.embarcacion.fecha_inicio_mantenimiento).toLocaleDateString('es-CO', {
+                                            day: '2-digit',
+                                            month: 'short',
+                                            year: 'numeric'
+                                          })}
                                         </p>
                                       </div>
+                                      {detalles.embarcacion.fecha_fin_mantenimiento_estimada && (
+                                        <div>
+                                          <p className="text-xs font-semibold text-orange-900 mb-1">Fecha Estimada de Retorno:</p>
+                                          <p className="text-sm text-orange-800">
+                                            {new Date(detalles.embarcacion.fecha_fin_mantenimiento_estimada).toLocaleDateString('es-CO', {
+                                              day: '2-digit',
+                                              month: 'short',
+                                              year: 'numeric'
+                                            })}
+                                          </p>
+                                        </div>
+                                      )}
                                     </div>
-                                  </div>
+                                  )}
 
-                                  <div>
-                                    <p className="text-sm font-semibold text-orange-900 mb-2">Detalles del Mantenimiento:</p>
-                                    <div className="text-sm space-y-1">
-                                      <p className="text-orange-800">
-                                        <strong>Ingreso:</strong> {emb.detallesMantenimiento?.fechaIngreso}
-                                      </p>
-                                      <p className="text-orange-800">
-                                        <strong>Salida Estimada:</strong> {emb.detallesMantenimiento?.fechaEstimadaSalida}
-                                      </p>
-                                      <p className="text-orange-700 text-xs mt-2">
-                                        {emb.detallesMantenimiento?.descripcion}
+                                  {detalles.embarcacion.motivo_mantenimiento && (
+                                    <div className="bg-white rounded-lg p-3 border border-orange-200">
+                                      <p className="text-xs font-semibold text-orange-900 mb-1">📝 Motivo:</p>
+                                      <p className="text-sm text-orange-700">
+                                        {detalles.embarcacion.motivo_mantenimiento}
                                       </p>
                                     </div>
-                                  </div>
+                                  )}
+
+                                  {!detalles.embarcacion.tiempo_mantenimiento_estimado && (
+                                    <p className="text-sm text-orange-700 italic">
+                                      No se especificó información de mantenimiento. Usa el botón "Cambiar Estado" para agregar detalles.
+                                    </p>
+                                  )}
                                 </div>
                               </div>
                             </div>
