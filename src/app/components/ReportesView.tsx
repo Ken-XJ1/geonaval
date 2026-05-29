@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Download, Filter, BarChart3, Users, Anchor, AlertTriangle } from 'lucide-react';
+import { Download, Filter, BarChart3, Users, Anchor } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -24,7 +24,6 @@ export function ReportesView() {
   const [viajes, setViajes] = useState<Record<string, unknown>[]>([]);
   const [pasajeros, setPasajeros] = useState<Record<string, unknown>[]>([]);
   const [embarcaciones, setEmbarcaciones] = useState<Record<string, unknown>[]>([]);
-  const [incidentes, setIncidentes] = useState<Record<string, unknown>[]>([]);
   const [filtros, setFiltros] = useState({
     fechaInicio: '',
     fechaFin: '',
@@ -37,16 +36,14 @@ export function ReportesView() {
     setLoading(true);
     setError(null);
     try {
-      const [v, p, e, i] = await Promise.all([
+      const [v, p, e] = await Promise.all([
         api.getViajes() as Promise<Record<string, unknown>[]>,
         api.getPasajeros() as Promise<Record<string, unknown>[]>,
         api.getEmbarcaciones() as Promise<Record<string, unknown>[]>,
-        api.getIncidentes() as Promise<Record<string, unknown>[]>,
       ]);
       setViajes(v);
       setPasajeros(p);
       setEmbarcaciones(e);
-      setIncidentes(i);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar reportes');
     } finally {
@@ -126,31 +123,17 @@ export function ReportesView() {
     const tasa =
       totalViajes > 0 ? Math.round((finalizados / totalViajes) * 1000) / 10 : 0;
     
-    // Filtrar incidentes según el período de viajes filtrados
-    let incidentesFiltrados = incidentes;
-    if (filtros.fechaInicio || filtros.fechaFin) {
-      incidentesFiltrados = incidentes.filter((i) => {
-        if (!i.created_at) return true; // Incluir incidentes sin fecha
-        const fecha = new Date(i.created_at as string);
-        if (filtros.fechaInicio && fecha < new Date(filtros.fechaInicio)) return false;
-        if (filtros.fechaFin && fecha > new Date(`${filtros.fechaFin}T23:59:59`)) return false;
-        return true;
-      });
-    }
-    
     return {
       totalViajes,
       pasajeros: pasajeros.length,
       tasa,
-      incidentes: incidentesFiltrados.length,
     };
-  }, [viajesFiltrados, pasajeros.length, incidentes, filtros.fechaInicio, filtros.fechaFin]);
+  }, [viajesFiltrados, pasajeros.length]);
 
   const reportesDisponibles = [
     { id: 'viajes-mes', titulo: 'Viajes del período', descripcion: `${resumen.totalViajes} viajes en el filtro actual`, icono: 'chart-bar' },
     { id: 'pasajeros', titulo: 'Pasajeros', descripcion: `${resumen.pasajeros} registrados`, icono: 'users' },
     { id: 'embarcaciones', titulo: 'Embarcaciones', descripcion: `${embarcaciones.length} en flota`, icono: 'anchor' },
-    { id: 'incidentes', titulo: 'Incidentes', descripcion: `${resumen.incidentes} reportados`, icono: 'alert-triangle' },
   ];
 
   const descargarExcel = (reporteId: string) => {
@@ -181,15 +164,6 @@ export function ReportesView() {
         embarcaciones.forEach((e) => {
           const viajesRealizados = viajesFiltrados.filter(v => v.embarcacion_id === e.id).length;
           csvContent += `E-${e.id},${e.nombre},${e.tipo || 'N/A'},${e.capacidad_pasajeros || 0},${e.estado},${viajesRealizados}\n`;
-        });
-        break;
-
-      case 'incidentes':
-        filename = 'incidentes.csv';
-        csvContent = 'ID,Viaje,Tipo,Descripción,Severidad,Estado,Fecha\n';
-        incidentes.forEach((i) => {
-          const fecha = i.created_at ? new Date(i.created_at as string).toLocaleDateString('es-CO') : 'N/A';
-          csvContent += `I-${i.id},V-${i.viaje_id || 'N/A'},${i.tipo},${(i.descripcion as string).replace(/,/g, ';')},${i.severidad},${i.estado},${fecha}\n`;
         });
         break;
     }
@@ -237,16 +211,6 @@ export function ReportesView() {
         embarcaciones.forEach((e) => {
           const viajesRealizados = viajesFiltrados.filter(v => v.embarcacion_id === e.id).length;
           contenido += `- E-${e.id}: ${e.nombre} (${e.estado}) - ${viajesRealizados} viajes\n`;
-        });
-        break;
-
-      case 'incidentes':
-        titulo = 'Reporte de Incidentes';
-        contenido = `Total de incidentes: ${resumen.incidentes}\n\n`;
-        contenido += 'Listado de Incidentes:\n';
-        incidentes.forEach((i) => {
-          contenido += `- I-${i.id}: ${i.tipo} (${i.severidad}) - ${i.estado}\n`;
-          contenido += `  ${i.descripcion}\n\n`;
         });
         break;
     }
@@ -418,8 +382,7 @@ export function ReportesView() {
             const IconComponent = 
               reporte.icono === 'chart-bar' ? BarChart3 :
               reporte.icono === 'users' ? Users :
-              reporte.icono === 'anchor' ? Anchor :
-              AlertTriangle;
+              Anchor;
             
             return (
               <div
@@ -457,7 +420,7 @@ export function ReportesView() {
 
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Resumen del período filtrado</h3>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
             <p className="text-3xl font-bold text-primary mb-1">{resumen.totalViajes}</p>
             <p className="text-sm text-muted-foreground">Total Viajes</p>
@@ -469,10 +432,6 @@ export function ReportesView() {
           <div className="text-center">
             <p className="text-3xl font-bold text-orange-600 mb-1">{resumen.tasa}%</p>
             <p className="text-sm text-muted-foreground">Tasa finalización</p>
-          </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-red-600 mb-1">{resumen.incidentes}</p>
-            <p className="text-sm text-muted-foreground">Incidentes</p>
           </div>
         </div>
 
