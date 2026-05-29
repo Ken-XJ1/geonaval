@@ -287,35 +287,46 @@ export function NotificacionesView() {
                           <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                             <Calendar className="w-3 h-3" />
                             {(() => {
-                              // Parsear la fecha como si fuera hora de Colombia (sin conversión UTC)
+                              // Parsear la fecha y ajustar a hora de Colombia
                               const fechaStr = n.created_at;
-                              // Si viene en formato "YYYY-MM-DD HH:mm:ss" o "YYYY-MM-DDTHH:mm:ss"
-                              const partes = fechaStr.replace('T', ' ').split(' ');
-                              if (partes.length >= 2) {
-                                const [fecha, hora] = partes;
-                                const [year, month, day] = fecha.split('-');
-                                return `${day}/${month}/${year}`;
+                              
+                              // Si viene en formato ISO o SQL, parsearlo
+                              let fecha: Date;
+                              if (fechaStr.includes('T') || fechaStr.includes(' ')) {
+                                // Crear fecha interpretando como UTC y luego ajustar a Colombia
+                                fecha = new Date(fechaStr + (fechaStr.includes('Z') ? '' : 'Z'));
+                                // Ajustar a hora de Colombia (UTC-5)
+                                fecha.setHours(fecha.getHours() - 5);
+                              } else {
+                                fecha = new Date(fechaStr);
                               }
-                              // Fallback
-                              return new Date(fechaStr).toLocaleDateString('es-CO', {
-                                day: '2-digit', month: '2-digit', year: 'numeric'
-                              });
+                              
+                              const day = String(fecha.getDate()).padStart(2, '0');
+                              const month = String(fecha.getMonth() + 1).padStart(2, '0');
+                              const year = fecha.getFullYear();
+                              
+                              return `${day}/${month}/${year}`;
                             })()}
                           </div>
                           <span className="text-[11px] text-muted-foreground">
                             {(() => {
-                              // Parsear la hora como si fuera hora de Colombia (sin conversión UTC)
+                              // Parsear la hora y ajustar a hora de Colombia
                               const fechaStr = n.created_at;
-                              const partes = fechaStr.replace('T', ' ').split(' ');
-                              if (partes.length >= 2) {
-                                const hora = partes[1].split('.')[0]; // Remover milisegundos si existen
-                                const [h, m] = hora.split(':');
-                                return `${h}:${m}`;
+                              
+                              let fecha: Date;
+                              if (fechaStr.includes('T') || fechaStr.includes(' ')) {
+                                // Crear fecha interpretando como UTC y luego ajustar a Colombia
+                                fecha = new Date(fechaStr + (fechaStr.includes('Z') ? '' : 'Z'));
+                                // Ajustar a hora de Colombia (UTC-5)
+                                fecha.setHours(fecha.getHours() - 5);
+                              } else {
+                                fecha = new Date(fechaStr);
                               }
-                              // Fallback
-                              return new Date(fechaStr).toLocaleTimeString('es-CO', {
-                                hour: '2-digit', minute: '2-digit'
-                              });
+                              
+                              const hours = String(fecha.getHours()).padStart(2, '0');
+                              const minutes = String(fecha.getMinutes()).padStart(2, '0');
+                              
+                              return `${hours}:${minutes}`;
                             })()}
                           </span>
                         </div>
