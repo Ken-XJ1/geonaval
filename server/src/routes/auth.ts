@@ -59,8 +59,9 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar si la cuenta está bloqueada
-    if (user.cuenta_bloqueada) {
+    // Verificar si la cuenta está bloqueada (comparar como booleano o string)
+    const estaBloqueada = user.cuenta_bloqueada === true || user.cuenta_bloqueada === 'true' || user.cuenta_bloqueada === 't';
+    if (estaBloqueada) {
       await auditoria(
         '[USUARIO] Intento de acceso a cuenta bloqueada',
         `Se intentó acceder a la cuenta bloqueada de "${user.nombre}" (${user.email}).`
@@ -72,7 +73,8 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     // Verificar si está inactivo
-    if (!user.activo) {
+    const estaActivo = user.activo === true || user.activo === 'true' || user.activo === 't';
+    if (!estaActivo) {
       return res.status(403).json({ error: 'Cuenta desactivada. Contacta al administrador.' });
     }
 
