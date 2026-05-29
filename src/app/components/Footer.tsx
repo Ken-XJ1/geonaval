@@ -1,8 +1,15 @@
 import { Mail, Phone, MapPin, Shield } from 'lucide-react';
 import { Logo } from './Logo';
+import { useState } from 'react';
+import { TerminosCondiciones } from './TerminosCondiciones';
+import { PoliticaPrivacidad } from './PoliticaPrivacidad';
+import { PoliticaCookies } from './PoliticaCookies';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
+  const [showTerminos, setShowTerminos] = useState(false);
+  const [showPrivacidad, setShowPrivacidad] = useState(false);
+  const [showCookies, setShowCookies] = useState(false);
 
   return (
     <footer className="bg-white border-t border-border mt-auto">
@@ -50,16 +57,19 @@ export function Footer() {
             <h4 className="font-semibold text-foreground mb-3 text-sm">Enlaces Rápidos</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <a href="#" className="hover:text-primary transition-colors">Acerca de GEONAVAL</a>
+                <button onClick={() => setShowTerminos(true)} className="hover:text-primary transition-colors text-left">
+                  Términos y Condiciones
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">Términos y Condiciones</a>
+                <button onClick={() => setShowPrivacidad(true)} className="hover:text-primary transition-colors text-left">
+                  Política de Privacidad
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-primary transition-colors">Política de Privacidad</a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-primary transition-colors">Ayuda y Soporte</a>
+                <button onClick={() => setShowCookies(true)} className="hover:text-primary transition-colors text-left">
+                  Política de Cookies
+                </button>
               </li>
             </ul>
           </div>
@@ -100,15 +110,26 @@ export function Footer() {
               © {currentYear} GEONAVAL - Sistema de Control del Transporte Fluvial. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">Términos</a>
+              <button onClick={() => setShowTerminos(true)} className="hover:text-primary transition-colors">
+                Términos
+              </button>
               <span>•</span>
-              <a href="#" className="hover:text-primary transition-colors">Privacidad</a>
+              <button onClick={() => setShowPrivacidad(true)} className="hover:text-primary transition-colors">
+                Privacidad
+              </button>
               <span>•</span>
-              <a href="#" className="hover:text-primary transition-colors">Cookies</a>
+              <button onClick={() => setShowCookies(true)} className="hover:text-primary transition-colors">
+                Cookies
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Modales */}
+      {showTerminos && <TerminosCondiciones onClose={() => setShowTerminos(false)} />}
+      {showPrivacidad && <PoliticaPrivacidad onClose={() => setShowPrivacidad(false)} />}
+      {showCookies && <PoliticaCookies onClose={() => setShowCookies(false)} />}
     </footer>
   );
 }
