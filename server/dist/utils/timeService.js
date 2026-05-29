@@ -2,32 +2,61 @@
 /**
  * Servicio de Tiempo para Colombia
  * Usa WorldTimeAPI para obtener la hora exacta de Colombia
+ *
+ * IMPORTANTE: WorldTimeAPI devuelve "2026-05-29T23:57:00.123456-05:00"
+ * NO usar new Date() porque convierte a UTC internamente.
+ * Extraemos la hora directamente del string.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getColombiaTime = getColombiaTime;
-exports.formatColombiaDateTime = formatColombiaDateTime;
 exports.getColombiaTimeSql = getColombiaTimeSql;
+exports.getColombiaTime = getColombiaTime;
 exports.isInPast = isInPast;
 exports.getColombiaOffset = getColombiaOffset;
-// Cache de la hora para evitar demasiadas llamadas a la API
-let cachedTime = null;
+// Cache del string de hora Colombia para evitar demasiadas llamadas
+let cachedSql = null;
+let cachedTimestamp = 0; // momento real en que se hizo el fetch
 let lastFetch = 0;
-const CACHE_DURATION = 60000; // 1 minuto
+const CACHE_DURATION = 30000; // 30 segundos
 /**
- * Obtiene la hora actual de Colombia desde WorldTimeAPI
+ * Extrae "YYYY-MM-DD HH:mm:ss" directamente del string de WorldTimeAPI
+ * sin ninguna conversión de zona horaria.
+ * Ejemplo: "2026-05-29T23:57:00.123456-05:00" → "2026-05-29 23:57:00"
  */
-async function getColombiaTime() {
+function parseDatetimeString(datetimeStr) {
+    // Formato: "2026-05-29T23:57:00.123456-05:00"
+    // Tomamos solo la parte antes del offset y antes de los microsegundos
+    const withoutOffset = datetimeStr.split('-05:00')[0].split('+')[0];
+    const normalized = withoutOffset.replace('T', ' ').split('.')[0];
+    return normalized; // "2026-05-29 23:57:00"
+}
+/**
+ * Obtiene la hora actual de Colombia en formato SQL "YYYY-MM-DD HH:mm:ss"
+ * directamente de WorldTimeAPI sin conversiones UTC.
+ */
+async function getColombiaTimeSql() {
     const now = Date.now();
-    // Si tenemos un cache válido (menos de 1 minuto), usarlo
-    if (cachedTime && (now - lastFetch) < CACHE_DURATION) {
-        // Ajustar por el tiempo transcurrido
-        const elapsed = now - lastFetch;
-        return new Date(cachedTime.getTime() + elapsed);
+    // Cache válido: ajustar por tiempo transcurrido
+    if (cachedSql && (now - lastFetch) < CACHE_DURATION) {
+        const elapsed = Math.floor((now - cachedTimestamp) / 1000);
+        // Sumar los segundos transcurridos al string de fecha
+        const base = new Date(cachedSql.replace(' ', 'T') + 'Z'); // tratar como UTC solo para sumar
+        // Pero en realidad solo necesitamos sumar segundos al string
+        const parts = cachedSql.split(' ');
+        const datePart = parts[0];
+        const timeParts = parts[1].split(':');
+        let h = parseInt(timeParts[0]);
+        let m = parseInt(timeParts[1]);
+        let s = parseInt(timeParts[2]) + elapsed;
+        m += Math.floor(s / 60);
+        s = s % 60;
+        h += Math.floor(m / 60);
+        m = m % 60;
+        h = h % 24;
+        return `${datePart} ${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     }
     try {
-        // Intentar obtener la hora de la API
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 segundos de timeout
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         const response = await fetch('https://worldtimeapi.org/api/timezone/America/Bogota', {
             signal: controller.signal
         });
@@ -35,61 +64,55 @@ async function getColombiaTime() {
         if (response.ok) {
             const data = await response.json();
             if (data && data.datetime) {
-                const colombiaTime = new Date(data.datetime);
-                cachedTime = colombiaTime;
+                // Extraer directamente sin new Date()
+                const sqlTime = parseDatetimeString(data.datetime);
+                cachedSql = sqlTime;
+                cachedTimestamp = now;
                 lastFetch = now;
-                console.log('✅ Hora de Colombia obtenida de WorldTimeAPI:', colombiaTime.toISOString());
-                return colombiaTime;
+                console.log(`✅ Hora Colombia (WorldTimeAPI): ${sqlTime}`);
+                return sqlTime;
             }
         }
     }
     catch (error) {
-        console.warn('⚠️ No se pudo obtener hora de WorldTimeAPI, usando hora del servidor');
+        console.warn('⚠️ WorldTimeAPI no disponible, usando fallback Colombia (UTC-5)');
     }
-    // Fallback: usar hora del servidor (asumiendo que está configurado en America/Bogota)
-    const serverTime = new Date();
-    cachedTime = serverTime;
+    // Fallback: calcular UTC-5 manualmente
+    const utcNow = new Date();
+    const colombiaMs = utcNow.getTime() - (5 * 60 * 60 * 1000);
+    const colombia = new Date(colombiaMs);
+    const year = colombia.getUTCFullYear();
+    const month = String(colombia.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(colombia.getUTCDate()).padStart(2, '0');
+    const hours = String(colombia.getUTCHours()).padStart(2, '0');
+    const mins = String(colombia.getUTCMinutes()).padStart(2, '0');
+    const secs = String(colombia.getUTCSeconds()).padStart(2, '0');
+    const fallback = `${year}-${month}-${day} ${hours}:${mins}:${secs}`;
+    cachedSql = fallback;
+    cachedTimestamp = now;
     lastFetch = now;
-    return serverTime;
+    console.log(`⚠️ Hora Colombia (fallback UTC-5): ${fallback}`);
+    return fallback;
 }
 /**
- * Formatea una fecha de Colombia en formato legible
+ * Obtiene la hora actual de Colombia como objeto Date
+ * (para comparaciones, no para formatear)
  */
-function formatColombiaDateTime(date) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
-}
-/**
- * Obtiene la hora actual de Colombia en formato SQL
- */
-async function getColombiaTimeSql() {
-    const time = await getColombiaTime();
-    // Formato: YYYY-MM-DD HH:mm:ss
-    const year = time.getFullYear();
-    const month = String(time.getMonth() + 1).padStart(2, '0');
-    const day = String(time.getDate()).padStart(2, '0');
-    const hours = String(time.getHours()).padStart(2, '0');
-    const minutes = String(time.getMinutes()).padStart(2, '0');
-    const seconds = String(time.getSeconds()).padStart(2, '0');
-    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+async function getColombiaTime() {
+    const sql = await getColombiaTimeSql();
+    // Crear Date desde el string SQL tratándolo como UTC para comparaciones
+    return new Date(sql.replace(' ', 'T') + 'Z');
 }
 /**
  * Verifica si una fecha es en el pasado (hora de Colombia)
  */
 async function isInPast(dateStr) {
-    const colombiaTime = await getColombiaTime();
-    const targetDate = new Date(dateStr);
-    return targetDate < colombiaTime;
+    const sqlNow = await getColombiaTimeSql();
+    return dateStr < sqlNow; // comparación lexicográfica funciona con formato YYYY-MM-DD HH:mm:ss
 }
 /**
  * Obtiene el offset de Colombia en minutos
  */
 function getColombiaOffset() {
-    // Colombia está en UTC-5 (300 minutos)
-    return -300;
+    return -300; // UTC-5
 }
