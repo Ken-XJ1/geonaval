@@ -62,9 +62,8 @@ export async function getColombiaTimeSql(): Promise<string> {
     clearTimeout(timeoutId);
 
     if (response.ok) {
-      const data = await response.json();
+      const data = await response.json() as { datetime?: string };
       if (data && data.datetime) {
-        // Extraer directamente sin new Date()
         const sqlTime = parseDatetimeString(data.datetime);
         cachedSql = sqlTime;
         cachedTimestamp = now;

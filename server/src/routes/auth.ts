@@ -132,11 +132,11 @@ router.post('/login', async (req: Request, res: Response) => {
 
 /** Desbloquear cuenta — solo administradores */
 router.post('/desbloquear/:id', async (req: Request, res: Response) => {
-  // Verificar token de admin
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ error: 'No autorizado' });
-
   try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || typeof authHeader !== 'string') {
+      return res.status(401).json({ error: 'No autorizado' });
+    }
     const token = authHeader.replace('Bearer ', '');
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret') as { rol: string; nombre: string };
 

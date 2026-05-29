@@ -95,11 +95,11 @@ router.post('/login', async (req, res) => {
 });
 /** Desbloquear cuenta — solo administradores */
 router.post('/desbloquear/:id', async (req, res) => {
-    // Verificar token de admin
-    const authHeader = req.headers.authorization;
-    if (!authHeader)
-        return res.status(401).json({ error: 'No autorizado' });
     try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader || typeof authHeader !== 'string') {
+            return res.status(401).json({ error: 'No autorizado' });
+        }
         const token = authHeader.replace('Bearer ', '');
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || 'secret');
         if (decoded.rol !== 'administrador') {
