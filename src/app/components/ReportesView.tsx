@@ -117,7 +117,6 @@ export function ReportesView() {
       .map((x) => ({
         nombre: x.nombre.length > 14 ? `${x.nombre.slice(0, 14)}…` : x.nombre,
         viajes: x.viajes,
-        horas: x.viajes * 3,
       }));
   }, [embarcaciones, viajesFiltrados]);
 
@@ -129,7 +128,6 @@ export function ReportesView() {
     return {
       totalViajes,
       pasajeros: pasajeros.length,
-      horas: totalViajes * 3,
       tasa,
       incidentes: incidentes.length,
     };
@@ -299,24 +297,20 @@ export function ReportesView() {
           <Filter className="w-5 h-5 text-primary" />
           <h3 className="font-semibold">Filtros de Búsqueda</h3>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Fecha Inicio</label>
-            <input
-              type="date"
-              value={filtros.fechaInicio}
-              onChange={(e) => setFiltros({ ...filtros, fechaInicio: e.target.value })}
+            <label className="block text-sm font-medium mb-2">Estado del Viaje</label>
+            <select
+              value={filtros.estado}
+              onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
               className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Fecha Fin</label>
-            <input
-              type="date"
-              value={filtros.fechaFin}
-              onChange={(e) => setFiltros({ ...filtros, fechaFin: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            />
+            >
+              <option value="">Todos los estados</option>
+              <option value="finalizado">Finalizado</option>
+              <option value="en_curso">En curso</option>
+              <option value="programado">Programado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
           </div>
           <div>
             <label className="block text-sm font-medium mb-2">Embarcación</label>
@@ -325,7 +319,7 @@ export function ReportesView() {
               onChange={(e) => setFiltros({ ...filtros, embarcacion: e.target.value })}
               className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
             >
-              <option value="">Todas</option>
+              <option value="">Todas las embarcaciones</option>
               {embarcaciones.map((e) => (
                 <option key={String(e.id)} value={String(e.id)}>
                   {e.nombre as string}
@@ -333,53 +327,31 @@ export function ReportesView() {
               ))}
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Ruta (texto)</label>
-            <input
-              type="text"
-              placeholder="ej. quibdo-istmina"
-              value={filtros.ruta}
-              onChange={(e) => setFiltros({ ...filtros, ruta: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Estado</label>
-            <select
-              value={filtros.estado}
-              onChange={(e) => setFiltros({ ...filtros, estado: e.target.value })}
-              className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
-            >
-              <option value="">Todos</option>
-              <option value="finalizado">Finalizado</option>
-              <option value="en_curso">En curso</option>
-              <option value="programado">Programado</option>
-              <option value="cancelado">Cancelado</option>
-            </select>
-          </div>
         </div>
         <div className="flex items-center justify-between mt-4">
           <div className="flex items-center gap-2 text-sm">
             <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
             <span className="text-muted-foreground">
-              Filtros aplicados automáticamente: <strong className="text-foreground">{viajesFiltrados.length} viajes</strong> encontrados
+              Mostrando <strong className="text-foreground">{viajesFiltrados.length} viajes</strong>
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() =>
-              setFiltros({
-                fechaInicio: '',
-                fechaFin: '',
-                embarcacion: '',
-                ruta: '',
-                estado: '',
-              })
-            }
-            className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
-          >
-            Limpiar Filtros
-          </button>
+          {(filtros.estado || filtros.embarcacion) && (
+            <button
+              type="button"
+              onClick={() =>
+                setFiltros({
+                  fechaInicio: '',
+                  fechaFin: '',
+                  embarcacion: '',
+                  ruta: '',
+                  estado: '',
+                })
+              }
+              className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
+            >
+              Limpiar Filtros
+            </button>
+          )}
         </div>
       </div>
 
@@ -419,8 +391,7 @@ export function ReportesView() {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="viajes" fill="#0B5ED7" name="Viajes" />
-                <Bar dataKey="horas" fill="#64b5f6" name="Horas est." />
+                <Bar dataKey="viajes" fill="#0B5ED7" name="Viajes Realizados" />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -473,7 +444,7 @@ export function ReportesView() {
 
       <div className="bg-white rounded-xl border border-border shadow-sm p-6">
         <h3 className="font-semibold mb-4">Resumen del período filtrado</h3>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="text-center">
             <p className="text-3xl font-bold text-primary mb-1">{resumen.totalViajes}</p>
             <p className="text-sm text-muted-foreground">Total Viajes</p>
@@ -481,10 +452,6 @@ export function ReportesView() {
           <div className="text-center">
             <p className="text-3xl font-bold text-green-600 mb-1">{resumen.pasajeros}</p>
             <p className="text-sm text-muted-foreground">Pasajeros registrados</p>
-          </div>
-          <div className="text-center">
-            <p className="text-3xl font-bold text-blue-600 mb-1">{resumen.horas}</p>
-            <p className="text-sm text-muted-foreground">Horas est. operación</p>
           </div>
           <div className="text-center">
             <p className="text-3xl font-bold text-orange-600 mb-1">{resumen.tasa}%</p>
