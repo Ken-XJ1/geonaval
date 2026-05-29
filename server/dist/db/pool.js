@@ -20,8 +20,11 @@ const pool = new pg_1.Pool({
 });
 pool
     .connect()
-    .then((client) => {
+    .then(async (client) => {
     console.log('Conectado a PostgreSQL correctamente');
+    // Configurar zona horaria de Colombia para esta sesión
+    await client.query("SET timezone = 'America/Bogota'");
+    console.log('Zona horaria configurada: America/Bogota');
     client.release();
 })
     .catch((err) => {

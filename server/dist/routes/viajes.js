@@ -311,13 +311,21 @@ router.post('/', async (req, res) => {
             error: 'Fecha, origen, destino y embarcación son requeridos',
         });
     }
-    // Validar que la fecha de salida no sea en el pasado
-    const fechaSalidaDate = new Date(fecha_salida);
-    const ahora = new Date();
-    if (fechaSalidaDate < ahora) {
-        return res.status(400).json({
-            error: 'No se puede crear un viaje con fecha de salida en el pasado',
-        });
+    // Validar que la fecha de salida no sea en el pasado (hora de Colombia)
+    try {
+        // Obtener la hora actual de la base de datos (que está en America/Bogota)
+        const ahoraResult = await pool_1.default.query("SELECT NOW() AT TIME ZONE 'America/Bogota' as ahora");
+        const ahoraColombia = new Date(ahoraResult.rows[0].ahora);
+        const fechaSalidaDate = new Date(fecha_salida);
+        if (fechaSalidaDate < ahoraColombia) {
+            return res.status(400).json({
+                error: 'No se puede crear un viaje con fecha de salida en el pasado',
+            });
+        }
+    }
+    catch (err) {
+        console.error('Error validando fecha:', err.message);
+        return res.status(500).json({ error: 'Error al validar la fecha' });
     }
     const user = req.user;
     const cierre = fecha_limite_inscripcion ||

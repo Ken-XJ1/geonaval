@@ -15,11 +15,19 @@ async function runMigrations() {
 
 export async function ensureSchema() {
   try {
+    // Configurar zona horaria de Colombia
+    await pool.query("SET timezone = 'America/Bogota'");
+    console.log('✅ Zona horaria configurada: America/Bogota');
+    
     await pool.query('SELECT 1 FROM usuarios LIMIT 1');
     await runMigrations();
     return true;
   } catch {
     try {
+      // Configurar zona horaria antes de aplicar el schema
+      await pool.query("SET timezone = 'America/Bogota'");
+      console.log('✅ Zona horaria configurada: America/Bogota');
+      
       const schemaPath = path.join(__dirname, 'schema.sql');
       const sql = fs.readFileSync(schemaPath, 'utf8');
       await pool.query(sql);

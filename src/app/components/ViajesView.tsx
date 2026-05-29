@@ -23,6 +23,17 @@ const finIcon = L.divIcon({
   className: '', iconSize: [16, 16], iconAnchor: [8, 8],
 });
 
+// Obtener fecha actual en zona horaria de Colombia
+function getFechaActualColombia(): string {
+  const ahora = new Date();
+  // Convertir a hora de Colombia (UTC-5)
+  const colombiaTime = new Date(ahora.toLocaleString('en-US', { timeZone: 'America/Bogota' }));
+  const year = colombiaTime.getFullYear();
+  const month = String(colombiaTime.getMonth() + 1).padStart(2, '0');
+  const day = String(colombiaTime.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 type ResumenViaje = {
   row: ReturnType<typeof mapViajeToUI>;
   puntosGps: { latitud: number; longitud: number }[];
@@ -765,10 +776,13 @@ export function ViajesView() {
                   handleFormChange('fechaSalida', e.target.value);
                   setTimeout(validarConflictoHorarios, 100);
                 }}
-                min={new Date().toISOString().split('T')[0]}
+                min={getFechaActualColombia()}
                 className="w-full px-4 py-2 bg-muted rounded-lg border border-border focus:border-primary focus:outline-none"
                 required
               />
+              <p className="text-xs text-muted-foreground mt-1">
+                No se permiten fechas pasadas (hora de Colombia)
+              </p>
             </div>
 
             <div>

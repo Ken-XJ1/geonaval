@@ -145,6 +145,9 @@ ALTER TABLE viajes ADD COLUMN IF NOT EXISTS fecha_llegada TIMESTAMP WITHOUT TIME
 -- Eliminar cuenta de cliente (ya no se usa)
 DELETE FROM usuarios WHERE email = 'cliente@geonaval.com';
 
+-- Configurar zona horaria de Colombia en la base de datos
+ALTER DATABASE postgres SET timezone TO 'America/Bogota';
+
 -- Limpiar datos para empezar de cero con fechas correctas
 DELETE FROM ubicaciones_gps;
 DELETE FROM viaje_pasajeros;
