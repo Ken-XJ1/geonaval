@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Bell, Check, Calendar, Users, Anchor, UserCheck,
   Navigation, AlertTriangle, UserPlus, Filter, Trash2,
-  RefreshCw, ShieldCheck,
+  RefreshCw, ShieldCheck, ArrowRight,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { ViewFeedback } from './ViewFeedback';
@@ -75,6 +76,7 @@ const CATEGORIAS: { key: Categoria; label: string }[] = [
 ];
 
 export function NotificacionesView() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notificaciones, setNotificaciones] = useState<Notificacion[]>([]);
@@ -281,6 +283,18 @@ export function NotificacionesView() {
                         <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
                           {n.mensaje}
                         </p>
+
+                        {/* Botón para ir a Usuarios si es notificación de bloqueo */}
+                        {(tituloLimpio.toLowerCase().includes('bloqueada') || 
+                          n.mensaje.toLowerCase().includes('bloqueada')) && (
+                          <button
+                            onClick={() => navigate('/usuarios')}
+                            className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors"
+                          >
+                            Ir a Usuarios para desbloquear
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        )}
 
                         {/* Fecha y hora */}
                         <div className="flex items-center gap-3 mt-2">
