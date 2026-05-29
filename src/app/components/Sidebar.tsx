@@ -62,7 +62,6 @@ const autoridadMenuItems = [
   { id: 'monitoreo', label: 'Monitoreo GPS', icon: Radar },
   { id: 'consultas', label: 'Consultas', icon: FileText },
   { id: 'reportes', label: 'Reportes Oficiales', icon: FileText },
-  { id: 'alertas', label: 'Alertas', icon: AlertTriangle },
   { id: 'notificaciones', label: 'Notificaciones', icon: Bell },
   { id: 'configuracion', label: 'Configuración', icon: Settings },
 ];

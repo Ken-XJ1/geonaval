@@ -125,13 +125,26 @@ export function ReportesView() {
     const finalizados = viajesFiltrados.filter((v) => v.estado === 'finalizado').length;
     const tasa =
       totalViajes > 0 ? Math.round((finalizados / totalViajes) * 1000) / 10 : 0;
+    
+    // Filtrar incidentes según el período de viajes filtrados
+    let incidentesFiltrados = incidentes;
+    if (filtros.fechaInicio || filtros.fechaFin) {
+      incidentesFiltrados = incidentes.filter((i) => {
+        if (!i.created_at) return true; // Incluir incidentes sin fecha
+        const fecha = new Date(i.created_at as string);
+        if (filtros.fechaInicio && fecha < new Date(filtros.fechaInicio)) return false;
+        if (filtros.fechaFin && fecha > new Date(`${filtros.fechaFin}T23:59:59`)) return false;
+        return true;
+      });
+    }
+    
     return {
       totalViajes,
       pasajeros: pasajeros.length,
       tasa,
-      incidentes: incidentes.length,
+      incidentes: incidentesFiltrados.length,
     };
-  }, [viajesFiltrados, pasajeros.length, incidentes.length]);
+  }, [viajesFiltrados, pasajeros.length, incidentes, filtros.fechaInicio, filtros.fechaFin]);
 
   const reportesDisponibles = [
     { id: 'viajes-mes', titulo: 'Viajes del período', descripcion: `${resumen.totalViajes} viajes en el filtro actual`, icono: 'chart-bar' },

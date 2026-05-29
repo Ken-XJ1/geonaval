@@ -96,7 +96,6 @@ export default function App() {
         monitoreo: 'Monitoreo GPS',
         consultas: 'Consultas',
         reportes: 'Reportes Oficiales',
-        alertas: 'Alertas de Emergencia',
         notificaciones: 'Centro de Notificaciones',
         configuracion: 'Configuración',
       };
@@ -161,13 +160,6 @@ export default function App() {
           return <AutoridadesView onNavigate={setActiveView} />;
         case 'reportes':
           return <ReportesView />;
-        case 'alertas':
-          return (
-            <div className="bg-white rounded-xl border border-border shadow-sm p-12 text-center">
-              <h3 className="text-xl font-semibold mb-2">Alertas de Emergencia</h3>
-              <p className="text-muted-foreground">Sistema de alertas y emergencias</p>
-            </div>
-          );
         case 'notificaciones':
           return <NotificacionesView />;
         case 'configuracion':
