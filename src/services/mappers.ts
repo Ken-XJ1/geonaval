@@ -142,6 +142,7 @@ export function mapPasajeroToUI(row: Record<string, unknown>) {
     nombre: row.nombre as string,
     documento: row.documento as string,
     telefono: (row.telefono as string) || '—',
+    email: (row.email as string) || '',
     viajeAsociado: row.viaje_id ? `V-${row.viaje_id}` : 'Pendiente',
     embarcacion: (row.embarcacion_nombre as string) || 'Pendiente',
     ruta: origen && destino ? `${origen} - ${destino}` : 'Pendiente',

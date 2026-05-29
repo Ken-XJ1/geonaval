@@ -111,7 +111,7 @@ export function PasajerosView() {
       nombreCompleto: row.nombre,
       documento: row.documento,
       telefono: row.telefono === '—' || row.telefono === 'Pendiente' ? '' : row.telefono,
-      email: '',
+      email: row.email || '',
       viajeId: '',
     });
     setViajeSeleccionado(null);
