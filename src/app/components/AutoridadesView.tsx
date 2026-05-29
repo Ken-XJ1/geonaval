@@ -134,10 +134,21 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
       });
       setViajesEnCurso(viajes.filter(v => v.estado === 'en_curso'));
       
+      // Debug: Ver todos los incidentes
+      console.log('🔍 TODOS LOS INCIDENTES:', incidentesData);
+      console.log('🔍 Total incidentes:', incidentesData.length);
+      
       // Incidentes activos (abiertos o en revisión)
-      setIncidentes(incidentesData.filter(i => i.estado === 'abierto' || i.estado === 'en_revision'));
+      const incidentesActivos = incidentesData.filter(i => i.estado === 'abierto' || i.estado === 'en_revision');
+      console.log('🔍 INCIDENTES ACTIVOS (abierto o en_revision):', incidentesActivos);
+      console.log('🔍 Total activos:', incidentesActivos.length);
+      
+      setIncidentes(incidentesActivos);
       
       // Auditoría filtrada: solo eventos de viajes, embarcaciones, pasajeros, tripulación
+      console.log('🔍 TODAS LAS NOTIFICACIONES:', notificaciones);
+      console.log('🔍 Total notificaciones:', notificaciones.length);
+      
       const auditoriaFiltrada = notificaciones.filter(n => {
         const titulo = (n.titulo as string).toUpperCase();
         return titulo.includes('[VIAJE]') || 
@@ -148,6 +159,9 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
                titulo.includes('[TRIPULACION]') ||
                titulo.includes('[INCIDENTE]');
       });
+      console.log('🔍 AUDITORÍA FILTRADA:', auditoriaFiltrada);
+      console.log('🔍 Total auditoría:', auditoriaFiltrada.length);
+      
       setAuditoria(auditoriaFiltrada.slice(0, 20)); // Últimas 20
     } catch { /* silencioso */ }
     finally { 
