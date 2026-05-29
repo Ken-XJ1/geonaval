@@ -631,14 +631,21 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                               onClick={() => !ocupado && setAsiento(seleccionado ? '' : asientoId)}
                               className={`w-full py-2 px-1 rounded-lg text-xs font-medium transition-all ${
                                 ocupado
-                                  ? 'bg-red-200 text-red-600 cursor-not-allowed opacity-60 line-through'
+                                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed opacity-50 relative'
                                   : seleccionado
                                   ? 'bg-primary text-white ring-2 ring-primary ring-offset-2 shadow-lg scale-105'
                                   : 'bg-white border-2 border-border hover:border-primary hover:bg-primary/5 hover:scale-105'
                               }`}
-                              title={ocupado ? 'Asiento ocupado' : seleccionado ? 'Clic para deseleccionar' : 'Clic para seleccionar'}
+                              title={ocupado ? 'Asiento no disponible - Ya está ocupado' : seleccionado ? 'Clic para deseleccionar' : 'Clic para seleccionar'}
                             >
-                              {asientoId}
+                              {ocupado && (
+                                <span className="absolute inset-0 flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </span>
+                              )}
+                              <span className={ocupado ? 'opacity-30' : ''}>{asientoId}</span>
                             </button>
                           );
                         })}
@@ -655,8 +662,12 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                       <span className="text-muted-foreground font-medium">Seleccionado</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-5 h-5 rounded bg-red-200 opacity-60"/>
-                      <span className="text-muted-foreground font-medium">Ocupado</span>
+                      <div className="w-5 h-5 rounded bg-gray-300 opacity-50 relative">
+                        <svg className="w-3 h-3 text-gray-600 absolute inset-0 m-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </div>
+                      <span className="text-muted-foreground font-medium">No disponible</span>
                     </div>
                   </div>
                   {asiento && (

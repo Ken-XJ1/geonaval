@@ -452,6 +452,23 @@ router.post('/', async (req: Request, res: Response) => {
       });
     }
 
+    // Prevenir duplicación: verificar si ya existe un viaje con misma ruta, fecha y embarcación
+    const duplicadoRes = await pool.query(
+      `SELECT id FROM viajes 
+       WHERE origen = $1 
+       AND destino = $2 
+       AND embarcacion_id = $3 
+       AND fecha_salida = $4
+       AND estado != 'cancelado'`,
+      [origen, destino, embarcacion_id, fecha_salida]
+    );
+    
+    if (duplicadoRes.rows.length > 0) {
+      return res.status(400).json({
+        error: 'Ya existe un viaje programado con la misma ruta, fecha y embarcación. Por favor verifica los viajes existentes.',
+      });
+    }
+
     const result = await pool.query(
       `INSERT INTO viajes
         (fecha_salida, fecha_llegada, cierre_inscripcion, fecha_limite_inscripcion, origen, destino, embarcacion_id, precio, estado, justificacion_cancelacion, creado_por)
