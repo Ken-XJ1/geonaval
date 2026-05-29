@@ -326,4 +326,11 @@ export const api = {
   // Tiempo de Colombia
   getColombiaTime: () =>
     fetch(`${BASE}/time`, { headers: headers() }).then((r) => parseJson(r)),
+
+  // Seguridad — desbloquear cuenta (solo admin)
+  desbloquearUsuario: (id: number) =>
+    fetch(`${BASE}/auth/desbloquear/${id}`, {
+      method: 'POST',
+      headers: headers(),
+    }).then((r) => parseJson(r)),
 };

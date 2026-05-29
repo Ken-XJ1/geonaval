@@ -209,6 +209,8 @@ export function mapViajeToDashboard(
 }
 
 export function mapUsuarioToUI(row: Record<string, unknown>) {
+  const bloqueada = row.cuenta_bloqueada === true;
+  const estado = !row.activo ? 'inactivo' : bloqueada ? 'bloqueado' : 'activo';
   return {
     dbId: Number(row.id),
     id: `U-${String(row.id).padStart(3, '0')}`,
@@ -216,7 +218,9 @@ export function mapUsuarioToUI(row: Record<string, unknown>) {
     email: row.email as string,
     rolDb: row.rol as string,
     rol: rolLabels[row.rol as string] || (row.rol as string),
-    estado: (row.activo ? 'activo' : 'inactivo') as 'activo' | 'inactivo',
+    estado: estado as 'activo' | 'inactivo' | 'bloqueado',
+    bloqueada,
+    intentosFallidos: Number(row.intentos_fallidos ?? 0),
     ultimoAcceso: row.created_at
       ? formatDate(row.created_at as string)
       : '—',

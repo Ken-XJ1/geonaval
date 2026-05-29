@@ -1,7 +1,7 @@
 interface StatusBadgeProps {
   status: 'operativa' | 'mantenimiento' | 'fuera-servicio' | 'inspeccion' |
           'programado' | 'en-curso' | 'finalizado' | 'cancelado' |
-          'activo' | 'inactivo' | 'pendiente' | 'confirmado' | 'embarcado';
+          'activo' | 'inactivo' | 'bloqueado' | 'pendiente' | 'confirmado' | 'embarcado';
   label?: string;
 }
 
@@ -19,6 +19,7 @@ const statusConfig: Record<string, { bg: string; text: string; label: string }> 
 
   activo: { bg: 'bg-green-100', text: 'text-green-700', label: 'Activo' },
   inactivo: { bg: 'bg-gray-100', text: 'text-gray-700', label: 'Inactivo' },
+  bloqueado: { bg: 'bg-red-100', text: 'text-red-700', label: 'Bloqueado' },
   pendiente: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: 'Pendiente' },
   confirmado: { bg: 'bg-blue-100', text: 'text-blue-700', label: 'Confirmado' },
   embarcado: { bg: 'bg-green-100', text: 'text-green-700', label: 'Embarcado' },

@@ -148,6 +148,11 @@ DELETE FROM usuarios WHERE email = 'cliente@geonaval.com';
 -- Cambiar columna created_at a TIMESTAMP WITHOUT TIME ZONE para evitar conversiones UTC
 ALTER TABLE notificaciones ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE;
 
+-- Columnas para bloqueo de cuentas por intentos fallidos
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS intentos_fallidos INT DEFAULT 0;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS bloqueado_hasta TIMESTAMP WITHOUT TIME ZONE;
+ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS cuenta_bloqueada BOOLEAN DEFAULT false;
+
 -- Configurar zona horaria de Colombia en la base de datos
 ALTER DATABASE postgres SET timezone TO 'America/Bogota';
 
