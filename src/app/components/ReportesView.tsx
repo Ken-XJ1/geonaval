@@ -358,14 +358,13 @@ export function ReportesView() {
             </select>
           </div>
         </div>
-        <div className="flex gap-3 mt-4">
-          <button
-            type="button"
-            onClick={() => {}}
-            className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Filtros activos ({viajesFiltrados.length} viajes)
-          </button>
+        <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <span className="text-muted-foreground">
+              Filtros aplicados automáticamente: <strong className="text-foreground">{viajesFiltrados.length} viajes</strong> encontrados
+            </span>
+          </div>
           <button
             type="button"
             onClick={() =>
@@ -377,9 +376,9 @@ export function ReportesView() {
                 estado: '',
               })
             }
-            className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors"
+            className="px-6 py-2 border border-border rounded-lg hover:bg-muted transition-colors text-sm"
           >
-            Limpiar
+            Limpiar Filtros
           </button>
         </div>
       </div>

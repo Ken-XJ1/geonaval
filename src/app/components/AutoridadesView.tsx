@@ -365,9 +365,17 @@ export function AutoridadesView({ onNavigate }: { onNavigate?: (view: string) =>
             <AlertTriangle className="w-5 h-5 text-orange-600" />
             Alertas y Emergencias
           </h3>
-          <span className="text-sm text-muted-foreground">
-            {loadingIncidentes ? '…' : `${incidentes.length} activa${incidentes.length !== 1 ? 's' : ''}`}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-muted-foreground">
+              {loadingIncidentes ? '…' : `${incidentes.length} activa${incidentes.length !== 1 ? 's' : ''}`}
+            </span>
+            <button
+              onClick={() => onNavigate?.('notificaciones')}
+              className="px-3 py-1.5 text-sm bg-orange-50 text-orange-700 rounded-lg hover:bg-orange-100 transition-colors"
+            >
+              Ver Todas
+            </button>
+          </div>
         </div>
         {loadingIncidentes ? (
           <div className="p-8 text-center text-muted-foreground text-sm">Cargando incidentes…</div>
