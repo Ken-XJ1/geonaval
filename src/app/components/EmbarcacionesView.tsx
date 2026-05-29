@@ -568,29 +568,15 @@ export function EmbarcacionesView() {
                                   )}
 
                                   {detalles.embarcacion.fecha_inicio_mantenimiento && (
-                                    <div className="grid grid-cols-2 gap-3">
-                                      <div>
-                                        <p className="text-xs font-semibold text-orange-900 mb-1">Fecha de Inicio:</p>
-                                        <p className="text-sm text-orange-800">
-                                          {new Date(detalles.embarcacion.fecha_inicio_mantenimiento).toLocaleDateString('es-CO', {
-                                            day: '2-digit',
-                                            month: 'short',
-                                            year: 'numeric'
-                                          })}
-                                        </p>
-                                      </div>
-                                      {detalles.embarcacion.fecha_fin_mantenimiento_estimada && (
-                                        <div>
-                                          <p className="text-xs font-semibold text-orange-900 mb-1">Fecha Estimada de Retorno:</p>
-                                          <p className="text-sm text-orange-800">
-                                            {new Date(detalles.embarcacion.fecha_fin_mantenimiento_estimada).toLocaleDateString('es-CO', {
-                                              day: '2-digit',
-                                              month: 'short',
-                                              year: 'numeric'
-                                            })}
-                                          </p>
-                                        </div>
-                                      )}
+                                    <div>
+                                      <p className="text-xs font-semibold text-orange-900 mb-1">📅 Fecha de Inicio:</p>
+                                      <p className="text-sm text-orange-800">
+                                        {new Date(detalles.embarcacion.fecha_inicio_mantenimiento).toLocaleDateString('es-CO', {
+                                          day: '2-digit',
+                                          month: 'long',
+                                          year: 'numeric'
+                                        })}
+                                      </p>
                                     </div>
                                   )}
 
