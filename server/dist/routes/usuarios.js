@@ -12,7 +12,9 @@ const notificaciones_1 = require("../utils/notificaciones");
 const router = (0, express_1.Router)();
 router.use(auth_1.verifyToken);
 router.get('/', async (_req, res) => {
-    const rows = await (0, safeQuery_1.safeQuery)('SELECT id, nombre, email, rol, activo, created_at FROM usuarios ORDER BY id');
+    const rows = await (0, safeQuery_1.safeQuery)(`SELECT id, nombre, email, rol, activo, created_at, 
+            cuenta_bloqueada, intentos_fallidos 
+     FROM usuarios ORDER BY id`);
     return res.json(rows);
 });
 router.get('/:id', async (req, res) => {
@@ -44,27 +46,39 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
     const { nombre, email, rol, activo, password } = req.body;
     try {
+        // Obtener datos actuales del usuario
+        const current = await pool_1.default.query('SELECT nombre, email, rol, activo FROM usuarios WHERE id = $1', [req.params.id]);
+        if (!current.rows[0]) {
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        }
+        // Usar valores actuales si no se proporcionan nuevos
+        const nombreFinal = nombre ?? current.rows[0].nombre;
+        const emailFinal = email ?? current.rows[0].email;
+        const rolFinal = rol ?? current.rows[0].rol;
+        const activoFinal = activo !== undefined ? activo : current.rows[0].activo;
         let result;
         if (password) {
             const password_hash = await bcryptjs_1.default.hash(password, 10);
             result = await pool_1.default.query(`UPDATE usuarios SET nombre = $1, email = $2, rol = $3, activo = $4, password_hash = $5
          WHERE id = $6
-         RETURNING id, nombre, email, rol, activo, created_at`, [nombre, email, rol, activo ?? true, password_hash, req.params.id]);
+         RETURNING id, nombre, email, rol, activo, created_at`, [nombreFinal, emailFinal, rolFinal, activoFinal, password_hash, req.params.id]);
         }
         else {
             result = await pool_1.default.query(`UPDATE usuarios SET nombre = $1, email = $2, rol = $3, activo = $4
          WHERE id = $5
-         RETURNING id, nombre, email, rol, activo, created_at`, [nombre, email, rol, activo ?? true, req.params.id]);
+         RETURNING id, nombre, email, rol, activo, created_at`, [nombreFinal, emailFinal, rolFinal, activoFinal, req.params.id]);
         }
-        if (!result.rows[0])
-            return res.status(404).json({ error: 'No encontrado' });
-        const estadoTexto = activo === false ? 'desactivado' : 'actualizado';
-        await (0, notificaciones_1.auditoria)('[USUARIO] Usuario modificado', `El usuario "${nombre}" (ID ${req.params.id}) fue ${estadoTexto}. Rol: ${rol}.`);
+        // Determinar qué cambió para la auditoría
+        let accion = 'actualizado';
+        if (activo !== undefined && activo !== current.rows[0].activo) {
+            accion = activo ? 'activado' : 'suspendido';
+        }
+        await (0, notificaciones_1.auditoria)('[USUARIO] Usuario modificado', `El usuario "${nombreFinal}" (ID ${req.params.id}) fue ${accion}. Rol: ${rolFinal}.`);
         return res.json(result.rows[0]);
     }
     catch (err) {
         console.error('PUT usuario:', err.message);
-        return res.status(500).json({ error: 'Error del servidor' });
+        return res.status(500).json({ error: `Error del servidor: ${err.message}` });
     }
 });
 router.delete('/:id', async (req, res) => {

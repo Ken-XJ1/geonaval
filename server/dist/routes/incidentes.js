@@ -37,9 +37,10 @@ router.post('/', async (req, res) => {
         const severidadTexto = severidad || 'media';
         const reportadoPor = reportado_por || user?.nombre || 'Operador';
         await (0, notificaciones_1.auditoria)(`[INCIDENTE] Incidente reportado — Severidad: ${severidadTexto.toUpperCase()}`, `Tipo: ${tipo}${viajeInfo}. Reportado por: ${reportadoPor}. Descripción: ${descripcion}`);
-        // Si es crítico o alto, notificar también a operadores
+        // Si es crítico o alto, notificar también a operadores y autoridades
         if (severidadTexto === 'critica' || severidadTexto === 'alta') {
             await (0, notificaciones_1.notificarAdministradores)(`⚠️ ALERTA: Incidente ${severidadTexto.toUpperCase()}`, `Se reportó un incidente de severidad ${severidadTexto}${viajeInfo}. Tipo: ${tipo}. Requiere atención inmediata.`);
+            await (0, notificaciones_1.notificarAutoridades)(`⚠️ ALERTA: Incidente ${severidadTexto.toUpperCase()}`, `Se reportó un incidente de severidad ${severidadTexto}${viajeInfo}. Tipo: ${tipo}. Requiere atención inmediata.`);
         }
         return res.status(201).json(result.rows[0]);
     }

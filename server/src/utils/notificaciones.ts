@@ -77,6 +77,16 @@ export async function notificarClientes(
 }
 
 /**
+ * Envía una notificación a todas las autoridades
+ */
+export async function notificarAutoridades(
+  titulo: string,
+  mensaje: string
+): Promise<void> {
+  await enviarNotificacionPorRol('autoridad', titulo, mensaje);
+}
+
+/**
  * Envía una notificación a todos los pasajeros inscritos en un viaje
  */
 export async function notificarPasajerosViaje(
@@ -101,7 +111,7 @@ export async function notificarPasajerosViaje(
 }
 
 /**
- * Registra un evento de auditoría enviándolo a todos los administradores.
+ * Registra un evento de auditoría enviándolo a todos los administradores y autoridades.
  * Prefijos de categoría en el título:
  *   [USUARIO] [TRIPULACIÓN] [PROPIETARIO] [EMBARCACIÓN] [VIAJE] [PASAJERO] [INCIDENTE]
  */
@@ -109,5 +119,8 @@ export async function auditoria(
   titulo: string,
   mensaje: string
 ): Promise<void> {
+  // Enviar a administradores
   await notificarAdministradores(titulo, mensaje);
+  // Enviar también a autoridades para supervisión
+  await enviarNotificacionPorRol('autoridad', titulo, mensaje);
 }

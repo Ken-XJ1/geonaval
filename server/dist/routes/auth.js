@@ -15,8 +15,6 @@ const MAX_INTENTOS = 3; // Intentos antes de bloquear
 const DEMO_ACCOUNTS = [
     { email: 'test@test.com', password: '123456', id: 0, nombre: 'Usuario Prueba', rol: 'administrador' },
     { email: 'admin@geonaval.com', password: 'admin123', id: 1, nombre: 'Administrador GeoNaval', rol: 'administrador' },
-    { email: 'operador@geonaval.com', password: 'operador123', id: 2, nombre: 'Operador 1', rol: 'operador' },
-    { email: 'autoridad@geonaval.com', password: 'autoridad123', id: 4, nombre: 'Autoridad Demo', rol: 'autoridad' },
 ];
 function signToken(user) {
     const token = jsonwebtoken_1.default.sign({ id: user.id, rol: user.rol, nombre: user.nombre, email: user.email }, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
@@ -39,12 +37,16 @@ router.post('/login', async (req, res) => {
         return res.json(payload);
     }
     try {
-        const result = await pool_1.default.query('SELECT * FROM usuarios WHERE LOWER(email) = $1', [email]);
+        const result = await pool_1.default.query(`SELECT *, 
+        cuenta_bloqueada::int::boolean as cuenta_bloqueada,
+        activo::int::boolean as activo
+       FROM usuarios WHERE LOWER(email) = $1`, [email]);
         const user = result.rows[0];
         if (!user) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }
         // Verificar si la cuenta está bloqueada
+        console.log(`🔒 Verificando bloqueo para ${user.email}: cuenta_bloqueada=${user.cuenta_bloqueada} (tipo: ${typeof user.cuenta_bloqueada})`);
         if (user.cuenta_bloqueada) {
             await (0, notificaciones_1.auditoria)('[USUARIO] Intento de acceso a cuenta bloqueada', `Se intentó acceder a la cuenta bloqueada de "${user.nombre}" (${user.email}).`);
             return res.status(403).json({
@@ -52,9 +54,13 @@ router.post('/login', async (req, res) => {
                 bloqueada: true,
             });
         }
-        // Verificar si está inactivo
+        // Verificar si está inactivo/suspendido
         if (!user.activo) {
-            return res.status(403).json({ error: 'Cuenta desactivada. Contacta al administrador.' });
+            await (0, notificaciones_1.auditoria)('[USUARIO] Intento de acceso a cuenta suspendida', `Se intentó acceder a la cuenta suspendida de "${user.nombre}" (${user.email}).`);
+            return res.status(403).json({
+                error: 'Tu cuenta ha sido suspendida temporalmente. Contacta al administrador para más información.',
+                suspendida: true,
+            });
         }
         const valid = await bcryptjs_1.default.compare(password, user.password_hash);
         if (!valid) {

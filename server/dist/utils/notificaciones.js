@@ -8,6 +8,7 @@ exports.enviarNotificacion = enviarNotificacion;
 exports.enviarNotificacionPorRol = enviarNotificacionPorRol;
 exports.notificarAdministradores = notificarAdministradores;
 exports.notificarClientes = notificarClientes;
+exports.notificarAutoridades = notificarAutoridades;
 exports.notificarPasajerosViaje = notificarPasajerosViaje;
 exports.auditoria = auditoria;
 const pool_1 = __importDefault(require("../db/pool"));
@@ -66,6 +67,12 @@ async function notificarClientes(titulo, mensaje) {
     await enviarNotificacionPorRol('cliente', titulo, mensaje);
 }
 /**
+ * Envía una notificación a todas las autoridades
+ */
+async function notificarAutoridades(titulo, mensaje) {
+    await enviarNotificacionPorRol('autoridad', titulo, mensaje);
+}
+/**
  * Envía una notificación a todos los pasajeros inscritos en un viaje
  */
 async function notificarPasajerosViaje(viajeId, titulo, mensaje) {
@@ -83,10 +90,13 @@ async function notificarPasajerosViaje(viajeId, titulo, mensaje) {
     }
 }
 /**
- * Registra un evento de auditoría enviándolo a todos los administradores.
+ * Registra un evento de auditoría enviándolo a todos los administradores y autoridades.
  * Prefijos de categoría en el título:
  *   [USUARIO] [TRIPULACIÓN] [PROPIETARIO] [EMBARCACIÓN] [VIAJE] [PASAJERO] [INCIDENTE]
  */
 async function auditoria(titulo, mensaje) {
+    // Enviar a administradores
     await notificarAdministradores(titulo, mensaje);
+    // Enviar también a autoridades para supervisión
+    await enviarNotificacionPorRol('autoridad', titulo, mensaje);
 }

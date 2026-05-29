@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import pool from '../db/pool';
 import { safeQuery } from '../db/safeQuery';
 import { verifyToken } from '../middleware/auth';
-import { auditoria, notificarAdministradores } from '../utils/notificaciones';
+import { auditoria, notificarAdministradores, notificarAutoridades } from '../utils/notificaciones';
 
 const router = Router();
 router.use(verifyToken);
@@ -46,9 +46,13 @@ router.post('/', async (req: Request, res: Response) => {
       `Tipo: ${tipo}${viajeInfo}. Reportado por: ${reportadoPor}. Descripción: ${descripcion}`
     );
 
-    // Si es crítico o alto, notificar también a operadores
+    // Si es crítico o alto, notificar también a operadores y autoridades
     if (severidadTexto === 'critica' || severidadTexto === 'alta') {
       await notificarAdministradores(
+        `⚠️ ALERTA: Incidente ${severidadTexto.toUpperCase()}`,
+        `Se reportó un incidente de severidad ${severidadTexto}${viajeInfo}. Tipo: ${tipo}. Requiere atención inmediata.`
+      );
+      await notificarAutoridades(
         `⚠️ ALERTA: Incidente ${severidadTexto.toUpperCase()}`,
         `Se reportó un incidente de severidad ${severidadTexto}${viajeInfo}. Tipo: ${tipo}. Requiere atención inmediata.`
       );
