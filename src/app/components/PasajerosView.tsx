@@ -59,8 +59,7 @@ export function PasajerosView() {
     { key: 'viajeAsociado', label: 'Viaje' },
     { key: 'embarcacion', label: 'Embarcación' },
     { key: 'ruta', label: 'Ruta' },
-    { key: 'horaSalida', label: 'Salida' },
-    { key: 'horaLlegada', label: 'Llegada Est.' },
+    { key: 'horaSalida', label: 'Hora Salida' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {

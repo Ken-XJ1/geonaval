@@ -780,12 +780,30 @@ export function ComprasView() {
       const comprasData: CompraRow[] = pasajeros
         .filter((p: any) => p.viaje_id) // Solo pasajeros con viaje asignado
         .map((p: any) => {
-          const fecha = p.fecha_compra ? new Date(p.fecha_compra) : (p.created_at ? new Date(p.created_at) : new Date());
+          // Obtener la fecha de compra o created_at
+          let fechaStr = p.fecha_compra || p.created_at;
+          
+          // Si no hay fecha, usar la hora actual de Colombia
+          if (!fechaStr) {
+            fechaStr = new Date().toISOString();
+          }
+          
+          // Parsear la fecha y formatear para Colombia (UTC-5)
+          const fecha = new Date(fechaStr);
+          
           return {
             dbId: p.id,
             id: `T-${String(p.id).padStart(5, '0')}`,
             ticket: `TICKET-${String(p.id).padStart(6, '0')}`,
-            fecha: fecha.toLocaleDateString('es-CO', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+            fecha: fecha.toLocaleString('es-CO', { 
+              timeZone: 'America/Bogota',
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false
+            }),
             fechaISO: fecha.toISOString(),
             pasajero: p.nombre || '—',
             documento: p.documento || '—',
