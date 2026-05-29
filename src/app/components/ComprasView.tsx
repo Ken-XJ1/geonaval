@@ -628,14 +628,15 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                               key={asientoId}
                               type="button"
                               disabled={ocupado}
-                              onClick={() => setAsiento(seleccionado ? '' : asientoId)}
+                              onClick={() => !ocupado && setAsiento(seleccionado ? '' : asientoId)}
                               className={`w-full py-2 px-1 rounded-lg text-xs font-medium transition-all ${
                                 ocupado
-                                  ? 'bg-red-100 text-red-400 cursor-not-allowed'
+                                  ? 'bg-red-200 text-red-600 cursor-not-allowed opacity-60 line-through'
                                   : seleccionado
-                                  ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
-                                  : 'bg-white border border-border hover:border-primary hover:bg-primary/5'
+                                  ? 'bg-primary text-white ring-2 ring-primary ring-offset-2 shadow-lg scale-105'
+                                  : 'bg-white border-2 border-border hover:border-primary hover:bg-primary/5 hover:scale-105'
                               }`}
+                              title={ocupado ? 'Asiento ocupado' : seleccionado ? 'Clic para deseleccionar' : 'Clic para seleccionar'}
                             >
                               {asientoId}
                             </button>
@@ -646,26 +647,31 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
                   </div>
                   <div className="flex items-center justify-center gap-4 text-xs">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded bg-white border border-border"/>
-                      <span className="text-muted-foreground">Disponible</span>
+                      <div className="w-5 h-5 rounded bg-white border-2 border-border"/>
+                      <span className="text-muted-foreground font-medium">Disponible</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded bg-primary"/>
-                      <span className="text-muted-foreground">Seleccionado</span>
+                      <div className="w-5 h-5 rounded bg-primary shadow"/>
+                      <span className="text-muted-foreground font-medium">Seleccionado</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-4 h-4 rounded bg-red-100"/>
-                      <span className="text-muted-foreground">Ocupado</span>
+                      <div className="w-5 h-5 rounded bg-red-200 opacity-60"/>
+                      <span className="text-muted-foreground font-medium">Ocupado</span>
                     </div>
                   </div>
                   {asiento && (
-                    <p className="text-center mt-3 text-sm font-medium text-primary">
-                      Asiento seleccionado: <span className="font-bold">{asiento}</span>
+                    <p className="text-center mt-3 text-sm font-medium text-primary bg-primary/10 py-2 rounded-lg">
+                      ✓ Asiento seleccionado: <span className="font-bold">{asiento}</span>
                     </p>
                   )}
                   {!asiento && (
                     <p className="text-center mt-3 text-xs text-muted-foreground">
-                      Selecciona un asiento o deja vacío para asignación automática
+                      Selecciona un asiento disponible o deja vacío para asignación automática
+                    </p>
+                  )}
+                  {asientosOcupados.length > 0 && (
+                    <p className="text-center mt-2 text-xs text-red-600 bg-red-50 py-1.5 rounded">
+                      {asientosOcupados.length} asiento{asientosOcupados.length > 1 ? 's' : ''} ocupado{asientosOcupados.length > 1 ? 's' : ''} en este viaje
                     </p>
                   )}
                 </div>

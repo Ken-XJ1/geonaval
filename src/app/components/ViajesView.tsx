@@ -124,6 +124,7 @@ export function ViajesView() {
   >([]);
   const [saveOk, setSaveOk] = useState<string | null>(null);
   const [assignOperador, setAssignOperador] = useState<Record<number, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -307,11 +308,22 @@ export function ViajesView() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevenir envíos duplicados
+    if (submitting) {
+      console.log('⚠️ Ya se está procesando un viaje, ignorando envío duplicado');
+      return;
+    }
+    
     if (conflictoDetectado) {
       alert('⚠️ No se puede programar: Conflicto de horarios detectado');
       return;
     }
+    
     try {
+      setSubmitting(true);
+      setError(null);
+      
       // Construir fecha sin conversión de zona horaria
       // Formato: "YYYY-MM-DD HH:mm:ss" — PostgreSQL lo guarda tal cual en TIMESTAMP WITHOUT TIME ZONE
       const fecha_salida = `${formData.fechaSalida} ${formData.horaSalida}:00`;
@@ -324,6 +336,9 @@ export function ViajesView() {
       if (!formData.operador) {
         throw new Error('Debes asignar un operador al viaje');
       }
+      
+      console.log('📤 Creando viaje...', { fecha_salida, origen: formData.origen, destino: formData.destino });
+      
       await api.createViaje({
         fecha_salida,
         fecha_llegada,
@@ -338,11 +353,17 @@ export function ViajesView() {
           ? parseInt(formData.operador, 10)
           : undefined,
       });
+      
+      console.log('✅ Viaje creado exitosamente');
+      
       setShowForm(false);
       setSaveOk('Viaje programado correctamente. Aparece en la lista con estado Programado.');
       await load();
     } catch (e) {
+      console.error('❌ Error al crear viaje:', e);
       setError(e instanceof Error ? e.message : 'Error al guardar');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -984,14 +1005,21 @@ export function ViajesView() {
               </button>
               <button
                 type="submit"
-                disabled={conflictoDetectado}
-                className={`px-6 py-2 rounded-lg transition-colors ${
-                  conflictoDetectado
+                disabled={conflictoDetectado || submitting}
+                className={`px-6 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                  conflictoDetectado || submitting
                     ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                     : 'bg-primary text-white hover:bg-primary/90'
                 }`}
               >
-                Programar
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  'Programar'
+                )}
               </button>
             </div>
           </form>
