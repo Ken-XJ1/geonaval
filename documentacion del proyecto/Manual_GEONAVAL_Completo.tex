@@ -1,0 +1,981 @@
+\documentclass[12pt,a4paper]{article}
+
+% ─── Paquetes ───────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{parskip}
+\usepackage{mdframed}
+\usepackage{tocloft}
+
+% ─── Geometría ───────────────────────────────────────────────────────────────
+\geometry{
+  top=2.5cm, bottom=2.5cm,
+  left=3cm,  right=2.5cm
+}
+
+% ─── Colores ─────────────────────────────────────────────────────────────────
+\definecolor{navyblue}{RGB}{0,51,102}
+\definecolor{gpsblue}{RGB}{30,100,200}
+\definecolor{alertorange}{RGB}{220,100,0}
+\definecolor{notegreen}{RGB}{0,120,60}
+\definecolor{warningred}{RGB}{180,0,0}
+\definecolor{tablegray}{RGB}{245,245,245}
+\definecolor{headerblue}{RGB}{0,70,130}
+
+% ─── Hipervínculos ───────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=navyblue,
+  urlcolor=gpsblue,
+  pdftitle={Manual de Usuario GEONAVAL},
+  pdfauthor={GEONAVAL},
+  pdfsubject={Sistema de Registro Fluvial y Monitoreo GPS}
+}
+
+% ─── Encabezados de sección ──────────────────────────────────────────────────
+\titleformat{\section}[block]
+  {\large\bfseries\color{navyblue}}
+  {\thesection.}{0.6em}{}
+  [\vspace{-4pt}\color{navyblue}\rule{\linewidth}{0.8pt}\vspace{4pt}]
+
+\titleformat{\subsection}[hang]
+  {\normalsize\bfseries\color{headerblue}}
+  {\thesubsection}{0.6em}{}
+
+% ─── Cabecera y pie de página ────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{navyblue}{\textbf{GEONAVAL}} -- Manual de Usuario}
+\fancyhead[R]{\small\textcolor{gray}{v1.0.0 -- Mayo 2026}}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.2pt}
+
+% ─── Entornos de nota / advertencia ─────────────────────────────────────────
+\newmdenv[
+  linecolor=notegreen,
+  backgroundcolor=notegreen!8,
+  leftmargin=0pt, rightmargin=0pt,
+  innerleftmargin=8pt, innerrightmargin=8pt,
+  innertopmargin=6pt, innerbottommargin=6pt,
+  linewidth=3pt, topline=false, rightline=false, bottomline=false
+]{notabox}
+
+\newmdenv[
+  linecolor=warningred,
+  backgroundcolor=warningred!8,
+  leftmargin=0pt, rightmargin=0pt,
+  innerleftmargin=8pt, innerrightmargin=8pt,
+  innertopmargin=6pt, innerbottommargin=6pt,
+  linewidth=3pt, topline=false, rightline=false, bottomline=false
+]{advertenciabox}
+
+% ─── Separador de perfil ─────────────────────────────────────────────────────
+\newcommand{\perfilbanner}[1]{%
+  \vspace{1em}%
+  \noindent\colorbox{navyblue}{\parbox{\linewidth}{\centering\large\bfseries\color{white}\strut #1\strut}}%
+  \vspace{0.5em}%
+}
+
+% ─── Estilo de tablas ────────────────────────────────────────────────────────
+\newcolumntype{L}{>{\raggedright\arraybackslash}p{4cm}}
+\newcolumntype{R}{>{\raggedright\arraybackslash}p{10cm}}
+
+\setlength{\arrayrulewidth}{0.4pt}
+\arrayrulecolor{gray!60}
+
+% ════════════════════════════════════════════════════════════════════════════
+\begin{document}
+
+% ─── PORTADA ─────────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{2cm}
+
+  {\Huge\bfseries\color{navyblue} GEONAVAL\par}
+  \vspace{0.4cm}
+  {\Large\color{gpsblue} Control Fluvial\par}
+  \vspace{1.2cm}
+  {\huge\bfseries Manual de Usuario\par}
+  \vspace{0.6cm}
+  {\large\itshape Sistema de Registro Fluvial y Monitoreo GPS\par}
+  \vspace{0.4cm}
+  {\normalsize Control y Seguridad del Transporte Fluvial\par}
+  \vspace{0.4cm}
+  {\small Incluye perfil Operador · Perfil Administrador · Centro de Auditoría\par}
+
+  \vspace{2cm}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Versión}      & 1.0.0 -- Mayo 2026 \\
+    \textbf{Materia}      & Ingeniería de Software \\
+    \textbf{Ubicación}    & Quibdó, Chocó -- Colombia \\
+    \textbf{Fecha}        & Mayo 2026 \\
+    \textbf{URL del sistema} & \url{https://geonaval.onrender.com} \\
+    \bottomrule
+  \end{tabular}
+
+  \vfill
+  {\small Quibdó, Chocó -- Colombia \quad|\quad Versión 1.0.0 -- Mayo 2026\par}
+\end{titlepage}
+
+% ─── TABLA DE CONTENIDO ──────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Introducción}
+
+\subsection{Descripción del Sistema}
+
+GEONAVAL es un sistema web de Registro Fluvial y Monitoreo GPS diseñado para el control y la seguridad del transporte fluvial en la región de Quibdó, Chocó, Colombia. El sistema permite gestionar de forma integral todos los actores y procesos involucrados en la operación fluvial, incluyendo embarcaciones, propietarios, tripulación, pasajeros y viajes.
+
+El sistema cuenta con monitoreo GPS en tiempo real, permitiendo a las autoridades y administradores hacer seguimiento a las embarcaciones activas sobre las rutas fluviales del río Atrato y sus afluentes.
+
+\subsection{Propósito del Manual}
+
+Este manual tiene como objetivo guiar a todos los perfiles de usuario del sistema GEONAVAL --- Operador, Administrador y Autoridad --- en el uso correcto de todas las funcionalidades disponibles. Incluye capturas de pantalla reales del sistema con descripciones detalladas de cada elemento.
+
+\subsection{Alcance}
+
+El presente manual cubre los siguientes módulos del sistema:
+
+\begin{itemize}[leftmargin=1.5em]
+  \item Inicio de sesión y autenticación
+  \item Perfil Operador: Mis Viajes, Mis Pasajeros, Mi Ruta GPS, Reportar Incidente, Notificaciones, Configuración
+  \item Perfil Administrador: Dashboard, Embarcaciones, Propietarios, Tripulación, Compras y Tickets
+  \item Monitoreo GPS en Tiempo Real
+  \item Reportes y Estadísticas
+  \item Centro de Notificaciones y Auditoría del Sistema
+  \item Configuración del Sistema
+\end{itemize}
+
+\subsection{Convenciones del Manual}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Elemento} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Elemento} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Texto en \textbf{negrita}   & Indica nombres de botones, campos o elementos de interfaz. \\[4pt]
+  {[}Texto entre corchetes{]} & Indica una acción que debe realizar el usuario. \\[4pt]
+  \textbf{Nota:}              & Información importante a tener en cuenta. \\[4pt]
+  \textbf{Advertencia:}       & Acción que puede tener consecuencias irreversibles. \\[4pt]
+  Flechas rojas ($\rightarrow$) & Señalan los elementos clave en cada captura de pantalla. \\[4pt]
+  ①②③\ldots               & Numerales en círculo que señalan elementos en las capturas de pantalla. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Requisitos del Sistema}
+
+\subsection{Requisitos Técnicos}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Navegador web        & Google Chrome 90+, Mozilla Firefox 88+, Microsoft Edge 90+, Safari 14+ \\[4pt]
+  Conexión a Internet  & Mínimo 2 Mbps (recomendado 5 Mbps o superior para GPS en tiempo real) \\[4pt]
+  Resolución de pantalla & Mínimo 1280$\times$720 px (recomendado 1920$\times$1080) \\[4pt]
+  Sistema operativo    & Windows 10+, macOS 10.14+, Ubuntu 18.04+ \\[4pt]
+  JavaScript           & Habilitado en el navegador \\
+\end{longtable}
+
+\subsection{Acceso al Sistema}
+
+GEONAVAL es una aplicación web; no requiere instalación. El acceso se realiza directamente desde el navegador ingresando la URL del sistema:
+
+\begin{center}
+  \large\url{https://geonaval.onrender.com}
+\end{center}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Inicio de Sesión}
+
+\subsection{Acceso al Sistema}
+
+Para ingresar a GEONAVAL, el usuario debe completar el formulario de autenticación que aparece al abrir el sistema en el navegador.
+
+\textit{Figura 1 -- Pantalla de Inicio de Sesión de GEONAVAL}
+
+\subsection{Descripción de Elementos (ver Figura 1)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Correo Electrónico & Campo donde se ingresa el correo registrado del usuario (ejemplo: admin@geonaval.com). \\[4pt]
+  ② Contraseña         & Campo de contraseña. El ícono de ojo permite mostrar u ocultar el texto. \\[4pt]
+  ③ Tipo de Usuario    & Menú desplegable para seleccionar el perfil: Administrador, Operador o Autoridad. \\[4pt]
+  ④ Iniciar Sesión     & Botón principal para autenticarse en el sistema. \\[4pt]
+  ⑤ Recuperar contraseña & Enlace para restablecer la contraseña olvidada vía correo electrónico. \\
+\end{longtable}
+
+\subsection{Pasos para Iniciar Sesión}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Abra su navegador web preferido.
+  \item Ingrese la URL del sistema GEONAVAL en la barra de direcciones.
+  \item Complete el campo \textbf{Correo Electrónico} (①).
+  \item Complete el campo \textbf{Contraseña} (②).
+  \item Seleccione su \textbf{Tipo de Usuario} en el desplegable (③).
+  \item Haga clic en \textbf{Iniciar Sesión} (④).
+\end{enumerate}
+
+\subsection{Tipos de Usuario}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Perfil} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Perfil} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Administrador & Acceso completo a todos los módulos del sistema. \\[4pt]
+  Operador      & Acceso a módulos operativos: viajes, pasajeros, GPS, incidentes y notificaciones. \\[4pt]
+  Autoridad     & Acceso de solo lectura a monitoreo, reportes y alertas. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\perfilbanner{PERFIL: OPERADOR}
+
+\section{Perfil Operador -- Mis Viajes}
+
+\subsection{Descripción General}
+
+La pantalla \textbf{Mis Viajes} es el panel de control principal del Operador. Muestra un resumen del estado operativo, la lista de pasajeros registrados y los próximos viajes programados.
+
+\textit{Figura 1 -- Pantalla Mis Viajes (Perfil Operador)}
+
+\subsection{Indicadores KPI}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{KPI} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{KPI} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Viajes Asignados & Número de viajes asignados al operador activo. En estado inicial muestra 0. \\[4pt]
+  Viaje en Curso   & Número de viajes actualmente en ejecución. El administrador debe iniciarlos. \\[4pt]
+  Pasajeros        & Total de pasajeros registrados por el operador en el sistema. \\[4pt]
+  Llegada Est.     & Hora estimada de llegada al destino del viaje en curso. \\
+\end{longtable}
+
+\subsection{Descripción de Elementos (Figura 1 -- Mis Viajes)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Bienvenido, Operador          & Encabezado de bienvenida que muestra el nombre del perfil activo. \\[4pt]
+  ② Sin embarcación / 0 viaje(s)  & Estado actual de la embarcación asignada. \\[4pt]
+  ③ KPIs superiores               & Cuatro indicadores: Viajes Asignados, Viaje en Curso, Pasajeros y Llegada Est. \\[4pt]
+  ④ Mensaje informativo           & Indica si no hay viaje en curso; el administrador debe iniciar uno. \\[4pt]
+  ⑤ Tabla Pasajeros registrados   & Lista todos los pasajeros con: Nombre, Documento, Destino y Estado. \\[4pt]
+  ⑥ Próximos Viajes Programados   & Panel con los viajes programados pendientes de inicio. \\[4pt]
+  ⑦ Reportar Incidente            & Acceso rápido al formulario de reporte de incidentes desde el dashboard. \\
+\end{longtable}
+
+\subsection{Tabla de Pasajeros Registrados}
+
+\begin{longtable}{LLLL}
+  \toprule
+  \textbf{Nombre} & \textbf{Documento} & \textbf{Destino/Ruta} & \textbf{Estado} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Nombre} & \textbf{Documento} & \textbf{Destino/Ruta} & \textbf{Estado} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Nombre completo & N.° de identificación & Ciudad o punto fluvial & Confirmado / Pendiente \\
+\end{longtable}
+
+\subsection{Estado del Viaje}
+
+\begin{notabox}
+\textbf{Nota:} Para que el operador pueda iniciar el tracking GPS y ver viajes en curso, el Administrador debe cambiar el estado del viaje a \textbf{`En Curso'} desde el panel de administración.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Operador -- Mis Pasajeros}
+
+\subsection{Descripción}
+
+El módulo \textbf{Mis Pasajeros} permite al operador consultar el listado completo de pasajeros registrados para sus viajes asignados.
+
+\textit{Figura 2 -- Módulo Mis Pasajeros (Perfil Operador)}
+
+\subsection{Descripción de Elementos (Figura 2 -- Mis Pasajeros)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Encabezado del módulo & Muestra el título `Mis Pasajeros' y el conteo total de pasajeros. \\[4pt]
+  ② Columna NOMBRE        & Nombre completo del pasajero. \\[4pt]
+  ③ Columna DOCUMENTO     & Número de identificación del pasajero. \\[4pt]
+  ④ Columna DESTINO/RUTA  & Nombre del destino fluvial asignado al pasajero. \\[4pt]
+  ⑤ Columna ESTADO        & Estado del tiquete: Confirmado (azul) / Pendiente (amarillo). \\[4pt]
+  ⑥ Barra de desplazamiento & Permite navegar verticalmente si hay más pasajeros. \\
+\end{longtable}
+
+\subsection{Listado de Pasajeros -- Ejemplo}
+
+\begin{longtable}{llll}
+  \toprule
+  \textbf{Nombre} & \textbf{Documento} & \textbf{Destino/Ruta} & \textbf{Estado} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Nombre} & \textbf{Documento} & \textbf{Destino/Ruta} & \textbf{Estado} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ddddddd         & 11111111   & Tadó    & Confirmado \\
+  qweqweqeeee     & 2333244    & Tadó    & Confirmado \\
+  erwrwerwer      & 341441421  & Tadó    & Confirmado \\
+  popopopopop     & 1010101010 & Tadó    & Confirmado \\
+  sdadasd         & 12313213   & Istmina & Confirmado \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Operador -- Mi Ruta GPS}
+
+\subsection{Descripción}
+
+El módulo \textbf{Mi Ruta GPS} permite al operador compartir su ubicación en tiempo real durante un viaje activo. El mapa muestra las embarcaciones en tránsito sobre el Río Atrato, Quibdó.
+
+\textit{Figura 3 -- Módulo Mi Ruta GPS (Perfil Operador)}
+
+\subsection{Descripción de Elementos (Figura 3 -- Mi Ruta GPS)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Selector de viaje en curso & Desplegable para seleccionar el viaje activo antes de iniciar el tracking. \\[4pt]
+  ② Botón Iniciar Tracking     & Activa el envío de ubicación GPS en tiempo real. Solo disponible si hay viaje en curso. \\[4pt]
+  ③ Mensaje de advertencia     & Indica que no hay viajes en curso y que el administrador debe cambiar el estado. \\[4pt]
+  ④ Mapa -- Río Atrato         & Mapa interactivo (OpenStreetMap + Leaflet) centrado en Quibdó. Actualización cada 5 s. \\[4pt]
+  ⑤ Indicador EN VIVO          & Punto rojo que confirma actualizaciones en tiempo real. \\[4pt]
+  ⑥ Leyenda del mapa           & Guía de colores: azul = embarcación en curso, verde = operador, línea = recorrido. \\[4pt]
+  ⑦ Embarcaciones en Tránsito  & Panel con la lista de embarcaciones activas en el momento. \\[4pt]
+  ⑧ Estado del Sistema GPS     & Tabla con estado del servidor GPS, mapa, viajes monitoreados y frecuencia. \\
+\end{longtable}
+
+\subsection{Estado del Sistema GPS}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Servidor GPS       & Activo -- el servidor de posicionamiento está en línea. \\[4pt]
+  Mapa OpenStreetMap & Conectado -- el mapa de fondo está cargado correctamente. \\[4pt]
+  Viajes monitoreados & Número de viajes activos rastreados en tiempo real. \\[4pt]
+  Actualización      & Cada 5 segundos -- frecuencia de refresco de posición. \\
+\end{longtable}
+
+\begin{notabox}
+\textbf{Nota:} Para que aparezca la posición en el mapa, el operador debe seleccionar un viaje en curso en el desplegable y hacer clic en \textbf{Iniciar Tracking}. La ubicación se obtendrá del dispositivo GPS del operador o del navegador del celular.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Operador -- Reportar Incidente}
+
+\subsection{Descripción}
+
+El módulo \textbf{Reportar Incidente} permite al operador registrar formalmente cualquier situación anormal ocurrida durante la operación fluvial: retrasos, averías, emergencias u otras situaciones.
+
+\textit{Figura 4 -- Módulo Reportar Incidente (Perfil Operador)}
+
+\subsection{Descripción de Elementos (Figura 4 -- Reportar Incidente)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Viaje relacionado (opcional) & Desplegable para asociar el incidente a un viaje. Si no aplica, seleccionar `Sin viaje específico'. \\[4pt]
+  ② Tipo de incidente            & Categoría: Retraso, Avería, Emergencia u Otro. \\[4pt]
+  ③ Severidad                   & Nivel de gravedad: Baja, Media, Alta o Crítica. \\[4pt]
+  ④ Descripción                 & Campo de texto libre para describir el incidente. \\[4pt]
+  ⑤ Enviar reporte              & Botón naranja que envía el reporte y notifica al Administrador. \\
+\end{longtable}
+
+\subsection{Pasos para Reportar un Incidente}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item En el menú lateral, haga clic en \textbf{Reportar Incidente}.
+  \item Seleccione el viaje relacionado (opcional).
+  \item Elija el \textbf{Tipo de incidente} en el desplegable (②).
+  \item Seleccione el nivel de \textbf{Severidad} (③).
+  \item Escriba una descripción detallada en el campo de texto (④).
+  \item Haga clic en \textbf{Enviar reporte} (⑤) para registrar el incidente.
+\end{enumerate}
+
+\begin{advertenciabox}
+\textbf{⚠ Advertencia:} Una vez enviado, el reporte queda registrado en el sistema y es visible para el Administrador. No es posible eliminar un reporte enviado.
+\end{advertenciabox}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Operador -- Notificaciones y Auditoría del Sistema}
+
+\subsection{Centro de Notificaciones}
+
+El módulo de \textbf{Notificaciones} muestra el historial de todos los eventos y cambios registrados en el sistema. Funciona también como Centro de Auditoría para el Administrador.
+
+\textit{Figura 5 -- Centro de Notificaciones y Auditoría del Sistema}
+
+\subsection{Estadísticas del Centro (Figura 5)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Total     & Número total de notificaciones/eventos registrados. \\[4pt]
+  Leídas    & Notificaciones que ya han sido revisadas. \\[4pt]
+  Incidentes & Cantidad de incidentes reportados. \\[4pt]
+  Recientes & Notificaciones generadas en las últimas horas. \\
+\end{longtable}
+
+\subsection{Tipos de Eventos Registrados}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Tipo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  VIAJE (azul)          & Cambios de estado de viajes: Cancelado, Iniciado, Finalizado, Programado. \\[4pt]
+  PASAJERO (verde)      & Registro, modificación o inscripción de pasajeros en viajes. \\[4pt]
+  EMBARCACIÓN (naranja) & Registro de nuevas embarcaciones en el sistema. \\[4pt]
+  TRIPULACIÓN (morado)  & Registro de nuevos miembros de tripulación. \\[4pt]
+  USUARIO (gris)        & Creación, modificación o eliminación de cuentas de usuario. \\[4pt]
+  COMPRA (amarillo)     & Compra de pasajes por parte de pasajeros. \\
+\end{longtable}
+
+\subsection{Filtros Disponibles}
+
+La barra superior permite filtrar notificaciones por categoría: Todos, Viaje, Embarcaciones, Tripulación, Pasajeros, Propietarios, Usuarios, Incidentes.
+
+\subsection{Botones de Acción}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Botón} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Botón} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Actualizar               & Recarga la lista con los eventos más recientes del servidor. \\[4pt]
+  Marcar todos como leídos & Marca todas las notificaciones como revisadas de forma masiva. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Operador -- Configuración}
+
+\subsection{Descripción}
+
+El módulo de \textbf{Configuración} permite al operador ver y gestionar los datos de su perfil, opciones de seguridad y la información de la versión del sistema.
+
+\textit{Figura 6 -- Módulo Configuración (Perfil Operador)}
+
+\subsection{Descripción de Elementos (Figura 6 -- Configuración)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Editar Perfil             & Botón para modificar los datos del usuario activo. \\[4pt]
+  ② Datos del usuario activo  & Nombre completo, correo, rol, último acceso y fecha de registro. \\[4pt]
+  ③ Sección Seguridad         & Incluye: cambiar contraseña e historial de sesiones. \\[4pt]
+  Cambiar contraseña          & Permite actualizar la contraseña de acceso. \\[4pt]
+  Ver historial de sesiones   & Últimas sesiones iniciadas con fecha, hora y dispositivo. \\[4pt]
+  ④ Información del sistema   & Versión del sistema (1.0.0) y fecha de última actualización. \\
+\end{longtable}
+
+\subsection{Pasos para Cambiar la Contraseña}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Haga clic en \textbf{Configuración} en el menú lateral.
+  \item En la sección \textbf{Seguridad}, haga clic en \textbf{Cambiar contraseña}.
+  \item Ingrese la contraseña actual.
+  \item Ingrese la nueva contraseña y confírmela.
+  \item Haga clic en \textbf{Guardar cambios}.
+\end{enumerate}
+
+% ════════════════════════════════════════════════════════════════════════════
+\perfilbanner{PERFIL: ADMINISTRADOR}
+
+\section{Perfil Administrador -- Dashboard Principal}
+
+\subsection{Descripción General}
+
+Una vez autenticado como Administrador, el sistema redirige al \textbf{Dashboard Principal}. Este panel muestra los indicadores clave de la operación fluvial y acceso directo al mapa GPS en tiempo real.
+
+\textit{Figura 7 -- Dashboard Principal de GEONAVAL}
+
+\subsection{Descripción de Elementos (ver Figura 7)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Menú de navegación lateral & Panel izquierdo con acceso a todos los módulos del sistema. \\[4pt]
+  ② Embarcaciones Activas      & KPI con el número de embarcaciones operativas y variación mensual. \\[4pt]
+  ③ Viajes en Curso            & KPI con el número de viajes activos y variación mensual. \\[4pt]
+  ④ Perfil de usuario          & Área superior derecha con nombre, rol y opciones de sesión. \\[4pt]
+  ⑤ Mapa GPS en tiempo real   & Vista del mapa fluvial con posición de embarcaciones activas. \\[4pt]
+  ⑥ Próxima Llegada           & Panel con hora estimada y datos de la siguiente embarcación. \\
+\end{longtable}
+
+\subsection{Indicadores Clave (KPIs)}
+
+Los cuatro KPIs de la parte superior muestran: \textbf{Embarcaciones Activas}, \textbf{Viajes en Curso}, \textbf{Pasajeros Transportados} y \textbf{Alertas Activas}, todos con comparativo frente al mes anterior.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Gestión de Embarcaciones}
+
+El módulo de \textbf{Gestión de Embarcaciones} permite registrar, consultar y administrar todas las embarcaciones fluviales.
+
+\textit{Figura 8 -- Módulo de Gestión de Embarcaciones}
+
+\subsection{Descripción de Elementos (ver Figura 8)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Nueva Embarcación      & Botón para abrir el formulario de registro de una nueva embarcación. \\[4pt]
+  ② KPIs del módulo        & Resumen de totales: registradas, operativas, en mantenimiento y viajes. \\[4pt]
+  ③ Estado: Operativa      & Etiqueta verde --- embarcación disponible para viajes. \\[4pt]
+  ④ Estado: En Mantenimiento & Etiqueta naranja --- embarcación temporalmente fuera de servicio. \\[4pt]
+  ⑤ Ver detalles           & Enlace para consultar toda la información de una embarcación. \\
+\end{longtable}
+
+\subsection{Registrar Nueva Embarcación}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Haga clic en \textbf{+ Nueva Embarcación} (①).
+  \item Complete el formulario: nombre, tipo, propietario y estado inicial.
+  \item Haga clic en \textbf{Guardar} para registrar.
+\end{enumerate}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Gestión de Propietarios}
+
+Este módulo permite administrar el registro de propietarios de embarcaciones, tanto personas naturales como empresas.
+
+\textit{Figura 9 -- Módulo de Gestión de Propietarios}
+
+\subsection{Descripción de Elementos (ver Figura 9)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Nuevo Propietario         & Botón para registrar un nuevo propietario en el sistema. \\[4pt]
+  ② Tipo: Natural / Empresa   & Clasificación del propietario como persona física o jurídica. \\[4pt]
+  ③ Ver / Editar / Eliminar   & Íconos de acción disponibles por cada registro. \\[4pt]
+  ④ Embarcaciones asociadas   & Contador que muestra cuántas embarcaciones tiene cada propietario. \\
+\end{longtable}
+
+\begin{advertenciabox}
+\textbf{⚠ Advertencia:} Al eliminar un propietario esta acción es irreversible. Verifique que no tenga embarcaciones activas antes de proceder.
+\end{advertenciabox}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Gestión de Tripulación}
+
+El módulo de \textbf{Tripulación} permite administrar el personal operativo de las embarcaciones fluviales.
+
+\textit{Figura 10 -- Módulo de Gestión de Tripulación}
+
+\subsection{Descripción de Elementos (ver Figura 10)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Nuevo Tripulante   & Botón para registrar un nuevo miembro de la tripulación. \\[4pt]
+  ② KPIs del módulo    & Total de tripulantes, operadores fluviales, personal auxiliar y activos. \\[4pt]
+  ③ Rol del tripulante & Cargo asignado: Operador Fluvial, Auxiliar de Pasajeros, Motorista, etc. \\[4pt]
+  ④ Estado: Activo     & Etiqueta verde que indica disponibilidad del tripulante. \\[4pt]
+  ⑤ Acciones          & Íconos para Ver, Editar y Eliminar cada registro. \\
+\end{longtable}
+
+\subsection{Registrar Nuevo Tripulante}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Haga clic en \textbf{+ Nuevo Tripulante} (①).
+  \item Complete nombre completo, rol, embarcación asignada y horario.
+  \item Defina el estado inicial (Activo/Inactivo) y haga clic en \textbf{Guardar}.
+\end{enumerate}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Compras y Tickets}
+
+Este módulo centraliza la venta de pasajes y la gestión de tickets de transporte fluvial.
+
+\textit{Figura 11 -- Módulo de Compras y Tickets}
+
+\subsection{Descripción de Elementos (ver Figura 11)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Nueva Compra         & Botón para registrar una nueva venta de ticket. \\[4pt]
+  ② KPIs del módulo      & Ventas del día, total recaudado, tickets confirmados y pendientes. \\[4pt]
+  ③ Barra de búsqueda    & Permite buscar tickets por número, pasajero o documento. \\[4pt]
+  ④ Filtrar por Fecha    & Abre un selector de rango de fechas para filtrar los registros. \\[4pt]
+  ⑤ Exportar            & Descarga el listado de tickets en formato Excel. \\[4pt]
+  ⑥ Estado Confirmado   & Etiqueta azul que indica que el pago ha sido verificado. \\[4pt]
+  ⑦ Estado Pendiente    & Etiqueta amarilla que indica que el ticket aún requiere confirmación. \\
+\end{longtable}
+
+\subsection{Crear Nueva Compra}
+
+\begin{enumerate}[leftmargin=1.5em]
+  \item Haga clic en \textbf{+ Nueva Compra} (①).
+  \item Seleccione el pasajero o regístrelo si es nuevo.
+  \item Elija la ruta, fecha, asiento y método de pago.
+  \item Confirme la transacción para generar el ticket.
+\end{enumerate}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Monitoreo GPS en Tiempo Real}
+
+El módulo de \textbf{Monitoreo GPS} permite hacer seguimiento en tiempo real de las embarcaciones activas sobre el Río Atrato y sus afluentes.
+
+\textit{Figura 12 -- Monitoreo GPS en Tiempo Real}
+
+\subsection{Descripción de Elementos (ver Figura 12)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Indicador EN VIVO           & Punto rojo parpadeante que confirma datos en tiempo real. \\[4pt]
+  ② Embarcación en curso (verde) & Punto verde que representa una embarcación navegando actualmente. \\[4pt]
+  ③ Embarcación programada (azul) & Punto azul que indica un viaje confirmado pendiente de inicio. \\[4pt]
+  ④ Leyenda del mapa            & Guía visual: verde = en curso, azul = programado, naranja = alerta. \\
+\end{longtable}
+
+\begin{notabox}
+\textbf{Nota:} Si una embarcación no aparece en el mapa, es posible que su dispositivo GPS esté apagado o sin señal. Verifique el dispositivo a bordo.
+\end{notabox}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Reportes y Estadísticas}
+
+El módulo de \textbf{Reportes} ofrece herramientas de análisis estadístico para evaluar la operación fluvial por períodos.
+
+\subsection{Filtros y Gráficas}
+
+\textit{Figura 13 -- Reportes: Filtros de Búsqueda y Gráficas Estadísticas}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Filtros de búsqueda  & Fecha Inicio, Fecha Fin, Embarcación, Ruta y Estado para acotar el reporte. \\[4pt]
+  ② Aplicar / Limpiar    & Botones para aplicar los filtros o restablecer valores por defecto. \\[4pt]
+  ③ Viajes/Pasajeros     & Gráfica de líneas con evolución mensual de viajes y pasajeros. \\[4pt]
+  ④ Uso de Embarcaciones & Gráfica de barras con viajes y horas de operación por embarcación. \\[4pt]
+  ⑤ Tooltip interactivo  & Al pasar el cursor sobre la gráfica se muestran los valores exactos del mes. \\
+\end{longtable}
+
+\subsection{Descarga de Reportes}
+
+\textit{Figura 14 -- Reportes: Tipos de Reportes y Descarga}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Tipo de reporte      & Nombre y descripción del reporte (Viajes del Mes, Pasajeros, Rutas, etc.). \\[4pt]
+  ② Descargar PDF        & Descarga el reporte en PDF (solo lectura, ideal para compartir). \\[4pt]
+  ③ Descargar Excel      & Descarga el reporte en Excel (editable, ideal para análisis). \\[4pt]
+  ④ Resumen estadístico  & Total viajes, pasajeros, horas y tasa de finalización del período. \\[4pt]
+  ⑤ Pasajeros totales    & Cifra total de pasajeros transportados en el período seleccionado. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Perfil Administrador -- Configuración del Sistema}
+
+El módulo de \textbf{Configuración} permite gestionar el perfil, notificaciones y seguridad del sistema desde la vista de Administrador.
+
+\textit{Figura 15 -- Módulo de Configuración del Sistema}
+
+\subsection{Descripción de Elementos (ver Figura 15)}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Campo} & \textbf{Descripción} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  ① Editar Perfil              & Botón para modificar los datos del usuario activo. \\[4pt]
+  ② Datos del usuario activo   & Nombre, correo, rol, último acceso y fecha de registro. \\[4pt]
+  ③ Notificaciones activas (✓) & Casillas marcadas para alertas de viajes, GPS y embarcaciones. \\[4pt]
+  ④ Notificación desactivada   & Casilla desmarcada para reportes automáticos (desactivados por defecto). \\[4pt]
+  ⑤ Opciones de Seguridad      & Accesos a: cambiar contraseña, 2FA, dispositivos e historial de sesiones. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Glosario de Términos}
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Término} & \textbf{Definición} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Término} & \textbf{Definición} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Dashboard           & Pantalla principal con indicadores y resúmenes visuales de la operación. \\[4pt]
+  Embarcación         & Cualquier nave fluvial registrada: ferry, lancha, bote, etc. \\[4pt]
+  GPS                 & Sistema de Posicionamiento Global. Permite rastrear la ubicación de las embarcaciones. \\[4pt]
+  KPI                 & Indicador Clave de Rendimiento. Métrica para evaluar el desempeño del sistema. \\[4pt]
+  Monitoreo en tiempo real & Seguimiento continuo y actualizado de posición y estado de embarcaciones. \\[4pt]
+  Propietario         & Persona natural o jurídica dueña de una o más embarcaciones registradas. \\[4pt]
+  Ticket              & Documento digital que representa el derecho de un pasajero a viajar. \\[4pt]
+  Tripulación         & Personal operativo de una embarcación: operadores, auxiliares, motoristas. \\[4pt]
+  Zarpe               & Autorización formal para que una embarcación parta hacia su destino. \\[4pt]
+  Ruta fluvial        & Trayecto definido por el río que une dos puntos (origen y destino). \\[4pt]
+  NIT                 & Número de Identificación Tributaria. Código fiscal de empresas en Colombia. \\[4pt]
+  Alerta              & Notificación ante una situación anormal: desviación de ruta, fallo GPS, etc. \\[4pt]
+  Tracking            & Proceso de envío continuo de coordenadas GPS desde el dispositivo del operador. \\[4pt]
+  Incidente           & Evento registrado por el operador: retraso, avería, emergencia u otra situación. \\[4pt]
+  Auditoría           & Registro cronológico de todas las acciones realizadas en el sistema. \\
+\end{longtable}
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Preguntas Frecuentes (FAQ)}
+
+\subsubsection*{¿Qué hago si olvidé mi contraseña?}
+En la pantalla de inicio de sesión, haga clic en el enlace \textit{``¿Olvidaste tu contraseña?''}. El sistema enviará un correo con instrucciones para restablecerla.
+
+\subsubsection*{¿Por qué no aparece una embarcación en el mapa GPS?}
+Puede deberse a que su dispositivo GPS está apagado, sin señal, o fuera del rango de cobertura. Verifique el dispositivo a bordo.
+
+\subsubsection*{¿Por qué el operador no puede iniciar el tracking?}
+El Administrador debe cambiar el estado del viaje a \textbf{`En Curso'} antes de que el operador pueda seleccionar el viaje e iniciar el tracking GPS.
+
+\subsubsection*{¿Cómo exporto un reporte en Excel?}
+En el módulo de Reportes, seleccione el tipo de reporte deseado y haga clic en el botón \textbf{Excel} (verde). El archivo se descargará automáticamente.
+
+\subsubsection*{¿Puedo eliminar un propietario que tiene embarcaciones asociadas?}
+No se recomienda. Antes de eliminar un propietario, reasigne o elimine sus embarcaciones. El sistema puede impedir la eliminación si detecta registros activos relacionados.
+
+\subsubsection*{¿Cómo sé si un ticket está confirmado?}
+En el módulo de Compras y Tickets (o en la tabla de pasajeros del Operador), la columna \textbf{Estado} muestra \textit{Confirmado} en azul o \textit{Pendiente} en amarillo.
+
+\subsubsection*{¿Quién puede acceder al módulo de Configuración?}
+Todos los perfiles acceden a Configuración, pero el Administrador tiene opciones adicionales de seguridad (2FA, dispositivos confiables) que no están disponibles para el Operador.
+
+\subsubsection*{¿Cómo reporto un incidente durante un viaje?}
+Haga clic en \textbf{Reportar Incidente} en el menú lateral, complete el formulario con tipo, severidad y descripción, y haga clic en \textbf{Enviar reporte}.
+
+% ════════════════════════════════════════════════════════════════════════════
+\section{Contacto y Soporte Técnico}
+
+Para soporte técnico, reportes de errores o consultas sobre el sistema GEONAVAL, comuníquese a través de los siguientes canales:
+
+\begin{longtable}{LR}
+  \toprule
+  \textbf{Canal} & \textbf{Detalle} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textbf{Canal} & \textbf{Detalle} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Teléfono           & +57 (4) 670-1234 \\[4pt]
+  Correo electrónico & \href{mailto:info@geonaval.gov.co}{info@geonaval.gov.co} \\[4pt]
+  Dirección          & Calle Principal \#10-20, Quibdó, Chocó, Colombia \\[4pt]
+  Horario de atención & Lunes a Viernes: 8:00 AM -- 6:00 PM \quad|\quad Sábado: 8:00 AM -- 12:00 PM \\[4pt]
+  Emergencias GPS    & Disponible 24/7 para incidentes críticos de monitoreo \\[4pt]
+  URL del sistema    & \url{https://geonaval.onrender.com} \\
+\end{longtable}
+
+\vspace{1em}
+\begin{notabox}
+\textbf{Nota:} GEONAVAL es un Sistema Oficial autorizado por la Capitanía del Puerto. Versión 1.0.0 -- Mayo 2026. Todos los derechos reservados.\\
+\copyright{} 2026 GEONAVAL -- Sistema de Control del Transporte Fluvial.
+\end{notabox}
+
+\vfill
+\begin{center}
+  \small Quibdó, Chocó -- Colombia \quad|\quad Versión 1.0.0 -- Mayo 2026
+\end{center}
+
+\end{document}
