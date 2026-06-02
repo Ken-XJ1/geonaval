@@ -403,13 +403,11 @@ function WizardCompra({ viajesDisponibles, onFinalizar, onCancelar }: {
   // Cargar asientos ocupados cuando se selecciona un viaje
   useEffect(() => {
     if (viajeId) {
-      console.log('🔍 Cargando asientos ocupados para viaje:', viajeId);
       api.getViajePasajeros(parseInt(viajeId))
         .then((pasajeros: any[]) => {
           const ocupados = pasajeros
             .map((p: any) => p.asiento)
             .filter((a: string) => a && a.trim());
-          console.log('🔍 Asientos ocupados:', ocupados);
           setAsientosOcupados(ocupados);
         })
         .catch(err => {
